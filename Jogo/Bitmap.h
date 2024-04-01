@@ -296,5 +296,79 @@ struct Bitmap
 		}
 	}
 
+	void DrawCircle(s32 cx, s32 cy, s32 r, u32 color)
+	{
+		s32 f = 1 - r;
+		s32 ddx = 0;
+		s32 ddy = -2 * r;
+		s32 x = 0;
+		s32 y = r;
+
+		SetPixel(cx, cy + r, color);
+		SetPixel(cx, cy - r, color);
+		SetPixel(cx + r, cy, color);
+		SetPixel(cx - r, cy, color);
+
+		while (x < y)
+		{
+			if (f >= 0)
+			{
+				y--;
+				ddy += 2;
+				f += ddy;
+			}
+			x++;
+			ddx += 2;
+			f += ddx + 1;
+			if (x <= y)
+			{
+				SetPixel(cx + x, cy + y, color);
+				SetPixel(cx - x, cy + y, color);
+				SetPixel(cx + x, cy - y, color);
+				SetPixel(cx - x, cy - y, color);
+			}
+			if (x < y)
+			{
+				SetPixel(cx + y, cy + x, color);
+				SetPixel(cx - y, cy + x, color);
+				SetPixel(cx + y, cy - x, color);
+				SetPixel(cx - y, cy - x, color);
+			}
+		}
+	}
+
+	void FillCircle(s32 cx, s32 cy, s32 r, u32 color)
+	{
+		s32 f = 1 - r;
+		s32 ddx = 0;
+		s32 ddy = -2 * r;
+		s32 x = 0;
+		s32 y = r;
+
+		DrawHLine(cy, cx - r, cx + r, color);
+		while (x < y)
+		{
+			if (f >= 0)
+			{
+				if (x <= y)
+				{
+					DrawHLine(cy - y, cx - x, cx + x, color);
+					DrawHLine(cy + y, cx - x, cx + x, color);
+				}
+				y--;
+				ddy += 2;
+				f += ddy;
+			}
+			x++;
+			ddx += 2;
+			f += ddx + 1;
+			if (x <= y)
+			{
+				DrawHLine(cy - x, cx - y, cx + y, color);
+				DrawHLine(cy + x, cx - y, cx + y, color);
+			}
+		}
+	}
+
 	static Bitmap Load(const char* filename, Arena& arena);
 };
