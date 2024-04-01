@@ -1,9 +1,10 @@
 #include "Jogo.h"
 #include "Bitmap.h"
 #include "Font.h"
-#include "Arena.h""
+#include "Arena.h"
+#include <math.h>
 
-struct Point
+struct PointF
 {
 	float x;
 	float y;
@@ -13,11 +14,11 @@ class Curves : public Jogo::JogoApp
 {
 	static const char* Name;
 	static const u32 MAX_POINTS = 100;
-	Point Points[MAX_POINTS];
+	PointF Points[MAX_POINTS];
 	bool Done = false;
 	bool Dragging = false;
-	Point Down;
-	Point Up;
+	PointF Down = { 0,0 };
+	PointF Up = { 0,0 };
 	u32 NumPoints;
 
 public:
@@ -68,6 +69,13 @@ public:
 		DefaultFont.DrawText(0,0,"Curves", 0xffffff, BackBuffer);
 		if (Dragging)
 		{
+			//float dx = Up.x - Down.x;
+			//float dy = Up.y - Down.y;
+			//float R = sqrtf(dx * dx + dy * dy);
+			//BackBuffer.DrawCircle((s32)Down.x, (s32)Down.y, (s32)R, 0x00ff00);
+			BackBuffer.FillCircle((s32)Down.x, (s32)Down.y, 5, 0xff0000);
+			BackBuffer.FillCircle((s32)Up.x, (s32)Up.y, 5, 0xff0000);
+
 			BackBuffer.DrawLine((s32)Down.x, (s32)Down.y, (s32)Up.x, (s32)Up.y, 0xffffff);
 		}
 		Jogo::Show(BackBuffer.PixelBGRA, Width, Height);
