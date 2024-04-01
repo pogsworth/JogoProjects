@@ -7,7 +7,6 @@
 class TetrisGame : public Jogo::JogoApp
 {
 	static const char* Name;
-	Bitmap BackBuffer;
 
 	struct Tetromino
 	{
@@ -93,8 +92,7 @@ class TetrisGame : public Jogo::JogoApp
 
 	static const size_t GameArenaSize = 128 * 1024 * 1024;
 	Arena GameArena;
-	Bitmap TestBitmap;
-	Font DefaultFont;
+	Bitmap TestBitmap; 
 	Jogo::Random RandomNumber;
 	Jogo::Timer GameTimer;
 	char LastChar[2] = {};
@@ -104,12 +102,7 @@ public:
 	{
 		RandomNumber.State = (u32)GameTimer.Start();
 		GameArena = Arena::Create(GameArenaSize);
-		BackBuffer.Width = Width;
-		BackBuffer.Height = Height;
-		BackBuffer.PixelSize = 4;
-		BackBuffer.Pixels = Jogo::Allocate(Width * Height * 4);
 		TestBitmap = Bitmap::Load("tetrisback.bmp", GameArena);
-		DefaultFont = Font::Load("../Jogo/Font16.fnt", GameArena);
 		ShuffleNextList();
 		CurrentPiece = NextPieceList[CurrentPieceIndex]; 
 		UI::Init(BackBuffer, DefaultFont);
