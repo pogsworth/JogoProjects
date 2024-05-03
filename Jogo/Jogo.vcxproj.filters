@@ -44,5 +44,11 @@
     <ClInclude Include="UI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="int_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JMath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
