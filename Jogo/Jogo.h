@@ -3,6 +3,7 @@
 #include "Arena.h"
 #include "Bitmap.h"
 #include "Font.h"
+#include "JMath.h"
 
 namespace Jogo
 {
@@ -33,6 +34,7 @@ namespace Jogo
 		virtual void MouseDown(s32 x, s32 y, u32 buttons) {}
 		virtual void MouseUp(s32 x, s32 y, u32 buttons) {}
 		virtual void MouseMove(s32 x, s32 y, u32 buttons) {}
+		virtual void MouseWheel(s32 wheelScroll) {}
 
 		static int KEY_LEFT;
 		static int KEY_RIGHT;

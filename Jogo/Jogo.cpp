@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <timeapi.h>
 #include "Jogo.h"
+//#include "JMath.h"
 
 namespace Jogo
 {
@@ -53,6 +54,11 @@ namespace Jogo
 		case WM_MOUSEMOVE:
 			if (app)
 				app->MouseMove((s16)LOWORD(lParam), (s16)HIWORD(lParam), (u32)wParam);
+			break;
+
+		case WM_MOUSEWHEEL:
+			if (app)
+				app->MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 
 		case WM_DESTROY:
