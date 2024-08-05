@@ -105,6 +105,8 @@ namespace Jogo
 			: input;
 	}
 
+
+
 	Timer::Timer()
 	{
 		if (!Frequency)
@@ -199,7 +201,7 @@ namespace Jogo
 					}
 					// message pump
 					MSG msg = {};
-					while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
+					while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE) > 0)
 					{
 						TranslateMessage(&msg);
 						DispatchMessage(&msg);
