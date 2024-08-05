@@ -70,13 +70,80 @@ def cosine(x):
     if a == 3: return sinp(r)
     return cosp(x)
 
+ROOT2 = np.sqrt(2.0)
+
+def arctan2(x):
+    coef3 = -0.333358505
+    coef5 = 0.19639035
+    coef7 = -0.210519684
+    coef9 = -0.0198107368
+    xx = x*x
+    return x + x * xx * (coef3 + xx *(coef5 + xx *(coef7 + xx * coef9)))
+
+def arctan1(x):
+    if x > ROOT2 -1:
+        return np.pi/4 - arctan2((1-x)/(1+x))
+    else:
+        return arctan2(x)
+    
+def arctan0(x):
+    if x > 1:
+        return np.pi/2 - arctan1(1/x)
+    else:
+        return arctan1(x)
+
+def arctan_old(x):
+    if x < 0:
+        return -arctan0(-x)
+    else:
+        return arctan0(x)
+
+def arctan(x):
+    b = np.pi/6
+    k = 0.577350269     # tan pi/6 (root3/3)
+    b0 = b/2
+    k0 = 0.26794919     # tan pi/12
+    A = 0.999999020228907
+    B = 0.257977658811405
+    C = 0.59120450521312
+    neg = False
+    if x < 0:
+        neg = True
+        x = abs(x)
+    
+    comp = False
+    if x > 1:
+        comp = True
+        x = 1/x
+    
+    hiseg = False
+    if x > k0:
+        hiseg = True
+        x = (x-k)/(1+k*x)
+    
+    xx = x*x
+    a = x*(A + B*xx) / (1 + C*xx)
+
+    if hiseg:
+        a += b
+    
+    if comp:
+        a = np.pi /2 - a
+
+    if neg:
+        a = -a
+    
+    return a
+
 def main():
     #matplotlib.use('svg')
-    showplots(np.sin, [sine], -4*np.pi, 4*np.pi,"sine_error.svg")
-    showplots(np.cos, [cosine], -4*np.pi, 4*np.pi,"cosine_error.svg")
-    print(sine(np.pi/4))
-    print(cosine(np.pi/4))
-    print(sine(np.pi/4)-cosine(np.pi/4))
+#    showplots(np.sin, [sine], -4*np.pi, 4*np.pi,"sine_error.svg")
+#    showplots(np.cos, [cosine], -4*np.pi, 4*np.pi,"cosine_error.svg")
+    # print(sine(np.pi/4))
+    # print(cosine(np.pi/4))
+    # print(sine(np.pi/4)-cosine(np.pi/4))
+    showplots(np.arctan, [arctan], -4, 4, "arctan_error.svg")
+    print(arctan(-1.5))
 
 if __name__ == '__main__':
     main()
