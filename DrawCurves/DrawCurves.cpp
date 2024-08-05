@@ -2,6 +2,8 @@
 #include "Bitmap.h"
 #include "Font.h"
 #include "Arena.h"
+#include <stdio.h>
+#include <string.h>
 
 struct PointF
 {
@@ -73,6 +75,18 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
+		char output[32];
+		float num = 623.456f;
+		for (s32 i = 1; i < 32; i++)
+		{
+			Jogo::ftoa(num, output, -1);
+			printf("%s\n", output);
+			num += 1.0f;
+			if (i % 10 == 0)
+			{
+				num *= 10;
+			}
+		}
 		return Done;
 	}
 
@@ -82,9 +96,9 @@ public:
 		{
 			for (u32 i = 0; i < NumPoints-1; i++)
 			{
-				float t0 = i;
-				float t1 = i + 1;
-				float t2 = i + 2;
+				float t0 = (float)i;
+				float t1 = (float)(i + 1);
+				float t2 = (float)(i + 2);
 				PointF p0 = Points[i];
 				PointF p1 = Points[i + 1];
 				PointF p2 = Points[i + 2];
@@ -100,7 +114,7 @@ public:
 						p1.y * (t0 - t) * (t2 - t) / ((t0 - t1) * (t2 - t1)) +
 						p2.y * (t0 - t) * (t1 - t) / ((t0 - t2) * (t1 - t2));
 
-					BackBuffer.DrawLine(x1, y1, x2, y2, 0xff00ff);
+					BackBuffer.DrawLine((s32)x1, (s32)y1, (s32)x2, (s32)y2, 0xff00ff);
 					x1 = x2;
 					y1 = y2;
 				}
@@ -143,6 +157,26 @@ const char* Curves::Name = "Curves";
 int main(int argc, char* argv[])
 {
 	Curves curves;
-	Jogo::Run(curves, 60);
+//	Jogo::Run(curves, 60);
+//	float i = 0.31415926f;
+	float t = .999999f;
+	u32 p = 2;
+	// ftoa and ithex testing code
+	for (s32 j = 0; j < 100; j++)
+	{
+//		for (s32 i = 0; i < 10; i ++)
+		{
+			float f = (float)j * 100.0f;	// t* Jogo::intpow(10.0f, j - 38);	// *(float)i;
+			char ftoa_result[32];
+			Jogo::ftoa(f, ftoa_result, sizeof(ftoa_result), p);
+			Jogo::itohex(j, ftoa_result, sizeof(ftoa_result), 2);
+			float output = (float)atof(ftoa_result);
+			//if (f != output)
+			{
+				printf("%s: %.*g\n", ftoa_result,p,f);
+				//printf("%s: %g - %g\n", ftoa_result, i, output);
+			}
+		}
+	}
 	return 0;
 }
