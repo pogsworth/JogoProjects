@@ -215,7 +215,7 @@ public:
 	}
 
 	// TODO: move to text processing helpers
-	char* itoa(s32 number, char* string)
+	s32 itoa(s32 number, char* string)
 	{
 		s32 n = abs(number);
 		char* p = string;
@@ -226,6 +226,7 @@ public:
 		} while (n);
 		if (number < 0)
 			*p++ = '-';
+		s32 len = (s32)(p - string);
 		*p-- = 0;
 		char* b = string;
 		while (b < p)
@@ -234,7 +235,7 @@ public:
 			*b++ = *p;
 			*p = s;
 		}
-		return string;
+		return len;
 	}
 
 	void ShuffleNextList()
@@ -253,9 +254,8 @@ public:
 		char* p = PieceList;
 		for (u32 i = 0; i < 7; i++)
 		{
-			p = itoa(NextPieceList[i], p);
-			while (*p)
-				p++;
+			u32 len = itoa(NextPieceList[i], p);
+			p += len;
 			*p++ = ',';
 			*p++ = ' ';
 		}
