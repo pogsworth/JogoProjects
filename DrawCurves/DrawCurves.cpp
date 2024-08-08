@@ -162,20 +162,26 @@ int main(int argc, char* argv[])
 	float t = .999999f;
 	u32 p = 2;
 	// ftoa and ithex testing code
+	Jogo::Random rand = { 12345 };
 	for (s32 j = 0; j < 100; j++)
 	{
-//		for (s32 i = 0; i < 10; i ++)
+		u32 d = 0;
+		for (s32 i = 0; i < 3; i++)
 		{
-			float f = (float)j * 100.0f;	// t* Jogo::intpow(10.0f, j - 38);	// *(float)i;
-			char ftoa_result[32];
-			Jogo::ftoa(f, ftoa_result, sizeof(ftoa_result), p);
-			Jogo::itohex(j, ftoa_result, sizeof(ftoa_result), 2);
-			float output = (float)atof(ftoa_result);
-			//if (f != output)
-			{
-				printf("%s: %.*g\n", ftoa_result,p,f);
-				//printf("%s: %g - %g\n", ftoa_result, i, output);
-			}
+			d *= 10;
+			d += rand.GetNext() % 10;
+		}
+		s32 e = rand.GetNext() % 60 - 30;
+
+		float f = (float)d / 100.f * Jogo::intpow(10.0f, e);	// *(float)i;
+		char ftoa_result[32];
+		Jogo::ftoa(f, ftoa_result, sizeof(ftoa_result), p);
+		//Jogo::itohex(j, ftoa_result, sizeof(ftoa_result), 2);
+		float output = (float)atof(ftoa_result);
+		//if (f != output)
+		{
+			printf("%s: %.*g\n", ftoa_result,p,f);
+			//printf("%s: %g - %g\n", ftoa_result, i, output);
 		}
 	}
 	return 0;

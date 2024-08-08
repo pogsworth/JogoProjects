@@ -42,6 +42,8 @@ namespace Jogo
 		static int KEY_DOWN;
 		static int KEY_ESC;
 		static int KEY_ENTER;
+		static int KEY_TAB;
+		static int KEY_BACKSPACE;
 		static int BUTTON_LEFT;
 		static int BUTTON_RIGHT;
 		static int BUTTON_MIDDLE;

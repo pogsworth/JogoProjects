@@ -214,30 +214,6 @@ public:
 		return LinesRemoved;
 	}
 
-	// TODO: move to text processing helpers
-	s32 itoa(s32 number, char* string)
-	{
-		s32 n = abs(number);
-		char* p = string;
-		do
-		{
-			*p++ = n % 10 + '0';
-			n /= 10;
-		} while (n);
-		if (number < 0)
-			*p++ = '-';
-		s32 len = (s32)(p - string);
-		*p-- = 0;
-		char* b = string;
-		while (b < p)
-		{
-			char s = *b;
-			*b++ = *p;
-			*p = s;
-		}
-		return len;
-	}
-
 	void ShuffleNextList()
 	{
 		for (u32 i = 0; i < 6; i++)
@@ -254,7 +230,7 @@ public:
 		char* p = PieceList;
 		for (u32 i = 0; i < 7; i++)
 		{
-			u32 len = itoa(NextPieceList[i], p);
+			u32 len = Jogo::itoa(NextPieceList[i], p, sizeof(PieceList));
 			p += len;
 			*p++ = ',';
 			*p++ = ' ';
@@ -267,6 +243,11 @@ public:
 
 	void KeyDown(u32 key) override
 	{
+		if (UI::CaptureID)
+		{
+			UI::KeyDown(key);
+			return;
+		}
 		LastChar[0] = key;
 		if (!GameOver)
 		{
@@ -503,8 +484,8 @@ public:
 		// TODO: move to debug section
 		char X[16] = {};
 		char Y[16] = {};
-		itoa(mouseX + deltaX, X);
-		itoa(mouseY + deltaY, Y);
+		Jogo::itoa(mouseX + deltaX, X, sizeof(X));
+		Jogo::itoa(mouseY + deltaY, Y, sizeof(Y));
 
 		DefaultFont.DrawText(0, 16, X, 0, BackBuffer);
 		DefaultFont.DrawText(0, 32, Y, 0, BackBuffer);
@@ -561,6 +542,9 @@ public:
 					*d++ = *p++;
 			}
 		}
+		char buffer[256] = "Test";
+		const char* newstring = UI::EditBox(buffer);
+		Jogo::copystring(newstring, buffer, UI::stringlength(newstring), sizeof(buffer));
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
 
 #ifdef DEBUG_UI
@@ -572,8 +556,8 @@ public:
 		DefaultFont.DrawText(0, 240, ActiveID, 0, BackBuffer);
 		HotIDString[0] = 0;
 		ActiveIDString[0] = 0;
-		itoa(UI::HotID&0xfff, HotIDString);
-		itoa(UI::ActiveID&0xfff, ActiveIDString);
+		Jogo::itoa(UI::HotID&0xfff, HotIDString, sizeof(HotIDString));
+		Jogo::itoa(UI::ActiveID&0xfff, ActiveIDString, sizeof(ActiveIDString));
 		DefaultFont.DrawText(70, 220, HotIDString, 0, BackBuffer);
 		DefaultFont.DrawText(100, 240, ActiveIDString, 0, BackBuffer);
 #endif // DEBUG_UI

@@ -276,6 +276,8 @@ namespace Jogo
 	int JogoApp::KEY_DOWN = VK_DOWN;
 	int JogoApp::KEY_ESC = VK_ESCAPE;
 	int JogoApp::KEY_ENTER = VK_RETURN;
+	int JogoApp::KEY_BACKSPACE = VK_BACK;
+	int JogoApp::KEY_TAB = VK_TAB;
 	int JogoApp::BUTTON_LEFT = VK_LBUTTON;
 	int JogoApp::BUTTON_RIGHT = VK_RBUTTON;
 	int JogoApp::BUTTON_MIDDLE = VK_MBUTTON;

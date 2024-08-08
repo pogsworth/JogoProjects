@@ -12,9 +12,12 @@ namespace UI
 	u32 NextID = FirstID;
 	u32 HotID = 0;
 	u32 ActiveID = 0;
+	u32 CaptureID = 0;
+	u32 UncaptureID = 0;
 	s32 CursorX;
 	s32 CursorY;
 	u32 ButtonColor = 0x808080;
+	u32 LabelColor = 0x404040;
 	u32 HotColor = 0xa0a0a0;
 	u32 HiLight = 0xc0c0c0;
 	u32 LoLight = 0x404040;
@@ -24,11 +27,67 @@ namespace UI
 	u32 LoColor;
 	u32 Black = 0;
 	u32 White = 0xffffff;
+	char EditBuffer[256];
+	u32 InsertionPoint = 0;
+	// TODO: establish default widths of controls?
+	// or require that rects be passed in to establish sizes
+	// or follow some kind of layout rules establed by BeginFrame
+
+	inline u32 stringlength(const char* src)
+	{
+		const char* s = src;
+		while (*s) s++;
+		return (u32)(s - src);
+	}
 
 	void Init(Bitmap& InTarget, Font InDefaultFont)
 	{
 		Target = InTarget;
 		DefaultFont = InDefaultFont;
+		// override input handler during capture
+	}
+
+	void KeyDown(u32 key)
+	{
+		if (key == Jogo::JogoApp::KEY_BACKSPACE)
+		{
+			if (InsertionPoint > 0)
+			{
+				EditBuffer[InsertionPoint--] = 0;
+			}
+		}
+		if (key == Jogo::JogoApp::KEY_LEFT)
+		{
+			if (InsertionPoint > 0)
+			{
+				InsertionPoint--;
+			}
+		}
+		if (key == Jogo::JogoApp::KEY_RIGHT)
+		{
+			if (EditBuffer[InsertionPoint] != 0)
+			{
+				InsertionPoint++;
+			}
+		}
+		if (key >= 32 && key < 128 && InsertionPoint < sizeof(EditBuffer))
+		{
+			if (EditBuffer[InsertionPoint] != 0)
+			{
+				// move all characters down to make room for current character
+				char* s = EditBuffer + InsertionPoint;
+				char* p = s;
+				while (*p && p - EditBuffer < sizeof(EditBuffer)) p++;
+				while (p > s) *p-- = p[-1];
+			}
+			EditBuffer[InsertionPoint++] = key;
+
+		}
+		if (key == Jogo::JogoApp::KEY_ENTER || key == Jogo::JogoApp::KEY_TAB)
+		{
+			UncaptureID = CaptureID;
+			CaptureID = 0;
+		}
 	}
 
 	u32 GetID()
@@ -121,7 +180,92 @@ namespace UI
 		return clicked;
 	}
 
+	void DrawLabel(Bitmap::Rect& r, const char* Text)
+	{
+		u32 LabelID = GetID();
+
+		Target.FillRect(r, CurrentColor);
+		Target.DrawHLine(CursorY, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawHLine(CursorY + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(CursorX, r.y, r.y + r.h - 1, LoColor);
+		Target.DrawVLine(CursorX + r.w, r.y, r.y + r.h - 1, LoColor);
+
+		DefaultFont.DrawText(CursorX + 4, CursorY + 4, Text, TextColor, UI::Target);
+	}
+
+	void Label(const char* Text)
+	{
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
+		TextSize.x = CursorX;
+		TextSize.y = CursorY;
+		TextSize.w += 8;
+		TextSize.h += 8;
+		CurrentColor = LabelColor;
+		HiColor = HiLight;
+ 
+		DrawLabel(TextSize, Text);
+
+		CursorY += TextSize.h + 1;
+	}
+
+	void DrawEditBox(Bitmap::Rect& r, const char* Text)
+	{
+		Target.FillRect(r, CurrentColor);
+		Target.DrawHLine(CursorY, r.x, r.x + r.w - 1, HiColor);
+		Target.DrawHLine(CursorY + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(CursorX, r.y, r.y + r.h - 1, HiColor);
+		Target.DrawVLine(CursorX + r.w, r.y, r.y + r.h - 1, LoColor);
+		DefaultFont.DrawText(CursorX + 4, CursorY + 4, Text, TextColor, UI::Target);
+	}
+
+	const char* EditBox(const char* Text)
+	{
+		u32 EditID = GetID();
+		int x, y;
+		Jogo::GetMousePos(x, y);
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize("DefaultSize");
+		const char* result = Text;
+
+		if (Text)
+		{
+			TextSize = DefaultFont.GetTextSize(Text);
+		}
+		TextSize.x = CursorX;
+		TextSize.y = CursorY;
+		TextSize.w += 8;
+		TextSize.h += 8;
+
+		if (!CaptureID)
+		{
+			if (Interact(EditID, TextSize, x, y))
+			{
+				CaptureID = EditID;
+				u32 TextLen = stringlength(Text);
+				Jogo::copystring(Text, EditBuffer, TextLen, sizeof(EditBuffer));
+				InsertionPoint = TextLen;
+			}
+		}
+		if (CaptureID == EditID || UncaptureID == EditID)
+		{
+			// draw the current EditBuffer
+			DrawEditBox(TextSize, EditBuffer);
+			// draw the current insertion point
+			// and manage to blink it...
+			result = EditBuffer;
+			UncaptureID = 0;
+		}
+		else
+		{
+			DrawEditBox(TextSize, Text);
+		}
+
+		return result;
+
+		CursorY += TextSize.h + 1;
+	}
+
 	// need to pass in input state to BeginFrame
+	// TODO: reset and establish layout rules within this frame
 	void BeginFrame(Bitmap::Rect Frame)
 	{
 		NextID = FirstID;

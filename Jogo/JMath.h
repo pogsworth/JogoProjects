@@ -11,6 +11,26 @@ namespace Jogo
 		return x >= 0 ? x : -x;
 	}
 
+#ifdef min
+#undef min
+#endif
+
+	template<typename T>
+	T min(T x, T y)
+	{
+		return x <= y ? x : y;
+	}
+
+#ifdef max
+#undef max
+#endif
+
+	template<typename T>
+	T max(T x, T y)
+	{
+		return x >= y ? x : y;
+	}
+
 	inline s32 itoa(s32 number, char* string, u32 maxstring)
 	{
 		u32 n = abs(number);
@@ -91,12 +111,15 @@ namespace Jogo
 		return result;
 	}
 
-	inline void copystring(const char* src, char* dst, u32 len)
+	inline u32 copystring(const char* src, char* dst, u32 len, u32 destmax)
 	{
-		for (u32 i = 0; i < len; i++)
+		u32 num = min(len, destmax);
+		for (u32 i = 0; i < num; i++)
 		{
 			*dst++ = *src++;
 		}
+		*dst = 0;
+		return num;
 	}
 
 	inline float floor(float n)
@@ -197,7 +220,7 @@ namespace Jogo
 			{
 				if (sizeof(nan) <= maxstring)
 				{
-					copystring(nan, string, sizeof(nan));
+					copystring(nan, string, sizeof(nan), sizeof(nan));
 					charsprinted = sizeof(nan);
 				}
 				return charsprinted;
@@ -206,7 +229,7 @@ namespace Jogo
 			{
 				if (charsprinted + sizeof(inf) <= maxstring)
 				{
-					copystring(inf, dest, sizeof(inf));
+					copystring(inf, dest, sizeof(inf), sizeof(inf));
 					charsprinted += sizeof(inf);
 				}
 				return charsprinted;
@@ -219,7 +242,7 @@ namespace Jogo
 			// TODO: handle denormals here, this may require checking for 0 exponent field
 			if (charsprinted + sizeof(zero) <= maxstring)
 			{
-				copystring(zero, dest, sizeof(zero));
+				copystring(zero, dest, sizeof(zero), sizeof(zero));
 				charsprinted += sizeof(zero);
 			}
 			return charsprinted;
