@@ -18,6 +18,8 @@ namespace UI
 	s32 CursorY;
 	u32 ButtonColor = 0x808080;
 	u32 LabelColor = 0x404040;
+	u32 EditColor = 0x303030;
+	u32 EditColorActive = 0x000000;
 	u32 HotColor = 0xa0a0a0;
 	u32 HiLight = 0xc0c0c0;
 	u32 LoLight = 0x404040;
@@ -29,6 +31,10 @@ namespace UI
 	u32 White = 0xffffff;
 	char EditBuffer[256];
 	u32 InsertionPoint = 0;
+	s32 RadioButtonGroupStart = -1;
+	s32 RadioButtonGroupWidth;
+	u32 RadioChoice = -1;
+	u32 CurrentRadio = -1;
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
 	// or follow some kind of layout rules establed by BeginFrame
@@ -47,13 +53,52 @@ namespace UI
 		// override input handler during capture
 	}
 
+	void Char(u32 character)
+	{
+		if (character >= 32 && character < 128 && InsertionPoint < sizeof(EditBuffer))
+		{
+			if (EditBuffer[InsertionPoint] != 0)
+			{
+				// move all characters down to make room for current character
+				char* s = EditBuffer + InsertionPoint;
+				char* p = s;
+				while (*p && p - EditBuffer < sizeof(EditBuffer)) p++;
+				while (p > s) *p-- = p[-1];
+			}
+			bool IsEnd = EditBuffer[InsertionPoint] == 0;
+			EditBuffer[InsertionPoint++] = character;
+			if (IsEnd)
+			{
+				EditBuffer[InsertionPoint] = 0;
+			}
+		}
+	}
+
 	void KeyDown(u32 key)
 	{
 		if (key == Jogo::JogoApp::KEY_BACKSPACE)
 		{
 			if (InsertionPoint > 0)
 			{
-				EditBuffer[InsertionPoint--] = 0;
+				InsertionPoint--;
+				char* p = EditBuffer + InsertionPoint;
+				while (*p)
+				{
+					*p = p[1];
+					p++;
+				}
+			}
+		}
+		if (key == Jogo::JogoApp::KEY_DELETE)
+		{
+			char* p = EditBuffer + InsertionPoint;
+			if (*p)
+			{
+				do
+				{
+					*p = p[1];
+					p++;
+				} while (p[-1]);
 			}
 		}
 		if (key == Jogo::JogoApp::KEY_LEFT)
@@ -70,18 +115,16 @@ namespace UI
 				InsertionPoint++;
 			}
 		}
-		if (key >= 32 && key < 128 && InsertionPoint < sizeof(EditBuffer))
+		if (key == Jogo::JogoApp::KEY_HOME)
 		{
-			if (EditBuffer[InsertionPoint] != 0)
+			InsertionPoint = 0;
+		}
+		if (key == Jogo::JogoApp::KEY_END)
+		{
+			while (EditBuffer[InsertionPoint] != 0)
 			{
-				// move all characters down to make room for current character
-				char* s = EditBuffer + InsertionPoint;
-				char* p = s;
-				while (*p && p - EditBuffer < sizeof(EditBuffer)) p++;
-				while (p > s) *p-- = p[-1];
+				InsertionPoint++;
 			}
-			EditBuffer[InsertionPoint++] = key;
-
 		}
 		if (key == Jogo::JogoApp::KEY_ENTER || key == Jogo::JogoApp::KEY_TAB)
 		{
@@ -235,6 +278,7 @@ namespace UI
 		TextSize.w += 8;
 		TextSize.h += 8;
 
+		CurrentColor = EditColor;
 		if (!CaptureID)
 		{
 			if (Interact(EditID, TextSize, x, y))
@@ -247,9 +291,16 @@ namespace UI
 		}
 		if (CaptureID == EditID || UncaptureID == EditID)
 		{
+			CurrentColor = EditColorActive;
 			// draw the current EditBuffer
 			DrawEditBox(TextSize, EditBuffer);
 			// draw the current insertion point
+			char PartialText[256];
+			Jogo::copystring(EditBuffer, PartialText, InsertionPoint, sizeof(PartialText));
+			Bitmap::Rect PartialSize = DefaultFont.GetTextSize(PartialText);
+			s32 CaretX = TextSize.x + PartialSize.w + 4;
+			s32 CaretY = TextSize.y+2;
+			Target.DrawLine(CaretX, CaretY, CaretX, CaretY + PartialSize.h + 2, 0xff0000);
 			// and manage to blink it...
 			result = EditBuffer;
 			UncaptureID = 0;
@@ -259,11 +310,71 @@ namespace UI
 			DrawEditBox(TextSize, Text);
 		}
 
-		return result;
-
 		CursorY += TextSize.h + 1;
+
+		return result;
 	}
 
+	void BeginRadioButtons(u32 choice)
+	{
+		RadioChoice = choice;
+		RadioButtonGroupStart = CursorY;
+		RadioButtonGroupWidth = DefaultFont.CharacterHeight;
+		CurrentRadio = 0;
+		// make space to surround RadioButtonGroup
+		CursorY ++;
+	}
+
+	u32 EndRadioButtons()
+	{
+		if (RadioButtonGroupStart != -1)
+		{
+			Bitmap::Rect Box = { CursorX, RadioButtonGroupStart, CursorX + RadioButtonGroupWidth, CursorY - RadioButtonGroupStart };
+			Target.DrawRect(Box, Black);
+		}
+		RadioButtonGroupStart = -1;
+		return RadioChoice;
+	}
+
+	void DrawRadioButton(Bitmap::Rect& r, const char* Text, bool clicked)
+	{
+		u32 OuterRadius = (r.h - 10) / 2;
+		Target.FillRect(r, CurrentColor);
+		Target.DrawCircle(r.x + r.h / 2, r.y + r.h / 2 - 1, OuterRadius, Black);
+		if (clicked)
+		{
+			Target.FillCircle(r.x + r.h / 2, r.y + r.h /2 - 1, OuterRadius - 3, Black);
+		}
+		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, Text, TextColor, UI::Target);
+	}
+
+	void RadioButton(const char* Text)
+	{
+		u32 ButtonID = GetID();
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
+		TextSize.x = CursorX;
+		TextSize.y = CursorY;
+		TextSize.w += 8 + TextSize.h + 8;
+		TextSize.h += 8;
+		CurrentColor = ButtonColor;
+
+		int x, y;
+		Jogo::GetMousePos(x, y);
+
+		// TODO: call Layout here?  to give a chance for UI layout to arrange things...
+
+		if (Interact(ButtonID, TextSize, x, y))
+		{
+			RadioChoice = CurrentRadio;
+		}
+
+		DrawRadioButton(TextSize, Text, RadioChoice == CurrentRadio);
+
+		RadioButtonGroupWidth = max(RadioButtonGroupWidth, TextSize.w);
+		CurrentRadio++;
+		CursorY += TextSize.h;
+	}
+	
 	// need to pass in input state to BeginFrame
 	// TODO: reset and establish layout rules within this frame
 	void BeginFrame(Bitmap::Rect Frame)

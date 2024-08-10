@@ -241,6 +241,14 @@ public:
 		Jogo::DebugOut(PieceList);
 	}
 
+	void Char(u32 character) override
+	{
+		if (UI::CaptureID)
+		{
+			UI::Char(character);
+		}
+	}
+
 	void KeyDown(u32 key) override
 	{
 		if (UI::CaptureID)
@@ -542,10 +550,19 @@ public:
 					*d++ = *p++;
 			}
 		}
-		char buffer[256] = "Test";
+		static char buffer[256] = "Test";
 		const char* newstring = UI::EditBox(buffer);
 		Jogo::copystring(newstring, buffer, UI::stringlength(newstring), sizeof(buffer));
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
+
+		static u32 choice = -1;
+		bool choices[4] = {};
+		UI::BeginRadioButtons(choice);
+		UI::RadioButton("Banana");
+		UI::RadioButton("Apple");
+		UI::RadioButton("Orange");
+		UI::RadioButton("Grape");
+		choice = UI::EndRadioButtons();
 
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";

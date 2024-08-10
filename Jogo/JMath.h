@@ -91,6 +91,24 @@ namespace Jogo
 		return maxdigits + 1;
 	}
 
+	inline u32 hextoi(const char* input)
+	{
+		u32 output = 0;
+		const char* p = input;
+		u32 places = 0;
+		while (*p && places < 8)
+		{
+			output *= 16;
+			u32 hexdigit = *p - '0';
+			if (hexdigit > 9)
+				hexdigit -= 'A' - '9' - 1;
+			output += hexdigit;
+			p++;
+			places++;
+		}
+		return output;
+	}
+
 	inline float intpow(float number, s32 power)
 	{
 		s32 p = abs(power);

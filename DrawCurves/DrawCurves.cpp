@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
 	float t = .999999f;
 	u32 p = 2;
 	// ftoa and ithex testing code
+/* Test ftoa
 	Jogo::Random rand = { 12345 };
 	for (s32 j = 0; j < 100; j++)
 	{
@@ -184,5 +185,24 @@ int main(int argc, char* argv[])
 			//printf("%s: %g - %g\n", ftoa_result, i, output);
 		}
 	}
+*/
+
+/* Exhaustive test of itohex and hextoi
+	for (u32 i = 0; i < 0xffffffff; i++)
+	{
+		char hexbuf[9];
+		Jogo::itohex(i, hexbuf, sizeof(hexbuf));
+		u32 hex = Jogo::hextoi(hexbuf);
+		if (i != hex)
+		{
+			printf("%s %d %d\n", hexbuf, i, hex);
+		}
+		if (i % 16777216 == 0)
+		{
+			printf(".");
+		}
+	}
+*/
+
 	return 0;
 }

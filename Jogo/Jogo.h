@@ -31,6 +31,7 @@ namespace Jogo
 		//input
 		virtual void KeyDown(u32 key) {}
 		virtual void KeyUp(u32 key) {}
+		virtual void Char(u32 character) {}
 		virtual void MouseDown(s32 x, s32 y, u32 buttons) {}
 		virtual void MouseUp(s32 x, s32 y, u32 buttons) {}
 		virtual void MouseMove(s32 x, s32 y, u32 buttons) {}
@@ -44,6 +45,9 @@ namespace Jogo
 		static int KEY_ENTER;
 		static int KEY_TAB;
 		static int KEY_BACKSPACE;
+		static int KEY_DELETE;
+		static int KEY_HOME;
+		static int KEY_END;
 		static int BUTTON_LEFT;
 		static int BUTTON_RIGHT;
 		static int BUTTON_MIDDLE;

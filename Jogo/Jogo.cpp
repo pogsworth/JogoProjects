@@ -35,6 +35,11 @@ namespace Jogo
 				app->KeyUp((u32)wParam);
 			break;
 
+		case WM_CHAR:
+			if (app)
+				app->Char((u32)wParam);
+			break;
+
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
@@ -277,7 +282,10 @@ namespace Jogo
 	int JogoApp::KEY_ESC = VK_ESCAPE;
 	int JogoApp::KEY_ENTER = VK_RETURN;
 	int JogoApp::KEY_BACKSPACE = VK_BACK;
+	int JogoApp::KEY_DELETE = VK_DELETE;
 	int JogoApp::KEY_TAB = VK_TAB;
+	int JogoApp::KEY_HOME = VK_HOME;
+	int JogoApp::KEY_END = VK_END;
 	int JogoApp::BUTTON_LEFT = VK_LBUTTON;
 	int JogoApp::BUTTON_RIGHT = VK_RBUTTON;
 	int JogoApp::BUTTON_MIDDLE = VK_MBUTTON;
