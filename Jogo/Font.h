@@ -57,20 +57,24 @@ struct Font {
 	}
 
 	// TODO: Add support for BGRA fonts and anti-aliased alpha fonts
-	void DrawText(s32 x, s32 y, const char* Text, u32 color, Bitmap destination)
+	void DrawText(s32 x, s32 y, const char* Text, u32 color, Bitmap destination, s32 scale = 1)
 	{
 		// FixedWidth Font - assume characters are packed Bitmap.Width / Font.CharacterWidth per row
 		if (!CharacterRects)
 		{
 			u32 CharactersPerRow = FontBitmap.Width / CharacterWidth;
 			s32 cursor = x;
-			for (const char* p = Text; *p; p++, cursor += CharacterWidth)
+			s32 DestWidth = CharacterWidth * scale;
+			s32 DestHeight = CharacterHeight * scale;
+			for (const char* p = Text; *p; p++, cursor += DestWidth)
 			{
 				char c = *p - CharacterMin;
 				s32 sx = (c % CharactersPerRow) * CharacterWidth;
 				s32 sy = (c / CharactersPerRow) * CharacterHeight;
 
-				destination.PasteBitmapSelection(cursor, y, FontBitmap, { sx, sy, (s32)CharacterWidth, (s32)CharacterHeight }, color);
+				destination.PasteBitmapSelectionScaled({ cursor, y, DestWidth, DestHeight }, FontBitmap, { sx, sy, (s32)CharacterWidth, (s32)CharacterHeight }, color);
+//				destination.PasteBitmapSelection( cursor, y, FontBitmap, { sx, sy, (s32)CharacterWidth, (s32)CharacterHeight }, color);
+//				Jogo::Show(destination.PixelBGRA, destination.Width, destination.Height);
 			}
 		}
 		else

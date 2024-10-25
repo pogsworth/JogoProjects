@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Horizon", "Horizon\Horizon.
 		{412E1076-401C-4AA8-A98B-267CE45CE69D} = {412E1076-401C-4AA8-A98B-267CE45CE69D}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mmdc", "mmdc\mmdc.vcxproj", "{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -57,6 +59,14 @@ Global
 		{1F52BB86-8B89-43B3-977E-6C090FC84E35}.Release|x64.Build.0 = Release|x64
 		{1F52BB86-8B89-43B3-977E-6C090FC84E35}.Release|x86.ActiveCfg = Release|Win32
 		{1F52BB86-8B89-43B3-977E-6C090FC84E35}.Release|x86.Build.0 = Release|Win32
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Debug|x64.ActiveCfg = Debug|x64
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Debug|x64.Build.0 = Debug|x64
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Debug|x86.ActiveCfg = Debug|Win32
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Debug|x86.Build.0 = Debug|Win32
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Release|x64.ActiveCfg = Release|x64
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Release|x64.Build.0 = Release|x64
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Release|x86.ActiveCfg = Release|Win32
+		{8B9CBC9D-1A0F-494B-9C03-945BB74318EF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

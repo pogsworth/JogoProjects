@@ -96,6 +96,7 @@ class TetrisGame : public Jogo::JogoApp
 	Jogo::Random RandomNumber;
 	Jogo::Timer GameTimer;
 	char LastChar[2] = {};
+	bool QuitApp = false;
 public:
 
 	TetrisGame()
@@ -414,7 +415,7 @@ public:
 		LastFrameDT = DT;
 		LastFrameRate = 1.0f / DT;
 		AvgFrameRate = (31.0f * AvgFrameRate + LastFrameRate) / 32.0f;
-		return false;
+		return QuitApp;
 	}
 
 	void ClearBuffer(u32 color)
@@ -563,6 +564,42 @@ public:
 		UI::RadioButton("Orange");
 		UI::RadioButton("Grape");
 		choice = UI::EndRadioButtons();
+
+		static bool IsChecked = false;
+		IsChecked = UI::CheckBox("Checked", IsChecked);
+		static bool FileMenu = false;
+		FileMenu = UI::MenuButton("File", FileMenu);
+		if (FileMenu)
+		{
+			UI::BeginMenu();
+			static bool OpenMenu = false;
+			OpenMenu = UI::MenuButton("Open", OpenMenu);
+			if (OpenMenu)
+			{
+				UI::BeginMenu();
+				static bool TestItem = false;
+				TestItem = UI::MenuButton("Test", TestItem);
+				if (TestItem)
+				{
+					// print a dialog that says "Test"
+				}
+				UI::EndMenu();
+			}
+			static bool ExitItem = false;
+			ExitItem = UI::MenuItem("Exit", ExitItem);
+			if (ExitItem)
+			{
+				QuitApp = true;
+			}
+			char ButtonText[] = "Item 1";
+			for (s32 i = 0; i < 4; i++)
+			{
+				ButtonText[5] = '1' + i;
+				UI::MenuItem(ButtonText, false);
+			}
+			UI::EndMenu();
+		}
+		UI::EndFrame();
 
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";

@@ -8,7 +8,8 @@ class Horizon : public Jogo::JogoApp
 	float pitch = 0.0f;
 	float roll = 0.0f;
 	bool dragging = false;
-	s32 dragx, dragy;
+	s32 dragx = 0;
+	s32 dragy = 0;
 	s32 deltax = 0;
 	s32 deltay = 0;
 	float originx = 0;
@@ -17,17 +18,28 @@ class Horizon : public Jogo::JogoApp
 	float scale = 1.0;
 	u32 SkyColor = 0x0080A0;
 	u32 GroundColor = 0x806000;
+	Font AtariFont;
+	Arena HorizonArena;
+	Bitmap F;
 
 	// parameters to convert to and from Screen and Pitch space
 	const s32 HorizonWidth = 500;
 	const s32 HorizonHeight = 500;
 	const float ScreenToPitchScale = 60.0f / HorizonHeight;
 	const float PitchToScreenScale = HorizonHeight / 60.f;
-	float PitchOriginScreenSpaceX;
-	float PitchOriginScreenSpaceY;
+	float PitchOriginScreenSpaceX = 0.f;
+	float PitchOriginScreenSpaceY = 0.f;
+	float triangleTheta = 0.f;
 
 public:
-	Horizon() {}
+	Horizon() 
+	{
+		HorizonArena = Arena::Create(DefaultArenaSize);
+		AtariFont = Font::Load("../Jogo/Atari8.fnt", HorizonArena);
+		F = Bitmap::Create(8, 8, 1, HorizonArena);
+		F.Erase(0xffffff);
+		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
+	}
 
 	const char* GetName() const override { return Name; }
 
@@ -61,11 +73,11 @@ public:
 		Jogo::DebugOut(timerString);
 		if (Jogo::IsKeyPressed(KEY_UP))
 		{
-			pitch += 20.0f * localupy * DT;
+			pitch += 20.0f * DT;
 		}
 		if (Jogo::IsKeyPressed(KEY_DOWN))
 		{
-			pitch -= 20.0f * localupy * DT;
+			pitch -= 20.0f * DT;
 		}
 		return Done;
 	}
@@ -209,14 +221,46 @@ public:
 
 		BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
 
+
+		Bitmap::Vertex triangle[] =
+		{
+			{180.0f, 180.0f, 0xff0000},
+			{240.0f, 200.0f, 0x00ff00},
+			{180.0f, 240, 0x0000ff}
+		};
+		
+		triangleTheta += Jogo::D2R * 15.5f;
+		static float xbump = 0.f;
+		xbump += 0.1f;
+		cx = 200.0f;
+		cy = 200.0f;
+		float co = Jogo::cosine(triangleTheta);
+		float si = Jogo::sine(triangleTheta);
+		for (int i = 0; i < 3; i++)
+		{
+			float x1 = triangle[i].x - cx;
+			float y1 = triangle[i].y - cy;
+			float x = co * x1 - si * y1;
+			float y = si * x1 + co * y1;
+			triangle[i].x = cx + x;
+			triangle[i].y = cy + y;
+		}
+		
+		for (s32 t = 0; t < 100; t++)
+		{
+			BackBuffer.FillTriangle(triangle);
+		}
 		x1 = (s32)cx;	// PitchOriginScreenSpaceX;
 		y1 = (s32)cy;	// PitchOriginScreenSpaceY;
 		x2 = x1 + (s32)(upx * 30);
 		y2 = y1 + (s32)(upy * 30);
 		BackBuffer.DrawLine(x1, y1, x2, y2, 0xffff);
+		//BackBuffer.DrawLine(triangle[0].x, triangle[0].y, triangle[1].x, triangle[1].y, 0);
+		//BackBuffer.DrawLine(triangle[1].x, triangle[1].y, triangle[2].x, triangle[2].y, 0);
+		//BackBuffer.DrawLine(triangle[2].x, triangle[2].y, triangle[0].x, triangle[0].y, 0);
 		char pitchString[32];
 		Jogo::itoa((int)pitch%360, pitchString, 32);
-		DefaultFont.DrawText(0, 0, pitchString, 0xffffff, BackBuffer);
+//		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
 	}
 
 	void DrawSineWave()
@@ -239,7 +283,7 @@ public:
 
 	void Draw() override
 	{
-		BackBuffer.Erase(0);
+		BackBuffer.Erase(0xffffff);
 
 		Bitmap::Rect horizonBox = { 250,250,500,500 };
 		DrawHorizon(horizonBox, pitch, roll);
@@ -247,6 +291,34 @@ public:
 		//char scrollString[32];
 		//Jogo::itoa(scroll, scrollString);
 		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
+		AtariFont.DrawText(0, 0, "Hello", 0, BackBuffer);
+
+		static float counter = 1234567;
+		counter++;
+		char counterText[32];
+		Jogo::ftoa(counter, counterText, sizeof(counterText));
+		static s32 offset = 0;
+		static s32 dx = -1;
+		offset += dx;
+		if (offset < -100 || offset >= 100)
+			dx = -dx;
+//		AtariFont.DrawText(offset, 20, counterText, 0, BackBuffer);
+
+		static float theta = 0.0f;
+		static float radius = 2000.0f;
+		static float dtheta = 1.0f;
+		static float dradius = 0.1f;
+		if (radius < 10.f || radius > 150.f)
+		{
+			dradius = -dradius;
+		}
+		float x = radius * Jogo::cosine(theta * Jogo::D2R);
+		float y = radius * Jogo::sine(theta * Jogo::D2R);
+		float cx = 3-50.f;
+		float cy = 300.f;
+		BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 1024, 1024 }, 0);
+		radius += dradius;
+		theta += dtheta;
 
 		Jogo::Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 	}
@@ -255,7 +327,6 @@ public:
 const char* Horizon::Name = "Horizon";
 
 int main(int argc, char *argv[])
-
 {
 	Horizon horizon;
 	Jogo::Run(horizon, 60);

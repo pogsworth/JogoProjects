@@ -87,4 +87,12 @@ namespace Jogo
 
 		u32 GetNext();
 	};
-}
+
+	inline void Assert(bool expression)
+	{
+		if (!expression)
+		{
+			__debugbreak();
+		}
+	}
+};

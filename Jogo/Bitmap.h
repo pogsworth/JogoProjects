@@ -4,6 +4,13 @@
 #include <stdint.h>
 #include "int_types.h"
 #include "Arena.h"
+#include "JMath.h"
+
+
+namespace Jogo
+{
+	void Show(u32* Buffer, int Width, int Height);
+}
 
 struct Bitmap
 {
@@ -58,25 +65,51 @@ struct Bitmap
 	{
 		Clipped = r;
 
-		// test the all included case first
-		if (r.x >= 0 && r.x + r.w <= (s32)Width && r.y >= 0 && r.y + r.h <= (s32)Height)
-			return true;
+		// exclude zero area rectangles
+		if (r.w == 0 || r.h == 0)
+			return false;
+
+		if (r.w > 0 && r.h > 0)
+		{
+			// test the all included case first
+			if (r.x >= 0 && r.x + r.w <= (s32)Width && r.y >= 0 && r.y + r.h <= (s32)Height)
+				return true;
+		}
 
 		// test all excluded next
-		if (r.x >= (signed)Width || r.y >= (signed)Height)
+		if (r.w > 0 && (r.x >= (s32)Width || (r.x < 0 && r.x + r.w < 0)))
+			return false;
+
+		if (r.w < 0 && (r.x < 0 || (r.x >= (s32)Width && r.x + r.w >= (s32)Width)))
+			return false;
+
+		if (r.h > 0 && (r.y >= (s32)Height || (r.y < 0 && r.y + r.h < 0)))
+			return false;
+
+		if (r.h < 0 && (r.y < 0 || (r.y >= (s32)Height && r.y + r.h >= (s32)Height)))
 			return false;
 
 		// now alter any coords that need to be fixed...
-		if (r.x + r.w <= 0)
-			return false;
-
-		if (r.y + r.h <= 0)
-			return false;
-
 		if (r.x < 0)
 		{
 			Clipped.w += r.x;
 			Clipped.x = 0;
+		}
+
+		if (Clipped.x + Clipped.w < 0)
+		{
+			Clipped.w = -Clipped.x - 1;
+		}
+
+		if (Clipped.x >= (s32)Width)
+		{
+			Clipped.h -= Clipped.x - Width;
+			Clipped.x = Width - 1;
+		}
+
+		if (Clipped.x + Clipped.w > (signed)Width)
+		{
+			Clipped.w = Width - Clipped.x;
 		}
 
 		if (r.y < 0)
@@ -85,9 +118,15 @@ struct Bitmap
 			Clipped.y = 0;
 		}
 
-		if (Clipped.x + Clipped.w > (signed)Width)
+		if (Clipped.y >= (s32)Height)
 		{
-			Clipped.w = Width - Clipped.x;
+			Clipped.h -= Clipped.y - Height;
+			Clipped.y = Height - 1;
+		}
+
+		if (Clipped.y + Clipped.h < 0)
+		{
+			Clipped.h = -Clipped.y - 1;
 		}
 
 		if (Clipped.y + Clipped.h > (signed)Height)
@@ -101,6 +140,105 @@ struct Bitmap
 	void PasteBitmap(int x, int y, Bitmap source, u32 color)
 	{
 		PasteBitmapSelection(x, y, source, { 0, 0, (s32)source.Width, (s32)source.Height }, color);
+	}
+
+	void PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const Rect& srcRect, u32 color)
+	{
+		if (!source.Pixels)
+			return;
+
+		Rect DstClip;
+		if (!ClipRect(dest, DstClip))
+			return;
+
+		float sxdx = (float)srcRect.w / abs(dest.w);
+		float sydy = (float)srcRect.h / abs(dest.h);
+
+		float sourceX = srcRect.x + (DstClip.x - dest.x) * sxdx;
+		if (sourceX < 0 || sourceX > source.Width)
+		{
+			sourceX = (float)(srcRect.x % source.Width);
+			if (sourceX < 0)
+				sourceX += source.Width;
+		}
+
+		float sourceY = srcRect.y + (DstClip.y - dest.y) * sydy;
+		if (sourceY <= 0 || sourceY > source.Height)
+		{
+			sourceY = (float)(srcRect.y % source.Height);
+			if (sourceY < 0)
+				sourceY += source.Width;
+		}
+		
+		u8* DstRow = PixelA + DstClip.y * Width * PixelSize + DstClip.x * PixelSize;
+		s32 PixelStep = PixelSize;
+		s32 VertStep = Width;
+		if (DstClip.w < 0)
+		{
+			PixelStep = -PixelStep;
+			DstClip.w = -DstClip.w;
+		}
+		if (DstClip.h < 0)
+		{
+			DstClip.h = -DstClip.h;
+			VertStep = -VertStep;
+		}
+		for (s32 j = 0; j < DstClip.h; j++)
+		{
+			u8* Dest = DstRow;
+			float x = sourceX;
+			u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
+
+			if (PixelSize == source.PixelSize)
+			{
+				if (PixelSize == 1)
+				{
+					for (s32 i = 0; i < DstClip.w; i++)
+					{
+						x += sxdx;
+						if (x < 0)
+							x += source.Width;
+						if (x >= source.Width)
+							x -= source.Width;
+						*Dest = *(SrcRow + (u32)x);
+						Dest += PixelStep;
+					}
+				}
+				else
+				{
+					for (s32 i = 0; i < DstClip.w; i++)
+					{
+						x += sxdx;
+						if (x < 0)
+							x += source.Width;
+						if (x >= source.Width)
+							x -= source.Width;
+						*((u32*)Dest) = *((u32*)SrcRow + (u32)x);
+						Dest += PixelStep;
+					}
+				}
+			}
+			else if (PixelSize == 4)
+			{
+				for (s32 i = 0; i < DstClip.w; i++)
+				{
+					if (x < 0) x += source.Width;
+					if (x >= source.Width) x -= source.Width;
+					if (*(SrcRow + (u32)x))
+					{
+						*((u32*)Dest) = color;
+					}
+					Dest += PixelStep;
+					x += sxdx;
+				}
+			}
+			sourceY += sydy;
+			if (sourceY < 0)
+				sourceY += source.Height;
+			if (sourceY >= source.Height)
+				sourceY -= source.Height;
+			DstRow += (s64)VertStep * PixelSize;
+		}
 	}
 
 	void PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRect, u32 color)
@@ -134,17 +272,19 @@ struct Bitmap
 		{
 			for (s32 j = 0; j < DstClip.h; j++)
 			{
+				u8* src = SrcRow;
+				u32* dst = (u32*)DstRow;
 				for (s32 i = 0; i < DstClip.w; i++)
 				{
-					if (*SrcRow)
+					if (*src)
 					{
-						*(u32*)DstRow = color;
+						*dst = color;
 					}
-					SrcRow += source.PixelSize;
-					DstRow += PixelSize;
+					src++;
+					dst++;
 				}
-				SrcRow += (source.Width - DstClip.w) * source.PixelSize;
-				DstRow += (Width - DstClip.w) * PixelSize;
+				SrcRow += source.Width;
+				DstRow += Width * PixelSize;
 			}
 		}
 	}
@@ -263,17 +403,6 @@ struct Bitmap
 		}
 	}
 
-	void DrawRect(const Rect& box, u32 color)
-	{
-		s32 right = box.x + box.w - 1;
-		s32 bottom = box.y + box.h - 1;
-
-		DrawLine(box.x, box.y, right, box.y, color);
-		DrawLine(right, box.y, right, bottom, color);
-		DrawLine(right, bottom, box.x, bottom, color);
-		DrawLine(box.x, bottom, box.x, box.y, color);
-	}
-
 	void DrawHLine(s32 y, s32 x1, s32 x2, u32 color)
 	{
 		if (ClipLine(x1, y, x2, y, { 0,0,(s32)Width,(s32)Height }))
@@ -294,6 +423,17 @@ struct Bitmap
 				SetPixel(x, y, color);
 			}
 		}
+	}
+
+	void DrawRect(const Rect& box, u32 color)
+	{
+		s32 right = box.x + box.w - 1;
+		s32 bottom = box.y + box.h - 1;
+
+		DrawHLine(box.y, box.x, right, color);
+		DrawVLine(right, box.y, bottom, color);
+		DrawHLine(bottom, right, box.x, color);
+		DrawVLine(box.x, box.y, bottom, color);
 	}
 
 	void DrawCircle(s32 cx, s32 cy, s32 r, u32 color)
@@ -370,5 +510,277 @@ struct Bitmap
 		}
 	}
 
+#ifdef RGB
+#undef RGB
+#endif
+
+	u32 RGB(u8 r, u8 g, u8 b)
+	{
+		return (r << 16) + (g << 8) + b;
+	}
+
+	u8 GetR(u32 rgb)
+	{
+		return (rgb >> 16) & 0xff;
+	}
+
+	u8 GetG(u32 rgb)
+	{
+		return (rgb >> 8) & 0xff;
+	}
+
+	u8 GetB(u32 rgb)
+	{
+		return rgb & 0xff;
+	}
+
+	float GetRfloat(u32 rgb)
+	{
+		return ((rgb >> 16)&0xff) / 255.0f;
+	}
+
+	float GetGfloat(u32 rgb)
+	{
+		return ((rgb >> 8)&0xff) / 255.0f;
+	}
+
+	float GetBfloat(u32 rgb)
+	{
+		return (rgb & 0xff) / 255.0f;
+	}
+
+	struct FloatRGBA
+	{
+		float r;
+		float g;
+		float b;
+		float a;
+	};
+
+	struct Vertex
+	{
+		float x;
+		float y;
+		u32 c;
+	};
+
+	struct Gradient
+	{
+		float drdy;
+		float drdx;
+		float dgdy;
+		float dgdx;
+		float dbdy;
+		float dbdx;
+	};
+
+	struct Edge
+	{
+		float x;
+		float y;
+		float x1;
+		float dx;
+		float dy;
+		float dxdy;
+		float y1;
+		float y2;
+		float r;
+		float g;
+		float b;
+	};
+
+	template<typename T>
+	T min(T a, T b) { return a <= b ? a : b; }
+
+	template<typename T>
+	T max(T a, T b) { return a >= b ? a : b; }
+
+	Edge MakeEdge(const Vertex& a, const Vertex& b)
+	{
+		Edge e;
+		if (a.y <= b.y)
+		{
+			e.x1 = a.x;
+			e.y1 = a.y;
+			e.y2 = b.y;
+			e.dy = b.y - a.y;
+			e.dx = b.x - a.x;
+			e.dxdy = e.dx / e.dy;
+			e.r = GetRfloat(a.c);
+			e.g = GetGfloat(a.c);
+			e.b = GetBfloat(a.c);
+		}
+		else
+		{
+			e.x1 = b.x;
+			e.y1 = b.y;
+			e.y2 = a.y;
+			e.dy = a.y - b.y;
+			e.dx = a.x - b.x;
+			e.dxdy = e.dx / e.dy;
+			e.r = GetRfloat(b.c);
+			e.g = GetGfloat(b.c);
+			e.b = GetBfloat(b.c);
+		}
+		return e;
+	}
+
+	Gradient MakeGradient(Vertex corners[])
+	{
+		Gradient g;
+
+		float dx1 = corners[0].x - corners[2].x;
+		float dx2 = corners[1].x - corners[2].x;
+		float dy1 = corners[0].y - corners[2].y;
+		float dy2 = corners[1].y - corners[2].y;
+
+		float dr1 = GetRfloat(corners[0].c) - GetRfloat(corners[2].c);
+		float dr2 = GetRfloat(corners[1].c) - GetRfloat(corners[2].c);
+		float dg1 = GetGfloat(corners[0].c) - GetGfloat(corners[2].c);
+		float dg2 = GetGfloat(corners[1].c) - GetGfloat(corners[2].c);
+		float db1 = GetBfloat(corners[0].c) - GetBfloat(corners[2].c);
+		float db2 = GetBfloat(corners[1].c) - GetBfloat(corners[2].c);
+
+		float OneOverdx = 1.0f / (dx2 * dy1 - dx1 * dy2);
+		float OneOverdy = -OneOverdx;
+		g.drdx = (dr2 * dy1 - dr1 * dy2) * OneOverdx;
+		g.drdy = (dr2 * dx1 - dr1 * dx2) * OneOverdy;
+		g.dgdx = (dg2 * dy1 - dg1 * dy2) * OneOverdx;
+		g.dgdy = (dg2 * dx1 - dg1 * dx2) * OneOverdy;
+		g.dbdx = (db2 * dy1 - db1 * dy2) * OneOverdx;
+		g.dbdy = (db2 * dx1 - db1 * dx2) * OneOverdy;
+
+		return g;
+	}
+
+	void FillTriangle(Vertex corners[])
+	{
+		Gradient grad = MakeGradient(corners);
+
+		Edge edges[3];
+		for (int i=0; i < 3; i++)
+		{
+			edges[i] = MakeEdge(corners[i], corners[(i + 1) % 3]);
+		}
+		// sort edges on beginning y value
+		// and first edge is the leftmost
+		if (edges[0].y1 > edges[1].y1)
+		{
+			Edge e = edges[0];
+			edges[0] = edges[1];
+			edges[1] = e;
+		}
+		if (edges[1].y1 > edges[2].y1)
+		{
+			Edge e = edges[1];
+			edges[1] = edges[2];
+			edges[2] = e;
+		}
+		if (edges[0].dx > edges[1].dx)
+		{
+			Edge e = edges[0];
+			edges[0] = edges[1];
+			edges[1] = e;
+		}
+
+		bool bThirdEdgeUsed = false;
+		Edge leftEdge = edges[0];
+		Edge rightEdge = edges[1];
+		if (Jogo::ceil(leftEdge.y1) == Jogo::ceil(leftEdge.y2))
+		{
+			leftEdge = edges[2];
+			bThirdEdgeUsed = true;
+		}
+		if (Jogo::ceil(rightEdge.y1) == Jogo::ceil(rightEdge.y2))
+		{
+			if (bThirdEdgeUsed)
+				return;
+			rightEdge = edges[2];
+			bThirdEdgeUsed = true;
+		}
+		s32 y1 = (s32)Jogo::ceil(edges[0].y1);
+		s32 y2 = (s32)Jogo::ceil(edges[2].y2);
+		float dy = y1 - leftEdge.y1;
+		float dx = dy * leftEdge.dxdy;
+		leftEdge.x = leftEdge.x1 + dx;
+		dy = y1 - rightEdge.y1;
+		dx = dy * rightEdge.dxdy;
+		rightEdge.x = rightEdge.x1 + dx;
+
+		u32 color = 0xffffff;
+		for (s32 y = y1; y < y2; y++)
+		{
+			if (y > leftEdge.y2)
+			{
+				if (bThirdEdgeUsed)
+					break;
+
+				// replace leftEdge
+				leftEdge = edges[2];
+				leftEdge.x = leftEdge.x1 + (leftEdge.y1 - y) * leftEdge.dxdy;
+				float dy = y - leftEdge.y1;
+				float dx = dy * leftEdge.dxdy;
+				leftEdge.x = leftEdge.x1 + dx;
+				leftEdge.r += dy * grad.drdy + dx * grad.drdx;
+				leftEdge.g += dy * grad.dgdy + dx * grad.dgdx;
+				leftEdge.b += dy * grad.dbdy + dx * grad.dbdx;
+				bThirdEdgeUsed = true;
+
+				if (Jogo::ceil(leftEdge.y1) == Jogo::ceil(leftEdge.y2))
+					return;
+			}
+			if (y > rightEdge.y2)
+			{
+				if (bThirdEdgeUsed)
+					break;
+
+				// replace rightEdge
+				rightEdge = edges[2];
+				float dy = y - rightEdge.y1;
+				float dx = dy * rightEdge.dxdy;
+				rightEdge.x = rightEdge.x1 + dx;
+				rightEdge.r += dy * grad.drdy + dx * grad.drdx;
+				rightEdge.g += dy * grad.dgdy + dx * grad.dgdx;
+				rightEdge.b += dy * grad.dbdy + dx * grad.dbdx;
+				bThirdEdgeUsed = true;
+
+				if (Jogo::ceil(rightEdge.y1) == Jogo::ceil(rightEdge.y2))
+					return;
+			}
+			s32 x1 = (s32)Jogo::ceil(leftEdge.x);
+			s32 x2 = (s32)Jogo::ceil(rightEdge.x);
+			float dx = x1 - leftEdge.x;
+			float r = leftEdge.r + dx * grad.drdx;
+			float g = leftEdge.g + dx * grad.dgdx;
+			float b = leftEdge.b + dx * grad.dbdx;
+
+			for (s32 x = x1; x < x2; x++)
+			{
+				color = RGB((u8)(r * 255.0f), (u8)(g * 255.0f), (u8)(b * 255.0f));
+				SetPixel(x, y, color);
+				r += grad.drdx;
+				g += grad.dgdx;
+				b += grad.dbdx;
+//				Jogo::Show(PixelBGRA, Width, Height);
+			}
+
+			// update left and right edge x
+			leftEdge.x += leftEdge.dxdy;
+			leftEdge.r += grad.drdy + grad.drdx * leftEdge.dxdy;
+			leftEdge.g += grad.dgdy + grad.dgdx * leftEdge.dxdy;
+			leftEdge.b += grad.dbdy + grad.dbdx * leftEdge.dxdy;
+			rightEdge.x += rightEdge.dxdy;
+			rightEdge.r += grad.drdy + grad.drdx * rightEdge.dxdy;
+			rightEdge.g += grad.dgdy + grad.dgdx * rightEdge.dxdy;
+			rightEdge.b += grad.dbdy + grad.dbdx * rightEdge.dxdy;
+		}
+	}
+
 	static Bitmap Load(const char* filename, Arena& arena);
+	static Bitmap Create(u32 Width, u32 Height, u32 PixelSize, Arena& arena)
+	{
+		Bitmap bitmap = { Width, Height, PixelSize };
+		bitmap.Pixels = arena.Allocate(Width * Height *PixelSize);
+		return bitmap;
+	}
 };

@@ -6,16 +6,22 @@
 
 namespace UI
 {
+	struct Frame
+	{
+		Bitmap::Rect FrameRect;
+		u32 CursorX;
+		u32 CursorY;
+		u32 NextID;
+	};
+	const u32 MaxFrameStack = 15;
+	Frame FrameStack[MaxFrameStack];
+	u32 CurrentFrame = 0;
 	Bitmap Target;
 	Font DefaultFont;
-	const u32 FirstID = 0xf000;
-	u32 NextID = FirstID;
 	u32 HotID = 0;
 	u32 ActiveID = 0;
 	u32 CaptureID = 0;
 	u32 UncaptureID = 0;
-	s32 CursorX;
-	s32 CursorY;
 	u32 ButtonColor = 0x808080;
 	u32 LabelColor = 0x404040;
 	u32 EditColor = 0x303030;
@@ -35,6 +41,7 @@ namespace UI
 	s32 RadioButtonGroupWidth;
 	u32 RadioChoice = -1;
 	u32 CurrentRadio = -1;
+
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
 	// or follow some kind of layout rules establed by BeginFrame
@@ -135,7 +142,7 @@ namespace UI
 
 	u32 GetID()
 	{
-		return NextID++;
+		return FrameStack[CurrentFrame].NextID++;
 	}
 
 	bool Interact(u32 Id, const Bitmap::Rect& r, s32 mousex, s32 mousey)
@@ -183,11 +190,11 @@ namespace UI
 	void DrawButton(Bitmap::Rect& r, const char* Text)
 	{
 		Target.FillRect(r, CurrentColor);
-		Target.DrawHLine(CursorY, r.x, r.x + r.w - 1, HiColor);
-		Target.DrawHLine(CursorY + r.h - 1, r.x, r.x + r.w - 1, LoColor);
-		Target.DrawVLine(CursorX, r.y, r.y + r.h - 1, HiColor);
-		Target.DrawVLine(CursorX + r.w, r.y, r.y + r.h - 1, LoColor);
-		DefaultFont.DrawText(CursorX + 4, CursorY + 4, Text, TextColor, UI::Target);
+		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, HiColor);
+		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
+		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
 	bool Button(const char* Text)
@@ -199,8 +206,8 @@ namespace UI
 		// compare to hot and active
 		// calc return value (based on mouse in rect for this button)
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
-		TextSize.x = CursorX;
-		TextSize.y = CursorY;
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
@@ -218,7 +225,7 @@ namespace UI
 
 		// advance layout cursor
 		// TODO: maybe this belongs in a UI::Layout function?
-		CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
 
 		return clicked;
 	}
@@ -228,19 +235,19 @@ namespace UI
 		u32 LabelID = GetID();
 
 		Target.FillRect(r, CurrentColor);
-		Target.DrawHLine(CursorY, r.x, r.x + r.w - 1, LoColor);
-		Target.DrawHLine(CursorY + r.h - 1, r.x, r.x + r.w - 1, LoColor);
-		Target.DrawVLine(CursorX, r.y, r.y + r.h - 1, LoColor);
-		Target.DrawVLine(CursorX + r.w, r.y, r.y + r.h - 1, LoColor);
+		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, LoColor);
+		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
 
-		DefaultFont.DrawText(CursorX + 4, CursorY + 4, Text, TextColor, UI::Target);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
 	void Label(const char* Text)
 	{
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
-		TextSize.x = CursorX;
-		TextSize.y = CursorY;
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = LabelColor;
@@ -248,17 +255,17 @@ namespace UI
  
 		DrawLabel(TextSize, Text);
 
-		CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
 	}
 
 	void DrawEditBox(Bitmap::Rect& r, const char* Text)
 	{
 		Target.FillRect(r, CurrentColor);
-		Target.DrawHLine(CursorY, r.x, r.x + r.w - 1, HiColor);
-		Target.DrawHLine(CursorY + r.h - 1, r.x, r.x + r.w - 1, LoColor);
-		Target.DrawVLine(CursorX, r.y, r.y + r.h - 1, HiColor);
-		Target.DrawVLine(CursorX + r.w, r.y, r.y + r.h - 1, LoColor);
-		DefaultFont.DrawText(CursorX + 4, CursorY + 4, Text, TextColor, UI::Target);
+		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, HiColor);
+		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
+		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
 	const char* EditBox(const char* Text)
@@ -273,8 +280,8 @@ namespace UI
 		{
 			TextSize = DefaultFont.GetTextSize(Text);
 		}
-		TextSize.x = CursorX;
-		TextSize.y = CursorY;
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
 		TextSize.w += 8;
 		TextSize.h += 8;
 
@@ -310,7 +317,7 @@ namespace UI
 			DrawEditBox(TextSize, Text);
 		}
 
-		CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
 
 		return result;
 	}
@@ -318,21 +325,22 @@ namespace UI
 	void BeginRadioButtons(u32 choice)
 	{
 		RadioChoice = choice;
-		RadioButtonGroupStart = CursorY;
+		RadioButtonGroupStart = FrameStack[CurrentFrame].CursorY;
 		RadioButtonGroupWidth = DefaultFont.CharacterHeight;
 		CurrentRadio = 0;
 		// make space to surround RadioButtonGroup
-		CursorY ++;
+		FrameStack[CurrentFrame].CursorY++;
 	}
 
 	u32 EndRadioButtons()
 	{
 		if (RadioButtonGroupStart != -1)
 		{
-			Bitmap::Rect Box = { CursorX, RadioButtonGroupStart, CursorX + RadioButtonGroupWidth, CursorY - RadioButtonGroupStart };
+			Bitmap::Rect Box = { (s32)FrameStack[CurrentFrame].CursorX, RadioButtonGroupStart, (s32)FrameStack[CurrentFrame].CursorX + RadioButtonGroupWidth, (s32)FrameStack[CurrentFrame].CursorY - RadioButtonGroupStart };
 			Target.DrawRect(Box, Black);
 		}
 		RadioButtonGroupStart = -1;
+		FrameStack[CurrentFrame].CursorY++;
 		return RadioChoice;
 	}
 
@@ -352,8 +360,8 @@ namespace UI
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
-		TextSize.x = CursorX;
-		TextSize.y = CursorY;
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
 		TextSize.w += 8 + TextSize.h + 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
@@ -372,16 +380,159 @@ namespace UI
 
 		RadioButtonGroupWidth = max(RadioButtonGroupWidth, TextSize.w);
 		CurrentRadio++;
-		CursorY += TextSize.h;
+		FrameStack[CurrentFrame].CursorY += TextSize.h;
 	}
 	
+	void DrawCheckBox(Bitmap::Rect& r, const char* label, bool checked)
+	{
+		Bitmap::Rect DrawBox = { r.x + 4, r.y + 4, r.h - 7, r.h - 8 };
+		Target.FillRect(r, CurrentColor);
+		Target.DrawRect(DrawBox, Black);
+		if (checked)
+		{
+			s32 x1 = DrawBox.x + 3;
+			s32 y1 = DrawBox.y + 3;
+			s32 x2 = DrawBox.x + DrawBox.h - 4;
+			s32 y2 = DrawBox.y + DrawBox.h - 4;
+
+			Target.DrawLine(x1, y1, x2, y2, Black);
+			Target.DrawLine(x1 + 1, y1, x2, y2 - 1, Black);
+			Target.DrawLine(x1, y1 + 1, x2 - 1, y2, Black);
+			Target.DrawLine(x2, y1, x1, y2, Black);
+			Target.DrawLine(x2 - 1, y1, x1, y2 - 1, Black);
+			Target.DrawLine(x2, y1 + 1, x1 + 1, y2, Black);
+		}
+		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, label, TextColor, Target);
+	}
+
+	bool CheckBox(const char* label, bool checked)
+	{
+		u32 ButtonID = GetID();
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.w += 8 + TextSize.h + 8;
+		TextSize.h += 8;
+		CurrentColor = ButtonColor;
+
+		int x, y;
+		Jogo::GetMousePos(x, y);
+
+		if (Interact(ButtonID, TextSize, x, y))
+		{
+			checked = !checked;
+		}
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		DrawCheckBox(TextSize, label, checked);
+
+		return checked;
+	}
+
+	void PushFrame(Bitmap::Rect ThisFrame)
+	{
+		Jogo::Assert(CurrentFrame < MaxFrameStack);
+		CurrentFrame++;
+		FrameStack[CurrentFrame].FrameRect = ThisFrame;
+		FrameStack[CurrentFrame].CursorX = ThisFrame.x;
+		FrameStack[CurrentFrame].CursorY = ThisFrame.y;
+		FrameStack[CurrentFrame].NextID = CurrentFrame << 12;
+	}
+
+	void PopFrame()
+	{
+		Jogo::Assert(CurrentFrame > 0);
+		CurrentFrame--;
+	}
+
 	// need to pass in input state to BeginFrame
 	// TODO: reset and establish layout rules within this frame
 	void BeginFrame(Bitmap::Rect Frame)
 	{
-		NextID = FirstID;
-		CursorX = Frame.x;
-		CursorY = Frame.y;
+		PushFrame(Frame);
+	}
+
+	void EndFrame()
+	{
+		PopFrame();
+	}
+
+	Bitmap::Rect MenuFrame()
+	{
+		Bitmap::Rect Frame = { (s32)FrameStack[CurrentFrame].CursorX
+							, (s32)FrameStack[CurrentFrame].CursorY
+							, (s32)DefaultFont.CharacterWidth * 32, (s32)DefaultFont.CharacterHeight};
+		return Frame;
+	}
+
+	void BeginMenu()
+	{
+		BeginFrame(MenuFrame());
+	}
+
+	void EndMenu()
+	{
+		// draw the menu items here?
+		EndFrame();
+	}
+
+	void DrawMenuButton(Bitmap::Rect& r, const char* Text, bool open)
+	{
+		if (open)
+		{
+			HiColor = HiLight;
+			LoColor = LoLight;
+		}
+		Target.FillRect(r, CurrentColor);
+		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, HiColor);
+		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
+		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
+		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
+	}
+
+	bool MenuButton(const char* label, bool open)
+	{
+		u32 ButtonID = GetID();
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.w += 8;
+		TextSize.h += 8;
+		CurrentColor = ButtonColor;
+
+		int x, y;
+		Jogo::GetMousePos(x, y);
+
+		if (Interact(ButtonID, TextSize, x, y))
+		{
+			open = !open;
+		}
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		DrawMenuButton(TextSize, label, open);
+
+		return open;
+	}
+
+	bool MenuItem(const char* Item, bool checked)
+	{
+		u32 MenuItemID = GetID();
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Item);
+		TextSize.x = FrameStack[CurrentFrame].CursorX;
+		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.w += 8;
+		TextSize.h += 8;
+		CurrentColor = ButtonColor;
+		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+
+		DrawButton(TextSize, Item);
+		int x, y;
+		Jogo::GetMousePos(x, y);
+
+		if (Interact(MenuItemID, TextSize, x, y))
+		{
+			checked = !checked;
+		}
+		return checked;
 	}
 }
 

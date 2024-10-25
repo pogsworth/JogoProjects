@@ -244,6 +244,7 @@ namespace Jogo
 
 		StretchDIBits(hdc,
 			0, 0, Width, Height,
+//			128, 768, Width/8, Height/8,
 			0, 0, Width, Height,
 			Buffer,
 			&Info,
@@ -289,4 +290,4 @@ namespace Jogo
 	int JogoApp::BUTTON_LEFT = VK_LBUTTON;
 	int JogoApp::BUTTON_RIGHT = VK_RBUTTON;
 	int JogoApp::BUTTON_MIDDLE = VK_MBUTTON;
-}
+};

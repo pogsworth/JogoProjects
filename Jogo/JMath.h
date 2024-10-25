@@ -154,6 +154,20 @@ namespace Jogo
 		return tn;
 	}
 
+	inline float ceil(float n)
+	{
+		__m128 m;
+		m.m128_f32[0] = n;
+		s32 i = _mm_cvtt_ss2si(m);
+		m = _mm_cvt_si2ss(m, i);
+		float tn = m.m128_f32[0];
+		if (n > 0 && tn != n)
+		{
+			tn += 1.0f;
+		}
+		return tn;
+	}
+
 	inline s32 float2intround(float x)
 	{
 		__m128 m;
@@ -482,4 +496,4 @@ namespace Jogo
 		}
 	}
 
-}
+};
