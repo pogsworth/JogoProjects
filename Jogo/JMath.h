@@ -109,10 +109,10 @@ namespace Jogo
 		return output;
 	}
 
-	inline float intpow(float number, s32 power)
+	inline double intpow(float number, s32 power)
 	{
 		s32 p = abs(power);
-		float result = 1.0f;
+		double result = 1.0f;
 		float n = number;
 		s32 pindex = 0;
 		while (p)
@@ -210,199 +210,110 @@ namespace Jogo
 		return false;
 	}
 
-	inline u32 ftoa(f32 number, char* string, u32 maxstring, s32 precision = -1)
+	inline u32  ftoa(f32 number, char* string, u32 maxstring, u32 precision)
 	{
-		static const float log10base2 = 3.3219281f;
-		static const float log2base10 = 0.30103f;
-		static const char inf[] = "inf";
-		static const char nan[] = "nan";
-		static const char zero[] = "0";
-		static const s32 defaultprecision = 3;
-		u32 charsprinted = 0;
-		char localint[32];
-		bool isdefaultprecision = false;
-
-		if (maxstring < sizeof(zero))
+		// get power of ten estimate of the float
+		// if will be one off for any number from an exact power of 10 up to the next power of 2
+		const float log10of2 = 0.30103f;
+		Jogo::IntFloat intf;
+		intf.f = number;
+		s32 exp = ((intf.i >> 23) & 0xff);
+		if (exp == 0xff)	// infinity
 		{
-			return charsprinted;
-		}
-
-		if (precision <= 0)
-		{
-			isdefaultprecision = true;
-			precision = defaultprecision;
-		}
-
-		// extract exponent and sign and take abs of number
-		IntFloat x;
-		x.f = number;
-		u32 exp = (x.i >> 23) & 0xff;
-		x.i &= 0x7fffffff;
-		char* dest = string;
-		if (number < 0)
-		{
-			*dest++ = '-';
-			charsprinted++;
-		}
-
-		// return "nan" or "inf"
-		if (exp == 0xff)
-		{
-			if (x.i & 0x7fffff)
-			{
-				if (sizeof(nan) <= maxstring)
-				{
-					copystring(nan, string, sizeof(nan), sizeof(nan));
-					charsprinted = sizeof(nan);
-				}
-				return charsprinted;
+			if (intf.i & 0x7fffff)
+			{	// nan
+				copystring("nan", string, 4, 4);
+				return 4;
 			}
-			else
+
+			// inf
+			copystring("inf", string, 4, 4);
+			return 4;
+		}
+
+		if (exp == 0)
+		{
+			// check for zero/denormal
+			if ((intf.i & 0x7fffffff) == 0)
 			{
-				if (charsprinted + sizeof(inf) <= maxstring)
-				{
-					copystring(inf, dest, sizeof(inf), sizeof(inf));
-					charsprinted += sizeof(inf);
-				}
-				return charsprinted;
+				copystring("0", string, 2, 2);
+				return 2;
+			}
+			u32 nanvalue = intf.i << 9;
+			while (!(nanvalue & 0x80000000))
+			{
+				nanvalue <<= 1;
+				exp--;
 			}
 		}
 
-		// return zero
-		if (x.i == 0)
+		s32 exp10 = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
+		// save at most 8 significant digits from the float
+		s32 digits = Jogo::float2intround((float)(intf.f * Jogo::intpow(10.0, 8 - exp10)));
+		// catch the one off error
+		if (digits >= 1e9)
 		{
-			// TODO: handle denormals here, this may require checking for 0 exponent field
-			if (charsprinted + sizeof(zero) <= maxstring)
-			{
-				copystring(zero, dest, sizeof(zero), sizeof(zero));
-				charsprinted += sizeof(zero);
-			}
-			return charsprinted;
+//			digits /= 10;	// may not need to do this if we are deleting trailing zeroes
+			exp10++;
 		}
 
-		s32 intlog2 = exp - 127;
-		if (intlog2 > 0)
-			intlog2++;
-		s32 intlog10 = float2intround(intlog2 * log2base10);
-		s32 intdigits = intlog10 + 1;
-
-		float ten2power = intpow(10.0f, intlog10);
-		if (ten2power - x.f > 0.0000001f)
-		{
-			intlog10--;
-			intdigits--;
-		}
-		if (intdigits < 8 && intdigits > -6)
-		{
-			precision = max(precision, intdigits);
-		}
-		s32 scale10 = precision - intlog10;
-		if (scale10 > 38)
-		{
-			x.f *= 1e38f;
-			scale10 -= 38;
-		}
-		float scalepower10 = intpow(10.0f, scale10);
-
-		float xtimes10 = x.f * scalepower10;
-		s32 intnumber = float2intround(xtimes10);
-		// TODO: did we round up to the next power of 10? If so, we need to inc # of digits
-
-		s32 totaldigits = itoa(intnumber, localint, 32) - 1;
-		s32 exponent = 0;
-		char* z = localint + totaldigits - 1;
+		// TODO: round up at the point of requested precision
+		// only do the rounding if the precision exists within printable digits
+		// modify exp10 if rounding bumped up to next power of 10
 
 		// remove trailing zeroes
-		while (*z == '0' && (totaldigits > intdigits || intdigits > precision))
+		if (exp10 > 8 || exp10 < 0)
 		{
-			*z-- = 0;
-			totaldigits--;
+			while (digits % 10 == 0)
+				digits /= 10;
+		}
+		if (exp10 <= 8  && exp10 >= 0)
+		{
+			s32 pow10 = (s32)intpow(10.0, exp10);
+			while (digits > pow10 && digits % 10 == 0)
+				digits /= 10;
 		}
 
-		// point is index in integer where to place decimal point
-		// if it is negative it represents number of leading 0s - after 0.
-		// if it is positive it is is in the middle of the integer somewhere
-		// if it's greater than totaldigits, then it becomes 1 and we use sci notation
-		s32 point = 0;
-		if (intdigits <= 0)
+		// output the string of digits
+		char decimaldigits[21];
+		s32 ilen = itoa(digits, decimaldigits, 20);
+		char* src = decimaldigits;
+		char* dst = string;
+		if (intf.i & 0x80000000)
+			*dst++ = '-';
+		if (exp10 < 0 && exp10 > -5)
 		{
-			if (intdigits > -precision)
-			{
-				if (charsprinted - intdigits + 2 <= maxstring)
-				{
-					*dest++ = '0';
-					*dest++ = '.';
-					for (s32 i = 0; i < -intdigits; i++)
-					{
-						*dest++ = '0';
-					}
-					charsprinted += 2 - intdigits;
-				}
-				else
-				{
-					return charsprinted;
-				}
-			}
-			else
-			{
-				point = 1;
-				exponent = intdigits;
-			}
+			*dst++ = '0';
+			*dst++ = '.';
+			s32 e = -exp10;
+			while (--e)
+				*dst++ = '0';
 		}
-		if (intdigits > 0)
+		*dst++ = *src++;
+		if ((exp10 > 8 || exp10 < -4) && digits > 10)
+			*dst++ = '.';
+		while (*src)
 		{
-			if (intdigits > totaldigits)
-			{
-				exponent = intdigits - 1;
-				point = 1;
-			}
-			else
-			{
-				if (intdigits > precision)
-				{
-					point = 1;
-					exponent = intdigits;
-				}
-				else
-				{
-					point = intdigits;
-				}
-			}
+			*dst++ = *src++;
 		}
 
-		u32 charsneeded = totaldigits + 1; // count the null
-		if (totaldigits > 1 && point)
+		// print signed exponent
+		if (exp10 > 8 || exp10 < -4)
 		{
-			charsneeded++;
-		}
-		if (charsprinted + charsneeded <= maxstring)
-		{
-			char* p = localint;
-			for (s32 i = 0; i < totaldigits; i++)
-			{
-				if (point && (i == point))
-				{
-					*dest++ = '.';
-				}
-				*dest++ = *p++;
-			}
-			*dest = 0;
-			charsprinted += charsneeded;
+			*dst++ = 'e';
+			char sign = exp10 < 0 ? '-' : '+';
+			*dst++ = sign;
+			s32 e = exp10 > 0 ? exp10: -exp10;
 
-			// add exponent if needed
-			if (exponent && charsprinted + 5 <= maxstring)
-			{
-				s32 abslog10 = abs(intlog10);
-				*dest++ = 'e';
-				*dest++ = intlog10 >= 0 ? '+' : '-';
-				if (abslog10 < 10)
-					*dest++ = '0';
-				itoa(abslog10, dest, 3);
-				charsprinted += 4;
-			}
+			itoa(e, decimaldigits, 20);
+			src = decimaldigits;
+			if (e < 10) *dst++ = '0';
+			while (*src)
+				*dst++ = *src++;
 		}
+		*dst++ = 0;
 
-		return charsprinted;
+		return (u32)(dst - string);
 	}
 
 	inline s32 AsInteger(float f) { return *(s32*)&f; }

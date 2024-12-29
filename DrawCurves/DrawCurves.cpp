@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS 1
 #include "Jogo.h"
 #include "Bitmap.h"
 #include "Font.h"
@@ -75,18 +76,18 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
-		char output[32];
-		float num = 623.456f;
-		for (s32 i = 1; i < 32; i++)
-		{
-			Jogo::ftoa(num, output, -1);
-			printf("%s\n", output);
-			num += 1.0f;
-			if (i % 10 == 0)
-			{
-				num *= 10;
-			}
-		}
+		//char output[32];
+		//float num = 623.456f;
+		//for (s32 i = 1; i < 32; i++)
+		//{
+		//	Jogo::ftoa(num, output, -1);
+		//	printf("%s\n", output);
+		//	num += 1.0f;
+		//	if (i % 10 == 0)
+		//	{
+		//		num *= 10;
+		//	}
+		//}
 		return Done;
 	}
 
@@ -160,32 +161,66 @@ int main(int argc, char* argv[])
 //	Jogo::Run(curves, 60);
 //	float i = 0.31415926f;
 	float t = .999999f;
-	u32 p = 2;
-	// ftoa and ithex testing code
-/* Test ftoa
+	u32 p = 7;
 	Jogo::Random rand = { 12345 };
-	for (s32 j = 0; j < 100; j++)
+//	for (s32 j = 0; j < 10; j++)
 	{
-		u32 d = 0;
-		for (s32 i = 0; i < 3; i++)
-		{
-			d *= 10;
-			d += rand.GetNext() % 10;
-		}
-		s32 e = rand.GetNext() % 60 - 30;
-
-		float f = (float)d / 100.f * Jogo::intpow(10.0f, e);	// *(float)i;
+		float numbers[400];
+		float numbers2[300];
+		float numbers10[100];
+		float f;
 		char ftoa_result[32];
-		Jogo::ftoa(f, ftoa_result, sizeof(ftoa_result), p);
-		//Jogo::itohex(j, ftoa_result, sizeof(ftoa_result), 2);
-		float output = (float)atof(ftoa_result);
-		//if (f != output)
+		s32 two230 = 1 << 30;
+		float begin = 128.0f;
+		begin *= (float)two230;
+		begin *= (float)two230;
+		begin *= (float)two230;
+		begin *= (float)two230;
+
+		s32 i = 0;
+		for (f = begin; f > 1e-45; f /= 2)
 		{
-			printf("%s: %.*g\n", ftoa_result,p,f);
-			//printf("%s: %g - %g\n", ftoa_result, i, output);
+			numbers2[i++] = f;
+		}
+		s32 size2 = i;
+		begin = 1.00000002e38f;
+		i = 0;
+		s32 j = 38;
+		for (f = begin; f > 1e-45; f /= 10)
+		{
+			numbers10[i] = f;
+			numbers10[i] = (float)Jogo::intpow(10.0, j);
+			i++;
+			j--;
+		}
+		s32 size10 = i;
+
+		s32 i2 = 0;
+		s32 i10 = 0;
+		s32 allsize = size2 + size10;
+		for (s32 i = 0; i < allsize; i++)
+		{
+			if (numbers2[i2] > numbers10[i10])
+			{
+				numbers[i] = numbers2[i2];
+				i2++;
+			}
+			else
+			{
+				numbers[i] = numbers10[i10];
+				i10++;
+			}
+		}
+
+		u32 d = 1048576;
+
+		for (i = 0; i < allsize; i++)
+		{
+			Jogo::ftoa(numbers[i], ftoa_result, 32, 6);
+			printf("%s - %g\n", ftoa_result, numbers[i]);
 		}
 	}
-*/
+
 
 /* Exhaustive test of itohex and hextoi
 	for (u32 i = 0; i < 0xffffffff; i++)

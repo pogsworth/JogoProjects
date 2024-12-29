@@ -305,7 +305,7 @@ public:
 //		AtariFont.DrawText(offset, 20, counterText, 0, BackBuffer);
 
 		static float theta = 0.0f;
-		static float radius = 2000.0f;
+		static float radius = 400.0f;
 		static float dtheta = 1.0f;
 		static float dradius = 0.1f;
 		if (radius < 10.f || radius > 150.f)
@@ -314,9 +314,9 @@ public:
 		}
 		float x = radius * Jogo::cosine(theta * Jogo::D2R);
 		float y = radius * Jogo::sine(theta * Jogo::D2R);
-		float cx = 3-50.f;
+		float cx = 350.f;
 		float cy = 300.f;
-		BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 1024, 1024 }, 0);
+		BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
 		radius += dradius;
 		theta += dtheta;
 

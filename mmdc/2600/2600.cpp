@@ -127,7 +127,7 @@ void VCS2600::Init6502()
 {
 	//cpu.load("combat.bin", 0xf000);
 	FILE* fp;
-	fopen_s(&fp, "combat.bin", "rb");
+	fopen_s(&fp, "..\\..\\roms\\combat.bin", "rb");
 	unsigned size = (unsigned)_filelength(_fileno(fp));
 	fread(rom, size, 1, fp);
 	if (size == 2048)
