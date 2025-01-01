@@ -1,5 +1,4 @@
 #include "Jogo.h"
-//#include "JMath.h"
 
 class Horizon : public Jogo::JogoApp
 {

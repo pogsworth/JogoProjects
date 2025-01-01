@@ -1,7 +1,7 @@
 #pragma once
 #include "int_types.h"
 #include <intrin.h>
-#include <math.h>
+//#include <math.h>
 
 namespace Jogo
 {
@@ -29,6 +29,11 @@ namespace Jogo
 	T max(T x, T y)
 	{
 		return x >= y ? x : y;
+	}
+
+	inline float isdigit(char n)
+	{
+		return n >= '0' && n <= '9';
 	}
 
 	inline s32 itoa(s32 number, char* string, u32 maxstring)
@@ -68,6 +73,20 @@ namespace Jogo
 			*p-- = s;
 		}
 		return numchars;
+	}
+
+	inline s32 atoi(const char* string)
+	{
+		s32 neg = 1;
+		if (*string == '-') neg = -1, string++;
+		s32 value = 0;
+		while (*string && isdigit(*string))
+		{
+			// TODO: check for overflow and return large num to represent infinity
+			value = value * 10 + *string - '0';
+			string++;
+		}
+		return neg * value;
 	}
 
 	inline u32 itohex(u32 number, char* string, u32 maxstring, u32 maxdigits = 8)
@@ -184,8 +203,8 @@ namespace Jogo
 
 	union IntFloat
 	{
-		s32 i;
 		f32 f;
+		s32 i;
 	};
 
 	inline bool isinfinite(float f)
@@ -210,25 +229,21 @@ namespace Jogo
 		return false;
 	}
 
-	inline u32  ftoa(f32 number, char* string, u32 maxstring, u32 precision)
+	inline u32  ftoa(f32 number, char* string, u32 maxstring, u32 precision = 8)
 	{
 		// get power of ten estimate of the float
-		// if will be one off for any number from an exact power of 10 up to the next power of 2
 		const float log10of2 = 0.30103f;
-		Jogo::IntFloat intf;
-		intf.f = number;
+		Jogo::IntFloat intf{number};
 		s32 exp = ((intf.i >> 23) & 0xff);
 		if (exp == 0xff)	// infinity
 		{
 			if (intf.i & 0x7fffff)
 			{	// nan
 				copystring("nan", string, 4, 4);
-				return 4;
+				return 3;
 			}
-
-			// inf
 			copystring("inf", string, 4, 4);
-			return 4;
+			return 3;
 		}
 
 		if (exp == 0)
@@ -237,12 +252,12 @@ namespace Jogo
 			if ((intf.i & 0x7fffffff) == 0)
 			{
 				copystring("0", string, 2, 2);
-				return 2;
+				return 1;
 			}
-			u32 nanvalue = intf.i << 9;
-			while (!(nanvalue & 0x80000000))
+			u32 highbit = 1 << 22;
+			while (!(intf.i & highbit) && highbit)
 			{
-				nanvalue <<= 1;
+				highbit >>= 1;
 				exp--;
 			}
 		}
@@ -250,29 +265,24 @@ namespace Jogo
 		s32 exp10 = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
 		// save at most 8 significant digits from the float
 		s32 digits = Jogo::float2intround((float)(intf.f * Jogo::intpow(10.0, 8 - exp10)));
-		// catch the one off error
-		if (digits >= 1e9)
-		{
-//			digits /= 10;	// may not need to do this if we are deleting trailing zeroes
-			exp10++;
-		}
+		if (digits >= 1e9)	exp10++;
 
-		// TODO: round up at the point of requested precision
-		// only do the rounding if the precision exists within printable digits
-		// modify exp10 if rounding bumped up to next power of 10
+		// round at requested precision
+		// TODO: allow precision to be larger
+		if (precision >= 0 && precision < 9)
+		{
+			precision = precision ? precision : 1;
+			s32 numdigits = digits >= 1e9 ? 10 : 9;
+			s32 rounder = ((s32)intpow(10.0, numdigits - precision));
+			s32 rounded = digits + rounder/2;
+			if (digits < 1e9 && rounded >= 1e9) exp10++;
+			if (digits >= 1e9 && rounded >= 1e10) exp10++;
+			digits = rounded / rounder;
+		}
 
 		// remove trailing zeroes
-		if (exp10 > 8 || exp10 < 0)
-		{
-			while (digits % 10 == 0)
-				digits /= 10;
-		}
-		if (exp10 <= 8  && exp10 >= 0)
-		{
-			s32 pow10 = (s32)intpow(10.0, exp10);
-			while (digits > pow10 && digits % 10 == 0)
-				digits /= 10;
-		}
+		while (digits % 10 == 0)
+			digits /= 10;
 
 		// output the string of digits
 		char decimaldigits[21];
@@ -290,19 +300,30 @@ namespace Jogo
 				*dst++ = '0';
 		}
 		*dst++ = *src++;
-		if ((exp10 > 8 || exp10 < -4) && digits > 10)
+		if ((exp10 >= (s32)precision || exp10 < -4) && digits >= 10)
 			*dst++ = '.';
-		while (*src)
+
+		u32 d = 1;
+		while (*src && d < precision)
 		{
 			*dst++ = *src++;
+			d++;
+		}
+
+		// fix exact powers of ten less than 10^precision
+		if (digits == 1 && exp10 > 0 && exp10 < (s32)precision)
+		{
+			s32 p = exp10;
+			while (p--)
+				*dst++ = '0';
+			d += exp10;
 		}
 
 		// print signed exponent
-		if (exp10 > 8 || exp10 < -4)
+		if (exp10 >= (s32)precision || exp10 < -4)
 		{
 			*dst++ = 'e';
-			char sign = exp10 < 0 ? '-' : '+';
-			*dst++ = sign;
+			*dst++ = exp10 < 0 ? '-' : '+';;
 			s32 e = exp10 > 0 ? exp10: -exp10;
 
 			itoa(e, decimaldigits, 20);
@@ -314,6 +335,52 @@ namespace Jogo
 		*dst++ = 0;
 
 		return (u32)(dst - string);
+	}
+
+	inline float atof(const char* string)
+	{
+		const char* c = string;
+		s32 neg = 1;
+		if (*c == '-') neg = -1, c++;
+
+		s32 integer = 0;
+		s32 intlen = 0;
+
+		while (*c && isdigit(*c))
+		{
+			char d = *c++ - '0';
+			integer = integer * 10 + d;
+			intlen++;
+		}
+
+		s32 fraclen = 0;
+		if (*c == '.')
+		{
+			c++;
+			while (*c && isdigit(*c))
+			{
+				char d = *c++ - '0';
+				integer = integer * 10 + d;
+				fraclen++;
+			}
+		}
+
+		s32 expsign = 1;
+		s32 exp = 0;
+		if (*c == 'e' || *c == 'E')
+		{
+			c++;
+			if (*c && *c == '-')	expsign = -1, c++;
+			if (*c && *c == '+') c++;
+			while (*c && isdigit(*c))
+			{
+				exp = exp * 10 + (*c++ - '0');
+			}
+			exp *= expsign;
+		}
+
+		double pow10 = intpow(10.0, exp - fraclen);
+		return (float)(integer * pow10);
 	}
 
 	inline s32 AsInteger(float f) { return *(s32*)&f; }

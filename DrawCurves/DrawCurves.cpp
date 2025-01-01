@@ -209,15 +209,21 @@ int main(int argc, char* argv[])
 			{
 				numbers[i] = numbers10[i10];
 				i10++;
-			}
+			}	
 		}
 
 		u32 d = 1048576;
-
+		char printfg[32];
+		u32 p = 6;
+//		numbers[0] = 10;
+//		allsize = 1;
 		for (i = 0; i < allsize; i++)
 		{
-			Jogo::ftoa(numbers[i], ftoa_result, 32, 6);
-			printf("%s - %g\n", ftoa_result, numbers[i]);
+			Jogo::ftoa(numbers[i], ftoa_result, 32, p);
+			float result = Jogo::atof(ftoa_result);
+			sprintf(printfg, "%.*g", p, numbers[i]);
+			if (strcmp(ftoa_result,printfg))
+				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
 		}
 	}
 

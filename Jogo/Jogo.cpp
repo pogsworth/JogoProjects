@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <timeapi.h>
 #include "Jogo.h"
-//#include "JMath.h"
 
 namespace Jogo
 {
