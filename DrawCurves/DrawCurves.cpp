@@ -231,11 +231,17 @@ int main(int argc, char* argv[])
 				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
 		}
 
+		union IntFloat
+		{
+			f32 f;
+			s32 i;
+		};
+
 		//exhaustively check round trip of all floats that are not nan or inf
 		u32 count = 0;
 		for (s32 f = 0; f < 0x3f800000; f++)
 		{
-			Jogo::IntFloat intf;
+			IntFloat intf;
 			intf.i = f;
 
 			Jogo::ftoa(intf.f, ftoa_result, 32, p);

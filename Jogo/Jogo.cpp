@@ -275,6 +275,17 @@ namespace Jogo
 		OutputDebugString(message);
 	}
 
+	u32 copystring(const char* src, char* dst, u32 len, u32 destmax)
+	{
+		u32 num = min(len, destmax);
+		for (u32 i = 0; i < num; i++)
+		{
+			*dst++ = *src++;
+		}
+		*dst = 0;
+		return num;
+	}
+
 	int JogoApp::KEY_LEFT = VK_LEFT;
 	int JogoApp::KEY_RIGHT = VK_RIGHT;
 	int JogoApp::KEY_UP = VK_UP;

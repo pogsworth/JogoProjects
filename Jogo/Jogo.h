@@ -71,6 +71,8 @@ namespace Jogo
 	// debug
 	void DebugOut(char* message);
 
+	u32 copystring(const char* src, char* dst, u32 len, u32 destmax);
+
 	struct Timer
 	{
 		static u64 Frequency;
