@@ -133,7 +133,7 @@ public:
 		}
 		for (u32 i = 1; i < NumPoints; i++)
 		{
-			BackBuffer.DrawLine((s32)Points[i-1].x, (s32)Points[i-1].y, (s32)Points[i].x, (s32)Points[i].y, 0xffffff);
+			BackBuffer.DrawLine((s32)Points[i - 1].x, (s32)Points[i - 1].y, (s32)Points[i].x, (s32)Points[i].y, 0xffffff);
 		}
 		if (Dragging)
 		{
@@ -155,15 +155,20 @@ public:
 };
 const char* Curves::Name = "Curves";
 
+void TestFloatFormat()
+{
+
+}
+
 int main(int argc, char* argv[])
 {
 	Curves curves;
-//	Jogo::Run(curves, 60);
-//	float i = 0.31415926f;
+	//	Jogo::Run(curves, 60);
+	//	float i = 0.31415926f;
 	float t = .999999f;
 	u32 p = 7;
 	Jogo::Random rand = { 12345 };
-//	for (s32 j = 0; j < 10; j++)
+	//	for (s32 j = 0; j < 10; j++)
 	{
 		float numbers[400];
 		float numbers2[300];
@@ -209,22 +214,81 @@ int main(int argc, char* argv[])
 			{
 				numbers[i] = numbers10[i10];
 				i10++;
-			}	
+			}
 		}
 
 		u32 d = 1048576;
-		char printfg[32];
-		u32 p = 6;
-//		numbers[0] = 10;
-//		allsize = 1;
+		char printfg[36];
+		u32 p = 9;
+		//		numbers[0] = 10;
+		//		allsize = 1;
 		for (i = 0; i < allsize; i++)
 		{
 			Jogo::ftoa(numbers[i], ftoa_result, 32, p);
 			float result = Jogo::atof(ftoa_result);
 			sprintf(printfg, "%.*g", p, numbers[i]);
-			if (strcmp(ftoa_result,printfg))
+			if (strcmp(ftoa_result, printfg))
 				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
 		}
+
+		//exhaustively check round trip of all floats that are not nan or inf
+		u32 count = 0;
+		for (s32 f = 0; f < 0x3f800000; f++)
+		{
+			Jogo::IntFloat intf;
+			intf.i = f;
+
+			Jogo::ftoa(intf.f, ftoa_result, 32, p);
+			float result = Jogo::atof(ftoa_result);
+			if (result != intf.f)
+			{
+				//printf("%g:%g, %g\n", intf.f, result, result - intf.f);
+				count++;
+			}
+		}
+		printf("Total errors: %d\n", count);
+/*
+		for (i = -2147483647; i < 2147480000; i += 2047)
+		{
+			float number = (float)i;
+			Jogo::ftoa(number, ftoa_result, 32, p);
+
+			float result = Jogo::atof(ftoa_result);
+			sprintf(printfg, "%.*g", p, number);
+			if (strcmp(ftoa_result, printfg))
+			{
+				char dtoa_result[80] = { 32 };
+				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
+
+				printf("%s - %.*g - %g %.*g %12s\n", ftoa_result, p, result, number, p, number, dtoa_result + 54);
+			}
+		}
+		double pof10[] = {
+			1e-38, 1e-37, 1e-36, 1e-35, 1e-34, 1e-33, 1e-32, 1e-31, 1e-30,
+			1e-29, 1e-28, 1e-27, 1e-26, 1e-25, 1e-24, 1e-23, 1e-22, 1e-21, 1e-20,
+			1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10,
+			1e-09, 1e-08, 1e-07, 1e-06, 1e-05, 1e-04, 1e-03, 1e-02, 1e-01,
+			1e0, 1e1, 1e2,1e3,1e4,1e5, 1e6,1e7,1e8, 1e9,
+			1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
+			1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28, 1e29,
+			1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36, 1e37, 1e38
+		};
+
+		for (double powten : pof10)
+		{
+			float f = 1234.567f;
+			//double powten = Jogo::intpow(10.0, i);
+			f = (float)(f * powten);
+			Jogo::ftoa(f, ftoa_result, 32, p);
+			float result = Jogo::atof(ftoa_result);
+
+			sprintf(printfg, "%.*g", p, f);
+			if (strcmp(ftoa_result, printfg))
+			{
+				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
+			}
+		}
+*/
 	}
 
 

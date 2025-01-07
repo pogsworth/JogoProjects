@@ -3,6 +3,8 @@
 #include <intrin.h>
 //#include <math.h>
 
+s32 stbsp__real_to_str(char const** start, u32* len, char* out, s32* decimal_pos, double value, u32 frac_digits);
+
 namespace Jogo
 {
 	template<typename T>
@@ -187,17 +189,27 @@ namespace Jogo
 		return tn;
 	}
 
+	inline s32 double2intround(double x)
+	{
+		__m128d m = _mm_set_sd(x);
+		return _mm_cvtsd_si32(m);
+	}
+
+	inline s32 double2inttrunc(double x)
+	{
+		__m128d m = _mm_set_sd(x);
+		return _mm_cvttsd_si32(m);
+	}
+
 	inline s32 float2intround(float x)
 	{
-		__m128 m;
-		m.m128_f32[0] = x;
+		__m128 m = _mm_set_ss(x);
 		return _mm_cvt_ss2si(m);
 	}
 
 	inline s32 float2inttrunc(float x)
 	{
-		__m128 m;
-		m.m128_f32[0] = x;
+		__m128 m = _mm_set_ss(x);
 		return _mm_cvtt_ss2si(m);
 	}
 
@@ -229,11 +241,15 @@ namespace Jogo
 		return false;
 	}
 
-	inline u32  ftoa(f32 number, char* string, u32 maxstring, u32 precision = 8)
+	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
+	inline u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6)
 	{
-		// get power of ten estimate of the float
 		const float log10of2 = 0.30103f;
 		Jogo::IntFloat intf{number};
+
+		s32 neg = intf.i >> 31;
+		intf.i &= 0x7fffffff;
+
 		s32 exp = ((intf.i >> 23) & 0xff);
 		if (exp == 0xff)	// infinity
 		{
@@ -262,26 +278,34 @@ namespace Jogo
 			}
 		}
 
+		// get power of ten estimate of the float
 		s32 exp10 = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
+
 		// save at most 8 significant digits from the float
-		s32 digits = Jogo::float2intround((float)(intf.f * Jogo::intpow(10.0, 8 - exp10)));
-		if (digits >= 1e9)	exp10++;
+		s32 digits = Jogo::double2intround(intf.f * Jogo::intpow(10.0, 8 - exp10));
+		if (digits >= 1e9)
+			exp10++;
 
 		// round at requested precision
-		// TODO: allow precision to be larger
-		if (precision >= 0 && precision < 9)
+		if (precision >= 0 && precision <= 8)
 		{
 			precision = precision ? precision : 1;
-			s32 numdigits = digits >= 1e9 ? 10 : 9;
-			s32 rounder = ((s32)intpow(10.0, numdigits - precision));
-			s32 rounded = digits + rounder/2;
-			if (digits < 1e9 && rounded >= 1e9) exp10++;
-			if (digits >= 1e9 && rounded >= 1e10) exp10++;
-			digits = rounded / rounder;
+			u32 numdigits = digits >= 1e9 ? 10 : 9;
+			if (precision < numdigits)
+			{
+				s32 rounder = ((s32)intpow(10.0, numdigits - precision));
+				s32 even = 1 - ((digits / rounder) & 1);
+				s32 rounded = digits + (rounder/2 - even);
+				if (digits < 1e9 && rounded >= 1e9)
+					exp10++;
+				if (digits >= 1e10 && rounded >= 1e11)
+					exp10++;
+				digits = rounded / rounder;
+			}
 		}
 
 		// remove trailing zeroes
-		while (digits % 10 == 0)
+		while (digits && digits % 10 == 0)
 			digits /= 10;
 
 		// output the string of digits
@@ -289,7 +313,7 @@ namespace Jogo
 		s32 ilen = itoa(digits, decimaldigits, 20);
 		char* src = decimaldigits;
 		char* dst = string;
-		if (intf.i & 0x80000000)
+		if (neg)
 			*dst++ = '-';
 		if (exp10 < 0 && exp10 > -5)
 		{
@@ -303,20 +327,22 @@ namespace Jogo
 		if ((exp10 >= (s32)precision || exp10 < -4) && digits >= 10)
 			*dst++ = '.';
 
-		u32 d = 1;
-		while (*src && d < precision)
+		s32 e = 0;
+		while (*src && e <= (s32)precision)
 		{
+			if (e == exp10)
+				*dst++ = '.';
 			*dst++ = *src++;
-			d++;
+			e++;
 		}
 
-		// fix exact powers of ten less than 10^precision
-		if (digits == 1 && exp10 > 0 && exp10 < (s32)precision)
+		// add back necessary trailing zeroes
+		if (exp10 > e && exp10 < (s32)precision)
 		{
-			s32 p = exp10;
+			s32 p = exp10 - e;
 			while (p--)
 				*dst++ = '0';
-			d += exp10;
+			e = exp10;
 		}
 
 		// print signed exponent
@@ -328,7 +354,8 @@ namespace Jogo
 
 			itoa(e, decimaldigits, 20);
 			src = decimaldigits;
-			if (e < 10) *dst++ = '0';
+			if (e < 10)
+				*dst++ = '0';
 			while (*src)
 				*dst++ = *src++;
 		}
@@ -381,6 +408,14 @@ namespace Jogo
 
 		double pow10 = intpow(10.0, exp - fraclen);
 		return (float)(integer * pow10);
+	}
+
+	inline s32 dtoa(double number, char* string, u32 precision)
+	{
+		const char* start = string;
+		u32 len;
+		s32 decimal;
+		return stbsp__real_to_str(&start, &len, string, &decimal, number, precision);
 	}
 
 	inline s32 AsInteger(float f) { return *(s32*)&f; }
@@ -473,5 +508,6 @@ namespace Jogo
 		case 3: return __sine(argument);
 		}
 	}
+
 
 };
