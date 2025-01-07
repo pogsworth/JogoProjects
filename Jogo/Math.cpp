@@ -168,6 +168,27 @@ namespace Jogo
 		return false;
 	}
 
+	double tenpowers[] = {
+		1e-46, 1e-45, 1e-44, 1e-43, 1e-42, 1e-41, 1e-40,
+		1e-39, 1e-38, 1e-37, 1e-36, 1e-35, 1e-34, 1e-33, 1e-32, 1e-31, 1e-30,
+		1e-29, 1e-28, 1e-27, 1e-26, 1e-25, 1e-24, 1e-23, 1e-22, 1e-21, 1e-20,
+		1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10,
+		1e-09, 1e-08, 1e-07, 1e-06, 1e-05, 1e-04, 1e-03, 1e-02, 1e-01,
+		1e0, 1e1, 1e2,1e3,1e4,1e5, 1e6,1e7,1e8, 1e9,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
+		1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28, 1e29,
+		1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36, 1e37, 1e38, 1e39,
+		1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48, 1e49,
+		1e50, 1e51, 1e52, 1e53, 1e54
+	};
+
+	double tenpow(s32 power)
+	{
+		if (power > -47 && power < 55)
+			return tenpowers[power + 46];
+		return intpow(10.0f, power);
+	}
+
 	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
 	u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision)
 	{
@@ -212,18 +233,18 @@ namespace Jogo
 		s32 exp10 = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
 
 		// save at most 8 significant digits from the float
-		s32 digits = Jogo::double2intround(intf.f * Jogo::intpow(10.0, 8 - exp10));
+		s32 digits = Jogo::double2intround(intf.f * tenpow(8 - exp10));
 		if (digits >= 1e9)
 			exp10++;
 
 		// round at requested precision
-		if (precision >= 0 && precision <= 8)
+		if (precision >= 0 && precision <= 9)
 		{
 			precision = precision ? precision : 1;
 			u32 numdigits = digits >= 1e9 ? 10 : 9;
 			if (precision < numdigits)
 			{
-				s32 rounder = ((s32)intpow(10.0, numdigits - precision));
+				s32 rounder = ((s32)tenpow(numdigits - precision));
 				s32 even = 1 - ((digits / rounder) & 1);
 				s32 rounded = digits + (rounder / 2 - even);
 				if (digits < 1e9 && rounded >= 1e9)
@@ -336,7 +357,7 @@ namespace Jogo
 			exp *= expsign;
 		}
 
-		double pow10 = intpow(10.0, exp - fraclen);
+		double pow10 = tenpow(exp - fraclen);
 		return (float)(integer * pow10);
 	}
 

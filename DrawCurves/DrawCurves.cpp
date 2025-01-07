@@ -248,12 +248,12 @@ int main(int argc, char* argv[])
 			float result = Jogo::atof(ftoa_result);
 			if (result != intf.f)
 			{
-				//printf("%g:%g, %g\n", intf.f, result, result - intf.f);
+				printf("%g:%g, %g\n", intf.f, result, result - intf.f);
 				count++;
 			}
 		}
 		printf("Total errors: %d\n", count);
-/*
+
 		for (i = -2147483647; i < 2147480000; i += 2047)
 		{
 			float number = (float)i;
@@ -264,9 +264,9 @@ int main(int argc, char* argv[])
 			if (strcmp(ftoa_result, printfg))
 			{
 				char dtoa_result[80] = { 32 };
-				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
+//				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
 
-				printf("%s - %.*g - %g %.*g %12s\n", ftoa_result, p, result, number, p, number, dtoa_result + 54);
+				printf("%s - %.*g - %g %.*g \n", ftoa_result, p, result, number, p, number);
 			}
 		}
 		double pof10[] = {
@@ -294,7 +294,6 @@ int main(int argc, char* argv[])
 				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
 			}
 		}
-*/
 	}
 
 
