@@ -431,7 +431,7 @@ struct Bitmap
 
 		DrawHLine(box.y, box.x, right, color);
 		DrawVLine(right, box.y, bottom, color);
-		DrawHLine(bottom, right, box.x, color);
+		DrawHLine(bottom, box.x, right, color);
 		DrawVLine(box.x, box.y, bottom, color);
 	}
 

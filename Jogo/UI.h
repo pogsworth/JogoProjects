@@ -20,8 +20,7 @@ namespace UI
 	Font DefaultFont;
 	u32 HotID = 0;
 	u32 ActiveID = 0;
-	u32 CaptureID = 0;
-	u32 UncaptureID = 0;
+	u32 FocusID = 0;
 	u32 ButtonColor = 0x808080;
 	u32 LabelColor = 0x404040;
 	u32 EditColor = 0x303030;
@@ -135,8 +134,7 @@ namespace UI
 		}
 		if (key == Jogo::JogoApp::KEY_ENTER || key == Jogo::JogoApp::KEY_TAB)
 		{
-			UncaptureID = CaptureID;
-			CaptureID = 0;
+			FocusID = 0;
 		}
 	}
 
@@ -288,17 +286,17 @@ namespace UI
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
 
 		CurrentColor = EditColor;
-		if (!CaptureID)
+		if (!FocusID)
 		{
 			if (Interact(EditID, TextSize, x, y))
 			{
-				CaptureID = EditID;
+				FocusID = EditID;
 				u32 TextLen = stringlength(Text);
 				Jogo::copystring(Text, EditBuffer, TextLen, sizeof(EditBuffer));
 				InsertionPoint = TextLen;
 			}
 		}
-		if (CaptureID == EditID || UncaptureID == EditID)
+		if (FocusID == EditID)
 		{
 			CurrentColor = EditColorActive;
 			// draw the current EditBuffer
@@ -312,7 +310,6 @@ namespace UI
 			Target.DrawLine(CaretX, CaretY, CaretX, CaretY + PartialSize.h + 2, 0xff0000);
 			// and manage to blink it...
 			result = EditBuffer;
-			UncaptureID = 0;
 		}
 		else
 		{
@@ -369,19 +366,17 @@ namespace UI
 				MaxRadio = RadioSize;
 			}
 		}
-		MaxRadio.w += MaxRadio.h;
-		Bitmap::Rect AllRadios = { (s32)FrameStack[CurrentFrame].CursorX, (s32)FrameStack[CurrentFrame].CursorY, (s32)MaxRadio.w, (s32)(count * (MaxRadio.h + 1)) };
+		MaxRadio.w += MaxRadio.h+1;
+		Bitmap::Rect AllRadios = { (s32)FrameStack[CurrentFrame].CursorX, (s32)FrameStack[CurrentFrame].CursorY, (s32)MaxRadio.w, (s32)(count * MaxRadio.h) };
 		Target.FillRect(AllRadios, ButtonColor);
-		Target.DrawRect(AllRadios, Black);
 
 		RadioChoice = choice;
 		CurrentRadio = 0;
-		// make space to surround RadioButtonGroup
-		FrameStack[CurrentFrame].CursorY++;
 		for (u32 i = 0; i < count; i++)
 		{
 			RadioButton(strings[i]);
 		}
+		Target.DrawRect(AllRadios, Black);
 		FrameStack[CurrentFrame].CursorY++;
 		return RadioChoice;
 	}

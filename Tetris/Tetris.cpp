@@ -244,7 +244,7 @@ public:
 
 	void Char(u32 character) override
 	{
-		if (UI::CaptureID)
+		if (UI::FocusID)
 		{
 			UI::Char(character);
 		}
@@ -252,7 +252,7 @@ public:
 
 	void KeyDown(u32 key) override
 	{
-		if (UI::CaptureID)
+		if (UI::FocusID)
 		{
 			UI::KeyDown(key);
 			return;
@@ -536,7 +536,7 @@ public:
 				DefaultFont.DrawText((Width - MessageSize.w)/2, (Height + DefaultFont.CharacterHeight*3)/2, PressEnterToPlay, 0xffffff, BackBuffer);
 			}
 		}
-		UI::BeginFrame({ 0,0,Width,Height });
+		UI::BeginFrame({ 100,0,Width,Height });
 
 		char ButtonText[] = "Button0";
 		static char Clicked[] = "Nothing Clicked.";
