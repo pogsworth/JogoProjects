@@ -14,6 +14,7 @@ namespace Jogo
 	JogoApp::JogoApp()
 	{
 		DefaultArena = Arena::Create(DefaultArenaSize);
+		FrameArena = Arena::Create(1024*1024);
 		BackBuffer = { (u32)Width, (u32)Height, sizeof(u32) };
 		BackBuffer.Pixels = DefaultArena.Allocate(Width * Height * sizeof(u32));
 		DefaultFont = Font::Load("../Jogo/Font16.fnt", DefaultArena);
@@ -108,8 +109,6 @@ namespace Jogo
 			? max
 			: input;
 	}
-
-
 
 	Timer::Timer()
 	{

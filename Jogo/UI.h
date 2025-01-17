@@ -197,6 +197,14 @@ namespace UI
 		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
+	Bitmap::Rect GetButtonSize(const char* Text)
+	{
+		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
+		TextSize.w += 8;
+		TextSize.h += 8;
+		return TextSize;
+	}
+
 	bool Button(const char* Text)
 	{
 		bool clicked = false;
@@ -205,11 +213,9 @@ namespace UI
 		// get an id for this button
 		// compare to hot and active
 		// calc return value (based on mouse in rect for this button)
-		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
-		TextSize.w += 8;
-		TextSize.h += 8;
+		Bitmap::Rect ButtonSize = GetButtonSize(Text);
+		ButtonSize.x = FrameStack[CurrentFrame].CursorX;
+		ButtonSize.y = FrameStack[CurrentFrame].CursorY;
 		CurrentColor = ButtonColor;
 		HiColor = HiLight;
 		LoColor = LoLight;
@@ -219,13 +225,13 @@ namespace UI
 
 		// TODO: call Layout here?  to give a chance for UI layout to arrange things...
 
-		clicked = Interact(ButtonID, TextSize, x, y);
+		clicked = Interact(ButtonID, ButtonSize, x, y);
 
-		DrawButton(TextSize, Text);
+		DrawButton(ButtonSize, Text);
 
 		// advance layout cursor
 		// TODO: maybe this belongs in a UI::Layout function?
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].CursorY += ButtonSize.h + 1;
 
 		return clicked;
 	}
@@ -245,11 +251,9 @@ namespace UI
 
 	void Label(const char* Text)
 	{
-		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
+		Bitmap::Rect TextSize = GetButtonSize(Text);
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
-		TextSize.w += 8;
-		TextSize.h += 8;
 		CurrentColor = LabelColor;
 		HiColor = HiLight;
  
@@ -273,17 +277,15 @@ namespace UI
 		u32 EditID = GetID();
 		int x, y;
 		Jogo::GetMousePos(x, y);
-		Bitmap::Rect TextSize = DefaultFont.GetTextSize("DefaultSize");
+		Bitmap::Rect TextSize = GetButtonSize("DefaultSize");
 		const char* result = Text;
 
 		if (Text)
 		{
-			TextSize = DefaultFont.GetTextSize(Text);
+			TextSize = GetButtonSize(Text);
 		}
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
-		TextSize.w += 8;
-		TextSize.h += 8;
 
 		CurrentColor = EditColor;
 		if (!CaptureID)
@@ -322,28 +324,6 @@ namespace UI
 		return result;
 	}
 
-	void BeginRadioButtons(u32 choice)
-	{
-		RadioChoice = choice;
-		RadioButtonGroupStart = FrameStack[CurrentFrame].CursorY;
-		RadioButtonGroupWidth = DefaultFont.CharacterHeight;
-		CurrentRadio = 0;
-		// make space to surround RadioButtonGroup
-		FrameStack[CurrentFrame].CursorY++;
-	}
-
-	u32 EndRadioButtons()
-	{
-		if (RadioButtonGroupStart != -1)
-		{
-			Bitmap::Rect Box = { (s32)FrameStack[CurrentFrame].CursorX, RadioButtonGroupStart, (s32)FrameStack[CurrentFrame].CursorX + RadioButtonGroupWidth, (s32)FrameStack[CurrentFrame].CursorY - RadioButtonGroupStart };
-			Target.DrawRect(Box, Black);
-		}
-		RadioButtonGroupStart = -1;
-		FrameStack[CurrentFrame].CursorY++;
-		return RadioChoice;
-	}
-
 	void DrawRadioButton(Bitmap::Rect& r, const char* Text, bool clicked)
 	{
 		u32 OuterRadius = (r.h - 10) / 2;
@@ -351,7 +331,7 @@ namespace UI
 		Target.DrawCircle(r.x + r.h / 2, r.y + r.h / 2 - 1, OuterRadius, Black);
 		if (clicked)
 		{
-			Target.FillCircle(r.x + r.h / 2, r.y + r.h /2 - 1, OuterRadius - 3, Black);
+			Target.FillCircle(r.x + r.h / 2, r.y + r.h / 2 - 1, OuterRadius - 3, Black);
 		}
 		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
@@ -359,30 +339,53 @@ namespace UI
 	void RadioButton(const char* Text)
 	{
 		u32 ButtonID = GetID();
-		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
+		Bitmap::Rect TextSize = GetButtonSize(Text);
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
-		TextSize.w += 8 + TextSize.h + 8;
-		TextSize.h += 8;
+		TextSize.w += TextSize.h;
+
 		CurrentColor = ButtonColor;
 
 		int x, y;
 		Jogo::GetMousePos(x, y);
 
-		// TODO: call Layout here?  to give a chance for UI layout to arrange things...
-
 		if (Interact(ButtonID, TextSize, x, y))
 		{
 			RadioChoice = CurrentRadio;
 		}
-
 		DrawRadioButton(TextSize, Text, RadioChoice == CurrentRadio);
-
-		RadioButtonGroupWidth = max(RadioButtonGroupWidth, TextSize.w);
 		CurrentRadio++;
 		FrameStack[CurrentFrame].CursorY += TextSize.h;
 	}
-	
+
+	u32 RadioButtons(u32 choice, const char* strings[], u32 count)
+	{
+		Bitmap::Rect MaxRadio{ 0,0,0,0 };
+		for (u32 i = 0; i < count; i++)
+		{ 
+			Bitmap::Rect RadioSize = GetButtonSize(strings[i]);
+			if (RadioSize.w > MaxRadio.w)
+			{
+				MaxRadio = RadioSize;
+			}
+		}
+		MaxRadio.w += MaxRadio.h;
+		Bitmap::Rect AllRadios = { (s32)FrameStack[CurrentFrame].CursorX, (s32)FrameStack[CurrentFrame].CursorY, (s32)MaxRadio.w, (s32)(count * (MaxRadio.h + 1)) };
+		Target.FillRect(AllRadios, ButtonColor);
+		Target.DrawRect(AllRadios, Black);
+
+		RadioChoice = choice;
+		CurrentRadio = 0;
+		// make space to surround RadioButtonGroup
+		FrameStack[CurrentFrame].CursorY++;
+		for (u32 i = 0; i < count; i++)
+		{
+			RadioButton(strings[i]);
+		}
+		FrameStack[CurrentFrame].CursorY++;
+		return RadioChoice;
+	}
+
 	void DrawCheckBox(Bitmap::Rect& r, const char* label, bool checked)
 	{
 		Bitmap::Rect DrawBox = { r.x + 4, r.y + 4, r.h - 7, r.h - 8 };

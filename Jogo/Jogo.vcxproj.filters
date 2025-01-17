@@ -53,5 +53,8 @@
     <ClInclude Include="JMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="str8.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

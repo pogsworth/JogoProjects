@@ -1,7 +1,6 @@
 #pragma once
 
 #include <intrin.h>
-#include <stdint.h>
 #include "int_types.h"
 #include "Arena.h"
 #include "JMath.h"

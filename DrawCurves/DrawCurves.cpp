@@ -4,7 +4,7 @@
 #include "Font.h"
 #include "Arena.h"
 #include <stdio.h>
-#include <string.h>
+#include "str8.h"
 
 struct PointF
 {
@@ -168,13 +168,17 @@ int main(int argc, char* argv[])
 	float t = .999999f;
 	u32 p = 7;
 	Jogo::Random rand = { 12345 };
-	//	for (s32 j = 0; j < 10; j++)
+
+	char ftoa_result[32];
+	char printfg[36];
+
+	bool bTestRange = false;
+	if (bTestRange)
 	{
 		float numbers[400];
 		float numbers2[300];
 		float numbers10[100];
 		float f;
-		char ftoa_result[32];
 		s32 two230 = 1 << 30;
 		float begin = 128.0f;
 		begin *= (float)two230;
@@ -218,7 +222,6 @@ int main(int argc, char* argv[])
 		}
 
 		u32 d = 1048576;
-		char printfg[36];
 		u32 p = 9;
 		//		numbers[0] = 10;
 		//		allsize = 1;
@@ -226,17 +229,21 @@ int main(int argc, char* argv[])
 		{
 			Jogo::ftoa(numbers[i], ftoa_result, 32, p);
 			float result = Jogo::atof(ftoa_result);
-			sprintf(printfg, "%.*g", p, numbers[i]);
-			if (strcmp(ftoa_result, printfg))
-				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
+//			sprintf(printfg, "%.*g", p, numbers[i]);
+//			if (strcmp(ftoa_result, printfg))
+//				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
 		}
+	}
 
-		union IntFloat
-		{
-			f32 f;
-			s32 i;
-		};
+	union IntFloat
+	{
+		f32 f;
+		s32 i;
+	};
 
+	bool bTestExhaustive = false;
+	if (bTestExhaustive)
+	{
 		//exhaustively check round trip of all floats that are not nan or inf
 		u32 count = 0;
 		for (s32 f = 0; f < 0x3f800000; f++)
@@ -253,22 +260,31 @@ int main(int argc, char* argv[])
 			}
 		}
 		printf("Total errors: %d\n", count);
+	}
 
-		for (i = -2147483647; i < 2147480000; i += 2047)
+	bool bTestIntegers = false;
+	if (bTestIntegers)
+	{
+		for (s32 i = -2147483647; i < 2147480000; i += 2047)
 		{
 			float number = (float)i;
 			Jogo::ftoa(number, ftoa_result, 32, p);
 
 			float result = Jogo::atof(ftoa_result);
 			sprintf(printfg, "%.*g", p, number);
-			if (strcmp(ftoa_result, printfg))
+//			if (strcmp(ftoa_result, printfg))
 			{
 				char dtoa_result[80] = { 32 };
-//				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
+				//				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
 
 				printf("%s - %.*g - %g %.*g \n", ftoa_result, p, result, number, p, number);
 			}
 		}
+	}
+
+	bool bTestPowers = false;
+	if (bTestPowers)
+	{
 		double pof10[] = {
 			1e-38, 1e-37, 1e-36, 1e-35, 1e-34, 1e-33, 1e-32, 1e-31, 1e-30,
 			1e-29, 1e-28, 1e-27, 1e-26, 1e-25, 1e-24, 1e-23, 1e-22, 1e-21, 1e-20,
@@ -289,30 +305,55 @@ int main(int argc, char* argv[])
 			float result = Jogo::atof(ftoa_result);
 
 			sprintf(printfg, "%.*g", p, f);
-			if (strcmp(ftoa_result, printfg))
+//			if (strcmp(ftoa_result, printfg))
+//			{
+//				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
+//			}
+		}
+	}
+	bool bTestExhaustiveHex = false;
+	if (bTestExhaustiveHex)
+	{
+		for (u32 i = 0; i < 0xffffffff; i++)
+		{
+			char hexbuf[9];
+			Jogo::itohex(i, hexbuf, sizeof(hexbuf));
+			u32 hex = Jogo::hextoi(hexbuf);
+			if (i != hex)
 			{
-				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
+				printf("%s %d %d\n", hexbuf, i, hex);
+			}
+			if (i % 16777216 == 0)
+			{
+				printf(".");
 			}
 		}
 	}
 
-
-/* Exhaustive test of itohex and hextoi
-	for (u32 i = 0; i < 0xffffffff; i++)
+	bool bTestRandomFloats = false;
+	if (bTestRandomFloats)
 	{
-		char hexbuf[9];
-		Jogo::itohex(i, hexbuf, sizeof(hexbuf));
-		u32 hex = Jogo::hextoi(hexbuf);
-		if (i != hex)
+		u32 count = 0;
+		IntFloat intf;
+		for (u32 i = 0; i < 100000000; i++)
 		{
-			printf("%s %d %d\n", hexbuf, i, hex);
-		}
-		if (i % 16777216 == 0)
-		{
-			printf(".");
+			intf.i = rand.GetNext();
+			intf.i &= 0x7effffff;
+			char jogoout[32];
+			Jogo::ftoa(intf.f, jogoout, 32);
+			char sprintfout[32];
+			sprintf(sprintfout, "%g", intf.f);
+
+			//if (strcmp(jogoout, sprintfout))
+			//{
+			//	printf("%08x %s %s\n", intf.i, jogoout, sprintfout);
+			//	count++;
+			//}
 		}
 	}
-*/
+	Jogo::str8 s = Jogo::str8::format("{} {}", curves.FrameArena, 65, 100);
 
+	s = Jogo::str8::format("This is a test.  I am {} years old and my name is {}.  22/7 = {}\n", curves.FrameArena, 57, "Paul", 22.0f / 7.0f);
+	printf("%*s\n", (int)s.len, s.chars);
 	return 0;
 }

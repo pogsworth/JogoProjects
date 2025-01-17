@@ -16,6 +16,7 @@ namespace Jogo
 		int Height = 1024;
 		int DefaultArenaSize = 64 * 1024 * 1024;
 		Arena DefaultArena;
+		Arena FrameArena;
 		Bitmap BackBuffer;
 		Font DefaultFont;
 

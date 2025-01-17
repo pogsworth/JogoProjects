@@ -557,13 +557,14 @@ public:
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
 
 		static u32 choice = -1;
-		bool choices[4] = {};
-		UI::BeginRadioButtons(choice);
-		UI::RadioButton("Banana");
-		UI::RadioButton("Apple");
-		UI::RadioButton("Orange");
-		UI::RadioButton("Grape");
-		choice = UI::EndRadioButtons();
+		const char* RadioButtons[] =
+		{
+			"Banana",
+			"Apple",
+			"Orange",
+			"Grape"
+		};
+		choice = UI::RadioButtons(choice, RadioButtons, 4);
 
 		static bool IsChecked = false;
 		IsChecked = UI::CheckBox("Checked", IsChecked);
@@ -603,6 +604,7 @@ public:
 
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";
+		":?}{"
 		char ActiveID[] = "ActiveID: ";
 		char HotIDString[8];
 		char ActiveIDString[8];

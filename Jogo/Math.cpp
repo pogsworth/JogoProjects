@@ -2,7 +2,7 @@
 
 namespace Jogo
 {
-	s32 itoa(s32 number, char* string, u32 maxstring)
+	u32 itoa(s32 number, char* string, u32 maxstring)
 	{
 		u32 n = abs(number);
 		u32 numchars = 0;
@@ -29,7 +29,6 @@ namespace Jogo
 		if (numchars < maxstring)
 		{
 			*p-- = 0;
-			numchars++;
 		}
 		char* b = string;
 		while (b < p)
@@ -261,7 +260,7 @@ namespace Jogo
 
 		// output the string of digits
 		char decimaldigits[21];
-		s32 ilen = itoa(digits, decimaldigits, 20);
+		u32 ilen = itoa(digits, decimaldigits, 20);
 		char* src = decimaldigits;
 		char* dst = string;
 		if (neg)
@@ -279,12 +278,13 @@ namespace Jogo
 			*dst++ = '.';
 
 		s32 e = 0;
-		while (*src && e <= (s32)precision)
+		while (ilen && e <= (s32)precision)
 		{
 			if (e == exp10)
 				*dst++ = '.';
 			*dst++ = *src++;
 			e++;
+			ilen--;
 		}
 
 		// add back necessary trailing zeroes
@@ -303,14 +303,14 @@ namespace Jogo
 			*dst++ = exp10 < 0 ? '-' : '+';;
 			s32 e = exp10 > 0 ? exp10 : -exp10;
 
-			itoa(e, decimaldigits, 20);
+			u32 ilen = itoa(e, decimaldigits, 20);
 			src = decimaldigits;
 			if (e < 10)
 				*dst++ = '0';
-			while (*src)
+			while (ilen--)
 				*dst++ = *src++;
 		}
-		*dst++ = 0;
+		*dst = 0;
 
 		return (u32)(dst - string);
 	}

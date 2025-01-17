@@ -66,7 +66,7 @@ namespace Jogo
 	const float R2D = 180.0f / PI;
 	const float D2R = PI / 180.0f;
 
-	s32 itoa(s32 number, char* string, u32 maxstring);
+	u32 itoa(s32 number, char* string, u32 maxstring);
 	s32 atoi(const char* string);
 	u32 itohex(u32 number, char* string, u32 maxstring, u32 maxdigits = 8);
 	u32 hextoi(const char* input);
