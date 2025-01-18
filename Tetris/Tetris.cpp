@@ -476,7 +476,7 @@ public:
 
 		// TODO: move to testing function
 		BackBuffer.PasteBitmap(deltaX*4, deltaY*4, TestBitmap, 0xff0000);
-//		BackBuffer.FillRect({ PlayFieldLeft, PlayFieldTop, PlayFieldWidth * BlockSize, PlayFieldHeight * BlockSize }, 0);
+		BackBuffer.FillRect({ PlayFieldLeft, PlayFieldTop, PlayFieldWidth * BlockSize, PlayFieldHeight * BlockSize }, 0);
 		const char* HelloWorld = "Hello World!";
 		u32 cursor = 250;
 //		DefaultFont.DrawText(deltaX, deltaY, HelloWorld, 0xff0000, BackBuffer);
@@ -501,8 +501,8 @@ public:
  		DefaultFont.DrawText(0, 48, LastChar, 0, BackBuffer);
 
 //		BackBuffer.DrawLine(mouseX, mouseY, mouseX + deltaX, mouseY + deltaY, 0x00ff00);
-//		DrawPlayField();
-//		DrawPlayfieldBorder();
+		DrawPlayField();
+		DrawPlayfieldBorder();
 
 		if (!GameOver)
 		{
@@ -602,14 +602,6 @@ public:
 		}
 		UI::EndFrame();
 
-		static s32 r = 0;
-		static s32 dr = -1;
-		r += dr;
-		if (r < -5)
-			dr = -dr;
-		if (r > 35)
-			dr = -dr;
-		BackBuffer.DrawRoundedRect({ 200,200,40,20 }, r, UI::Black);
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";
 		":?}{"
@@ -636,6 +628,6 @@ const char* TetrisGame::Name = "Tetris";
 int main(int argc, char* argv[])
 {
 	TetrisGame tetris;
-	Jogo::Run(tetris, 1);
+	Jogo::Run(tetris, 60);
 	return 0;
 }

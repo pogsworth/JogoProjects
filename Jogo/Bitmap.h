@@ -520,17 +520,24 @@ struct Bitmap
 		s32 right = box.x + box.w - 1;
 		s32 bottom = box.y + box.h - 1;
 
-		s32 w = box.w - 2 * radius;
+		s32 r = radius;
+		s32 w = box.w - 2 * r - 1;
 		if (w < 0)
-			radius = box.w / 2;
-		s32 h = box.h - 2 * radius;
+		{
+			r = box.w / 2;
+			w = box.w - 2 * r - 1;
+		}
+		s32 h = box.h - 2 * r - 1;
 		if (h < 0)
-			radius = box.h / 2;
-
-		s32 lx = box.x + radius;
-		s32 uy = box.y + radius;
-		s32 rx = right - radius;
-		s32 ly = bottom - radius;
+		{
+			r = min(r, box.h / 2);
+			h = box.h - 2 * r - 1;
+			w = box.w - 2 * r - 1;
+		}
+		s32 lx = box.x + r;
+		s32 uy = box.y + r;
+		s32 rx = right - r;
+		s32 ly = bottom - r;
 
 		// draw the straight edges
 		if (w)
@@ -545,11 +552,11 @@ struct Bitmap
 		}
 
 		// draw the rounded corners
-		s32 f = 1 - radius;
+		s32 f = 1 - r;
 		s32 ddx = 0;
-		s32 ddy = -2 * radius;
+		s32 ddy = -2 * r;
 		s32 x = 0;
-		s32 y = radius;
+		s32 y = r;
 
 		while (x < y)
 		{
@@ -575,6 +582,75 @@ struct Bitmap
 				SetPixel(lx - y, uy - x, color);
 				SetPixel(rx + y, ly + x, color);
 				SetPixel(lx - y, ly + x, color);
+			}
+		}
+	}
+
+	void FillRoundedRect(const Rect& box, s32 radius, u32 color)
+	{
+		// how to clip this?
+		if (box.w < 1 || box.h < 1)
+			return;
+		if (radius <= 0)
+		{
+			FillRect(box, color);
+			return;
+		}
+		s32 right = box.x + box.w - 1;
+		s32 bottom = box.y + box.h - 1;
+
+		s32 r = radius;
+		s32 w = box.w - 2 * r - 1;
+		if (w < 0)
+		{
+			r = box.w / 2;
+			w = max(0, box.w - 2 * r - 1);
+		}
+		s32 h = box.h - 2 * r - 1;
+		if (h < 0)
+		{
+			r = min(r, box.h / 2);
+			h = max(0, box.h - 2 * r - 1);
+			w = max(0, box.w - 2 * r - 1);
+		}
+		s32 lx = box.x + r;
+		s32 uy = box.y + r;
+		s32 rx = right - r - 1;
+		s32 ly = bottom - r - 1;
+
+		// draw the straight edges
+		if (h)
+		{
+			FillRect({ box.x, uy, box.w - 1, h }, color);
+		}
+
+		// draw the rounded corners
+		s32 f = 1 - r;
+		s32 ddx = 0;
+		s32 ddy = -2 * r;
+		s32 x = 0;
+		s32 y = r;
+
+		while (x < y)
+ 		{
+			if (f >= 0)
+			{
+				if (x <= y)
+				{
+					DrawHLine(uy - y, lx - x, rx + x, color);
+					DrawHLine(ly + y, lx - x, rx + x, color);
+				}
+				y--;
+				ddy += 2;
+				f += ddy;
+			}
+			x++;
+			ddx += 2;
+			f += ddx + 1;
+			if (x <= y)
+			{
+				DrawHLine(uy - x, lx - y, rx + y, color);
+				DrawHLine(ly + x, lx - y, rx + y, color);
 			}
 		}
 	}
