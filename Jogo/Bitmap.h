@@ -509,6 +509,76 @@ struct Bitmap
 		}
 	}
 
+	void DrawRoundedRect(const Rect& box, s32 radius, u32 color)
+	{
+		// how to clip this?
+		if (radius <= 0)
+		{
+			DrawRect(box, color);
+			return;
+		}
+		s32 right = box.x + box.w - 1;
+		s32 bottom = box.y + box.h - 1;
+
+		s32 w = box.w - 2 * radius;
+		if (w < 0)
+			radius = box.w / 2;
+		s32 h = box.h - 2 * radius;
+		if (h < 0)
+			radius = box.h / 2;
+
+		s32 lx = box.x + radius;
+		s32 uy = box.y + radius;
+		s32 rx = right - radius;
+		s32 ly = bottom - radius;
+
+		// draw the straight edges
+		if (w)
+		{
+			DrawHLine(box.y, lx, rx, color);
+			DrawHLine(bottom, lx, rx, color);
+		}
+		if (h)
+		{
+			DrawVLine(box.x, uy, ly, color);
+			DrawVLine(right, uy, ly, color);
+		}
+
+		// draw the rounded corners
+		s32 f = 1 - radius;
+		s32 ddx = 0;
+		s32 ddy = -2 * radius;
+		s32 x = 0;
+		s32 y = radius;
+
+		while (x < y)
+		{
+			if (f >= 0)
+			{
+				y--;
+				ddy += 2;
+				f += ddy;
+			}
+			x++;
+			ddx += 2;
+			f += ddx + 1;
+			if (x <= y)
+			{
+				SetPixel(rx + x, uy - y, color);
+				SetPixel(lx - x, uy - y, color);
+				SetPixel(rx + x, ly + y, color);
+				SetPixel(lx - x, ly + y, color);
+			}
+			if (x < y)
+			{
+				SetPixel(rx + y, uy - x, color);
+				SetPixel(lx - y, uy - x, color);
+				SetPixel(rx + y, ly + x, color);
+				SetPixel(lx - y, ly + x, color);
+			}
+		}
+	}
+
 #ifdef RGB
 #undef RGB
 #endif
