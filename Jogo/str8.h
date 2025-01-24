@@ -63,6 +63,20 @@ namespace Jogo
 			return str8(chars + start, len - start);
 		}
 
+		u32 find(const char c) const
+		{
+			const char* d = chars;
+			for (u32 i = 0; i < len; i++)
+			{
+				if (*d == c)
+				{
+					return i;
+				}
+				d++;
+			}
+			return (u32)-1;
+		}
+
 		u32 find(const str8& lookfor) const
 		{
 			const char* c = lookfor.chars;
@@ -93,7 +107,7 @@ namespace Jogo
 			return (u32)-1;
 		}
 
-		bool operator==(str8& b)
+		bool operator==(const str8& b)
 		{
 			if (len != b.len)
 				return false;
@@ -109,7 +123,7 @@ namespace Jogo
 			return true;
 		}
 
-		bool operator<(str8& b)
+		bool operator<(const str8& b)
 		{
 			if (chars == b.chars)
 			{
@@ -125,17 +139,26 @@ namespace Jogo
 			return len < b.len;
 		}
 
-		static u32 toString(s32 number, char* stringspace, u32 maxlen)
+		s32 operator[](u32 pos) const
+		{
+			if (pos < len)
+			{
+				return chars[pos];
+			}
+			return -1;
+		}
+
+		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
 		{
 			return Jogo::itoa(number, stringspace, maxlen);
 		}
 
-		static u32 toString(f32 fnumber, char* stringspace, u32 maxlen)
+		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
 		{
 			return Jogo::ftoa(fnumber, stringspace, maxlen);
 		}
 
-		static u32 toString(const char* string, char* stringspace, u32 maxlen)
+		static u32 toString(const char* string, const str8& spec, char* stringspace, u32 maxlen)
 		{
 			size_t len = Length(string);
 			len = Jogo::min((u32)len, maxlen);
@@ -145,19 +168,57 @@ namespace Jogo
 
 		struct formatter
 		{
+			// returns bits of enabled features
+			u32 parseSpec(const str8& spec)
+			{
+
+			}
+
 			u32 format(const str8& fmt, char* dest, auto arg, auto... rest)
 			{
-				u32 pos = fmt.find("{}");
-				if (pos == (u32)-1)
+				// find all escaped braces
+				u32 pos = 0;
+				u32 len = 0;
+				str8 fmtsub = fmt;
+				char* d = dest;
+				bool escaped = false;
+				do {
+					escaped = false;
+					fmtsub = fmtsub.substr(pos);
+					pos = fmtsub.find('{');
+					if (pos == (u32)-1 || (pos == (fmtsub.len - 1)))
+					{
+						return len + copystring(d, fmtsub.chars, fmtsub.len);
+					}
+					len += copystring(d, fmtsub.chars, pos);
+					d += pos;
+
+					// put escaped { in output 
+					if (fmtsub[pos + 1] == '{')
+					{
+						*d++ = '{';
+						len++;
+						pos += 2;
+						escaped = true;
+					}
+				} while (escaped);
+				fmtsub = fmtsub.substr(pos);
+
+				// find matching } and pass format specifiers to toString
+				str8 spec(nullptr, (size_t)0);
+				u32 end = fmtsub.find('}');
+				if (end == (u32)-1)
 				{
-					return copystring(dest, fmt.chars, fmt.len);
+					return len + copystring(d, fmtsub.chars + 1, fmtsub.len - 1);
 				}
 				else
 				{
-					u32 len = copystring(dest, fmt.chars, pos);
-					len += toString(arg, dest + pos, (u32)-1);
-					return len + format(fmt.substr(pos + 2), dest + len, rest...);
+					spec = fmtsub.substr(1, end-1);
+					u32 l = toString(arg, spec, d, (u32)-1);
+					d += l;
+					len += l;
 				}
+				return len + format(fmtsub.substr((u32)spec.len + 2), d, rest...);
 			}
 
 			u32 format(const str8& fmt, char* dest)

@@ -274,6 +274,7 @@ namespace Jogo
 				*dst++ = '0';
 		}
 		*dst++ = *src++;
+		ilen--;
 		if ((exp10 >= (s32)precision || exp10 < -4) && digits >= 10)
 			*dst++ = '.';
 

@@ -351,9 +351,9 @@ int main(int argc, char* argv[])
 			//}
 		}
 	}
-	Jogo::str8 s = Jogo::str8::format("{} {}", curves.FrameArena, 65, 100);
+	Jogo::str8 s = Jogo::str8::format("{    } {{}}", curves.FrameArena, 65, 100);
 
-	s = Jogo::str8::format("This is a test.  I am {} years old and my name is {}.  22/7 = {}\n", curves.FrameArena, 57, "Paul", 22.0f / 7.0f);
+	s = Jogo::str8::format("This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", curves.FrameArena, 57, 22.0f / 7.0f);
 	printf("%*s\n", (int)s.len, s.chars);
 	return 0;
 }
