@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "str8.h"
 
+using namespace Jogo;
+
 struct PointF
 {
 	PointF() {}
@@ -80,7 +82,7 @@ public:
 		//float num = 623.456f;
 		//for (s32 i = 1; i < 32; i++)
 		//{
-		//	Jogo::ftoa(num, output, -1);
+		//	str8::ftoa(num, output, -1);
 		//	printf("%s\n", output);
 		//	num += 1.0f;
 		//	if (i % 10 == 0)
@@ -227,8 +229,9 @@ int main(int argc, char* argv[])
 		//		allsize = 1;
 		for (i = 0; i < allsize; i++)
 		{
-			Jogo::ftoa(numbers[i], ftoa_result, 32, p);
-			float result = Jogo::atof(ftoa_result);
+			u32 len = str8::ftoa(numbers[i], ftoa_result, 32, p);
+			str8 numberstr(ftoa_result, len);
+			float result = numberstr.atof();
 //			sprintf(printfg, "%.*g", p, numbers[i]);
 //			if (strcmp(ftoa_result, printfg))
 //				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, numbers[i], p, numbers[i]);
@@ -251,8 +254,9 @@ int main(int argc, char* argv[])
 			IntFloat intf;
 			intf.i = f;
 
-			Jogo::ftoa(intf.f, ftoa_result, 32, p);
-			float result = Jogo::atof(ftoa_result);
+			u32 len = str8::ftoa(intf.f, ftoa_result, 32, p);
+			str8 resultstr(ftoa_result, len);
+			float result = resultstr.atof();
 			if (result != intf.f)
 			{
 				printf("%g:%g, %g\n", intf.f, result, result - intf.f);
@@ -268,9 +272,9 @@ int main(int argc, char* argv[])
 		for (s32 i = -2147483647; i < 2147480000; i += 2047)
 		{
 			float number = (float)i;
-			Jogo::ftoa(number, ftoa_result, 32, p);
-
-			float result = Jogo::atof(ftoa_result);
+			u32 len = str8::ftoa(number, ftoa_result, 32, p);
+			str8 resultstr(ftoa_result, len);
+			float result = resultstr.atof();
 			sprintf(printfg, "%.*g", p, number);
 //			if (strcmp(ftoa_result, printfg))
 			{
@@ -301,8 +305,9 @@ int main(int argc, char* argv[])
 			float f = 1234.567f;
 			//double powten = Jogo::intpow(10.0, i);
 			f = (float)(f * powten);
-			Jogo::ftoa(f, ftoa_result, 32, p);
-			float result = Jogo::atof(ftoa_result);
+			u32 len = str8::ftoa(f, ftoa_result, 32, p);
+			str8 resultstr(ftoa_result, len);
+			float result = resultstr.atof();
 
 			sprintf(printfg, "%.*g", p, f);
 //			if (strcmp(ftoa_result, printfg))
@@ -317,8 +322,9 @@ int main(int argc, char* argv[])
 		for (u32 i = 0; i < 0xffffffff; i++)
 		{
 			char hexbuf[9];
-			Jogo::itohex(i, hexbuf, sizeof(hexbuf));
-			u32 hex = Jogo::hextoi(hexbuf);
+			u32 len = str8::itohex(i, hexbuf, sizeof(hexbuf));
+			str8 hexstr(hexbuf, len);
+			u32 hex = hexstr.hextoi();
 			if (i != hex)
 			{
 				printf("%s %d %d\n", hexbuf, i, hex);
@@ -340,7 +346,7 @@ int main(int argc, char* argv[])
 			intf.i = rand.GetNext();
 			intf.i &= 0x7effffff;
 			char jogoout[32];
-			Jogo::ftoa(intf.f, jogoout, 32);
+			str8::ftoa(intf.f, jogoout, 32);
 			char sprintfout[32];
 			sprintf(sprintfout, "%g", intf.f);
 
@@ -354,6 +360,11 @@ int main(int argc, char* argv[])
 	Jogo::str8 s = Jogo::str8::format("{    } {{}}", curves.FrameArena, 65, 100);
 
 	s = Jogo::str8::format("This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", curves.FrameArena, 57, 22.0f / 7.0f);
+	printf("%*s\n", (int)s.len, s.chars);
+
+	s = Jogo::str8::format("number: {0:1X}", curves.FrameArena, -55);
+	printf("%*s\n", (int)s.len, s.chars);
+	s = Jogo::str8::format("number: {0:2x}", curves.FrameArena, 15);
 	printf("%*s\n", (int)s.len, s.chars);
 	return 0;
 }

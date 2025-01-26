@@ -816,7 +816,7 @@ struct CPU6502
 			this->name = "";
 			this->format = "";
 		}
-		instruction(opFunction op, int length, int cycles, char* name, char* format)
+		instruction(opFunction op, int length, int cycles, const char* name, const char* format)
 		{
 			this->op = op;
 			this->length = length;
@@ -827,8 +827,8 @@ struct CPU6502
 		opFunction op;
 		int length;
 		int cycles;
-		char* name;
-		char* format;
+		const char* name;
+		const char* format;
 	};
 	static instruction* instLookup[];
 };

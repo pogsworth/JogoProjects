@@ -1,6 +1,9 @@
 #include "Jogo.h"
+#include "str8.h"
 
-class Horizon : public Jogo::JogoApp
+using namespace Jogo;
+
+class Horizon : public JogoApp
 {
 	static const char* Name;
 	bool Done = false;
@@ -45,20 +48,20 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
-		if (Jogo::IsKeyPressed(KEY_RIGHT))
+		if (IsKeyPressed(KEY_RIGHT))
 		{
 			roll += 30.0f * DT;
 		}
-		if (Jogo::IsKeyPressed(KEY_LEFT))
+		if (IsKeyPressed(KEY_LEFT))
 		{
 			roll -= 30.0f * DT;
 		}
-		float localupx = Jogo::sine(roll);
-		float localupy = Jogo::cosine(roll);
+		float localupx = sine(roll);
+		float localupy = cosine(roll);
 		static float timer = 0;
 		timer += DT;
 		char timerString[32];
-		Jogo::ftoa(timer, timerString, sizeof(timerString));
+		str8::ftoa(timer, timerString, sizeof(timerString));
 		char* p = timerString;
 		for (s32 i = 0; i < 32; i++, p++)
 		{
@@ -69,12 +72,12 @@ public:
 				break;
 			}
 		}
-		Jogo::DebugOut(timerString);
-		if (Jogo::IsKeyPressed(KEY_UP))
+		DebugOut(timerString);
+		if (IsKeyPressed(KEY_UP))
 		{
 			pitch += 20.0f * DT;
 		}
-		if (Jogo::IsKeyPressed(KEY_DOWN))
+		if (IsKeyPressed(KEY_DOWN))
 		{
 			pitch -= 20.0f * DT;
 		}
@@ -137,12 +140,12 @@ public:
 		float cx = frame.x + frame.w / 2.0f;
 		float cy = frame.y + frame.h / 2.0f;
 		float r = 1.5f*frame.w / 2;
-		float c = Jogo::cosine(-roll * Jogo::D2R);
-		float s = Jogo::sine(-roll * Jogo::D2R);
+		float c = cosine(-roll * D2R);
+		float s = sine(-roll * D2R);
 		
 		s32 q;
 		float p;
-		Jogo::remainder(-pitch, 180.0f, 1.0f / 180.0f, q, p);
+		remainder(-pitch, 180.0f, 1.0f / 180.0f, q, p);
 
 		float upx = s;
 		float upy = -c;
@@ -228,13 +231,13 @@ public:
 			{180.0f, 240, 0x0000ff}
 		};
 		
-		triangleTheta += Jogo::D2R * 15.5f;
+		triangleTheta += D2R * 15.5f;
 		static float xbump = 0.f;
 		xbump += 0.1f;
 		cx = 200.0f;
 		cy = 200.0f;
-		float co = Jogo::cosine(triangleTheta);
-		float si = Jogo::sine(triangleTheta);
+		float co = cosine(triangleTheta);
+		float si = sine(triangleTheta);
 		for (int i = 0; i < 3; i++)
 		{
 			float x1 = triangle[i].x - cx;
@@ -258,7 +261,8 @@ public:
 		//BackBuffer.DrawLine(triangle[1].x, triangle[1].y, triangle[2].x, triangle[2].y, 0);
 		//BackBuffer.DrawLine(triangle[2].x, triangle[2].y, triangle[0].x, triangle[0].y, 0);
 		char pitchString[32];
-		Jogo::itoa((int)pitch%360, pitchString, 32);
+		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
+		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
 	}
 
@@ -270,8 +274,8 @@ public:
 		for (s32 x = 0; x < (s32)BackBuffer.Width; x++)
 		{
 			
-			float a = (x/scale - ox) * Jogo::D2R - (originx + deltax)/100.f;
-			float y = 100 * scale * (Jogo::cosine(a)) - originy - deltay;
+			float a = (x/scale - ox) * D2R - (originx + deltax)/100.f;
+			float y = 100 * scale * (cosine(a)) - originy - deltay;
 			int y2 = oy - (int)y;
 			int x2 = x;
 			BackBuffer.DrawLine(x1, y1, x2, y2, 0xffffff);
@@ -288,20 +292,21 @@ public:
 		DrawHorizon(horizonBox, pitch, roll);
 		//DrawSineWave();
 		//char scrollString[32];
-		//Jogo::itoa(scroll, scrollString);
+		//str8::itoa(scroll, scrollString);
 		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
 		AtariFont.DrawText(0, 0, "Hello", 0, BackBuffer);
 
-		static float counter = 1234567;
+		static int counter = 1234567;
 		counter++;
-		char counterText[32];
-		Jogo::ftoa(counter, counterText, sizeof(counterText));
+		char counterText[32] = {};
+		u32 len = str8::itoa(counter, counterText, sizeof(counterText));
+		str8 countrStr(counterText, len);
 		static s32 offset = 0;
 		static s32 dx = -1;
 		offset += dx;
 		if (offset < -100 || offset >= 100)
 			dx = -dx;
-//		AtariFont.DrawText(offset, 20, counterText, 0, BackBuffer);
+//		AtariFont.DrawText(offset, 20, countrStr, 0, BackBuffer);
 
 		static float theta = 0.0f;
 		static float radius = 400.0f;
@@ -311,15 +316,15 @@ public:
 		{
 			dradius = -dradius;
 		}
-		float x = radius * Jogo::cosine(theta * Jogo::D2R);
-		float y = radius * Jogo::sine(theta * Jogo::D2R);
+		float x = radius * cosine(theta * D2R);
+		float y = radius * sine(theta * D2R);
 		float cx = 350.f;
 		float cy = 300.f;
 		BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
 		radius += dradius;
 		theta += dtheta;
 
-		Jogo::Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
+		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 	}
 };
 
@@ -328,6 +333,6 @@ const char* Horizon::Name = "Horizon";
 int main(int argc, char *argv[])
 {
 	Horizon horizon;
-	Jogo::Run(horizon, 60);
+	Run(horizon, 60);
 	return 0;
 }

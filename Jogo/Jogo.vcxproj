@@ -176,6 +176,7 @@
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Jogo.cpp" />
     <ClCompile Include="Math.cpp" />
+    <ClCompile Include="str8.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Arena.h" />

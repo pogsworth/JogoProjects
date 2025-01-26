@@ -28,12 +28,6 @@ namespace Jogo
 
 		str8() {}
 
-		//str8(const char* string)
-		//{
-		//	chars = string;
-		//	len = Length(string);
-		//}
-
 		str8(const char* begin, char* end)
 		{
 			chars = begin;
@@ -148,14 +142,24 @@ namespace Jogo
 			return -1;
 		}
 
-		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
+		static bool isdigit(char n)
 		{
-			return Jogo::itoa(number, stringspace, maxlen);
+			return n >= '0' && n <= '9';
 		}
+
+		static double tenpow(s32 power);
+		static u32 itoa(s32 number, char* string, u32 maxstring);
+		s32 atoi();
+		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
+		u32 hextoi();
+		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6);
+		float atof();
+
+		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
 
 		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
 		{
-			return Jogo::ftoa(fnumber, stringspace, maxlen);
+			return ftoa(fnumber, stringspace, maxlen);
 		}
 
 		static u32 toString(const char* string, const str8& spec, char* stringspace, u32 maxlen)
@@ -168,12 +172,6 @@ namespace Jogo
 
 		struct formatter
 		{
-			// returns bits of enabled features
-			u32 parseSpec(const str8& spec)
-			{
-
-			}
-
 			u32 format(const str8& fmt, char* dest, auto arg, auto... rest)
 			{
 				// find all escaped braces
@@ -188,6 +186,7 @@ namespace Jogo
 					pos = fmtsub.find('{');
 					if (pos == (u32)-1 || (pos == (fmtsub.len - 1)))
 					{
+						// TODO: remove escaped right braces } up to pos
 						return len + copystring(d, fmtsub.chars, fmtsub.len);
 					}
 					len += copystring(d, fmtsub.chars, pos);
@@ -243,22 +242,4 @@ namespace Jogo
 			return newstr;
 		}
 	};
-
-	// what kinds of functions for strings?
-	//
-	// DONE Make a string from a null-terminated char*
-	// DONE make a string from part of another s8
-	// DONE make a string by formatting multiple strings
-	// DONE make a string from part of a null-terminated char*, especially from a file
-	// When do we want to copy parts out of a char[] into somewhere else and who owns it?
-	// if we're just putting into an arena, then then arena owns it and frees it
-	// but what if we want the s8 to live longer than the arena lifetime?
-	//		then I think we need to copy the char[] data into a longer living arena...
-
-
-	// one useage pattern:
-	// read in a file into a large char[]
-	// parse it into tokens and pass them around as s8s that are just pieces of the file char[]
-	// if any of these s8s need to live longer than the file data, then the piecse of char[]
-	// must be copied out to an 'older' arena that will live longer
 };

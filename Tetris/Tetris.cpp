@@ -3,6 +3,9 @@
 #include "Font.h"
 #include "Arena.h"
 #include "UI.h"
+#include "str8.h"
+
+using namespace Jogo;
 
 class TetrisGame : public Jogo::JogoApp
 {
@@ -231,7 +234,7 @@ public:
 		char* p = PieceList;
 		for (u32 i = 0; i < 7; i++)
 		{
-			u32 len = Jogo::itoa(NextPieceList[i], p, sizeof(PieceList));
+			u32 len = str8::itoa(NextPieceList[i], p, sizeof(PieceList));
 			p += len;
 			*p++ = ',';
 			*p++ = ' ';
@@ -493,8 +496,8 @@ public:
 		// TODO: move to debug section
 		char X[16] = {};
 		char Y[16] = {};
-		Jogo::itoa(mouseX + deltaX, X, sizeof(X));
-		Jogo::itoa(mouseY + deltaY, Y, sizeof(Y));
+		str8::itoa(mouseX + deltaX, X, sizeof(X));
+		str8::itoa(mouseY + deltaY, Y, sizeof(Y));
 
 		DefaultFont.DrawText(0, 16, X, 0, BackBuffer);
 		DefaultFont.DrawText(0, 32, Y, 0, BackBuffer);
@@ -612,8 +615,8 @@ public:
 		DefaultFont.DrawText(0, 240, ActiveID, 0, BackBuffer);
 		HotIDString[0] = 0;
 		ActiveIDString[0] = 0;
-		Jogo::itoa(UI::HotID&0xfff, HotIDString, sizeof(HotIDString));
-		Jogo::itoa(UI::ActiveID&0xfff, ActiveIDString, sizeof(ActiveIDString));
+		str8::itoa(UI::HotID&0xfff, HotIDString, sizeof(HotIDString));
+		str8::itoa(UI::ActiveID&0xfff, ActiveIDString, sizeof(ActiveIDString));
 		DefaultFont.DrawText(70, 220, HotIDString, 0, BackBuffer);
 		DefaultFont.DrawText(100, 240, ActiveIDString, 0, BackBuffer);
 #endif // DEBUG_UI

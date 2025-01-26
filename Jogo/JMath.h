@@ -30,7 +30,7 @@ namespace Jogo
 		return x >= y ? x : y;
 	}
 
-	inline float isdigit(char n)
+	inline bool isdigit(char n)
 	{
 		return n >= '0' && n <= '9';
 	}

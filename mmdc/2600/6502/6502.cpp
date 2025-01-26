@@ -86,18 +86,18 @@
 typedef unsigned char byte;
 typedef unsigned short ushort;
 
-static char* acc = "A";
-static char* imm = "#$%02X";
-static char* zp = "$%02X";
-static char* zpx = "$%02X,X";
-static char* zpy = "$%02X,Y";
-static char* izx = "($%02X,X)";
-static char* izy = "($%02X),Y";
-static char* abs = "$%04X";
-static char* abx = "$%04X,X";
-static char* aby = "$%04X,Y";
-static char* ind = "($%04X)";
-static char* rel = "$%02X";
+static const char* acc = "A";
+static const char* imm = "#$%02X";
+static const char* zp = "$%02X";
+static const char* zpx = "$%02X,X";
+static const char* zpy = "$%02X,Y";
+static const char* izx = "($%02X,X)";
+static const char* izy = "($%02X),Y";
+static const char* abs = "$%04X";
+static const char* abx = "$%04X,X";
+static const char* aby = "$%04X,Y";
+static const char* ind = "($%04X)";
+static const char* rel = "$%02X";
 
 #define OP(x, len, cycles, fmt) (new CPU6502::instruction(&x, len, cycles, #x, fmt))
 CPU6502::instruction* CPU6502::instLookup[] =
