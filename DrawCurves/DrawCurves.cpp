@@ -357,14 +357,14 @@ int main(int argc, char* argv[])
 			//}
 		}
 	}
-	Jogo::str8 s = Jogo::str8::format("{    } {{}}", curves.FrameArena, 65, 100);
+	str8 s = str8::format("{    } {{}}", curves.FrameArena, 65, 100);
 
-	s = Jogo::str8::format("This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", curves.FrameArena, 57, 22.0f / 7.0f);
+	s = str8::format("This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", curves.FrameArena, 57, 22.0f / 7.0f);
 	printf("%*s\n", (int)s.len, s.chars);
 
-	s = Jogo::str8::format("number: {0:1X}", curves.FrameArena, -55);
+	s = str8::format("number: {0:1X}", curves.FrameArena, -55);
 	printf("%*s\n", (int)s.len, s.chars);
-	s = Jogo::str8::format("number: {0:2x}", curves.FrameArena, 15);
+	s = str8::format("number: {0:2x}", curves.FrameArena, 15);
 	printf("%*s\n", (int)s.len, s.chars);
 	return 0;
 }
