@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS 1
 #include "Jogo.h"
 #include "Bitmap.h"
 #include "Font.h"
@@ -275,7 +274,8 @@ int main(int argc, char* argv[])
 			u32 len = str8::ftoa(number, ftoa_result, 32, p);
 			str8 resultstr(ftoa_result, len);
 			float result = resultstr.atof();
-			sprintf(printfg, "%.*g", p, number);
+			sprintf_s(printfg, sizeof(printfg), "%.*g", p, number);
+
 //			if (strcmp(ftoa_result, printfg))
 			{
 				char dtoa_result[80] = { 32 };
@@ -309,7 +309,7 @@ int main(int argc, char* argv[])
 			str8 resultstr(ftoa_result, len);
 			float result = resultstr.atof();
 
-			sprintf(printfg, "%.*g", p, f);
+			sprintf_s(printfg, sizeof(printfg), "%.*g", p, f);
 //			if (strcmp(ftoa_result, printfg))
 //			{
 //				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
@@ -348,7 +348,7 @@ int main(int argc, char* argv[])
 			char jogoout[32];
 			str8::ftoa(intf.f, jogoout, 32);
 			char sprintfout[32];
-			sprintf(sprintfout, "%g", intf.f);
+			sprintf_s(sprintfout, sizeof(sprintfout), "%g", intf.f);
 
 			//if (strcmp(jogoout, sprintfout))
 			//{
