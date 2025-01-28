@@ -127,12 +127,12 @@ void VCS2600::Init6502()
 {
 	//cpu.load("combat.bin", 0xf000);
 	FILE* fp;
-	//fopen_s(&fp, "combat.bin", "rb");
-	//unsigned size = (unsigned)_filelength(_fileno(fp));
-	//fread(rom, size, 1, fp);
-	//if (size == 2048)
-	//	memcpy(rom + 2048, rom, 2048);
-	//fclose(fp);
+	fopen_s(&fp, "combat.bin", "rb");
+	unsigned size = (unsigned)_filelength(_fileno(fp));
+	fread(rom, size, 1, fp);
+	if (size == 2048)
+		memcpy(rom + 2048, rom, 2048);
+	fclose(fp);
 
 	//DisassembleRom();
 	cpu.reset(0xf000);

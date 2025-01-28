@@ -126,37 +126,29 @@ struct MMDC : public JogoApp
 	bool step = false;
 	bool step_line = false;
 	bool step_frame = false;
+	bool Done = false;
 
 	MMDC()
 	{
 		vcs2600.Init6502();
-
-		// handle running/pausing emulator here
-		//if (!paused)
-		//	vcs2600.runFrame();
-		//else if (step)
-		//	vcs2600.step();
-		//else if (step_line)
-		//	vcs2600.scanLine();
-		//else if (step_frame)
-		//	vcs2600.runFrame();
-
-		//last_frame = paused;
-		//if (step_frame)
-		//	memset(vcs2600.tia.frameBuffer, 0, 160 * 220 * 4);
-		//step = step_line = step_frame = false;
 	}
 
-	//void ShowVideo(HDC hdc)
-	//{
-	//	StretchDIBits(hdc, VIDEO_X, VIDEO_Y, VIDEO_W, VIDEO_H,
-	//		0, 0, 160, 220, vcs2600.tia.frameBuffer,
-	//		&videoBitmap, DIB_RGB_COLORS, SRCCOPY);
-	//}
+	void ShowVideo()
+	{
+		Bitmap videoFrame;
+		videoFrame.Width = 160;
+		videoFrame.Height = 220;
+		videoFrame.PixelSize = 4;
+		videoFrame.Pixels = vcs2600.tia.frameBuffer;
+//		BackBuffer.PasteBitmap(VIDEO_X, VIDEO_Y, videoFrame, 0);
+//		BackBuffer.PasteBitmapSelectionScaled({ VIDEO_X, VIDEO_Y, 160, 220 }, videoFrame, { 0,0,160,220 }, 0);
+		BackBuffer.PasteBitmapSelectionScaled({ 0,0,640, 440 }, videoFrame, { 0,0, 160,220 }, 0);
+//		BackBuffer.PasteBitmapSelection( 0,0, videoFrame, { 0,0, 160,220 }, 0);
+	}
 
 	void ShowRegisters()
 	{
-		char reg[256];
+		//char reg[256];
 		//wsprintf(reg, "A: %02X", vcs2600.cpu.a);
 		//SetWindowText(registerA, reg);
 		//wsprintf(reg, "X: %02X", vcs2600.cpu.x);
@@ -217,11 +209,40 @@ struct MMDC : public JogoApp
 		//}
 	}
 
-	void UpdateWindow()
+	void KeyDown(u32 key)
 	{
+		if (key == KEY_ESC)
+		{
+			Done = true;
+		}
+	}
+
+	bool Tick(float dt) override
+	{
+		// handle running/pausing emulator here
+		if (!paused)
+			vcs2600.runFrame();
+		else if (step)
+			vcs2600.step();
+		else if (step_line)
+			vcs2600.scanLine();
+		else if (step_frame)
+			vcs2600.runFrame();
+
+		if (step_frame)
+			memset(vcs2600.tia.frameBuffer, 0, 160 * 220 * 4);
+		step = step_line = step_frame = false;
+
+		return Done;
+	}
+
+	void Draw() override
+	{
+		ShowVideo();
 		ShowRegisters();
 		ShowSource();
 		ShowRam();
+		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 	}
 
 			// create all the child panels we need

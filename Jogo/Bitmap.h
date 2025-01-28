@@ -162,7 +162,7 @@ struct Bitmap
 		}
 
 		float sourceY = srcRect.y + (DstClip.y - dest.y) * sydy;
-		if (sourceY <= 0 || sourceY > source.Height)
+		if (sourceY < 0 || sourceY > source.Height)
 		{
 			sourceY = (float)(srcRect.y % source.Height);
 			if (sourceY < 0)
@@ -186,12 +186,12 @@ struct Bitmap
 		{
 			u8* Dest = DstRow;
 			float x = sourceX;
-			u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
 
 			if (PixelSize == source.PixelSize)
 			{
 				if (PixelSize == 1)
 				{
+					u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
 					for (s32 i = 0; i < DstClip.w; i++)
 					{
 						x += sxdx;
@@ -205,6 +205,7 @@ struct Bitmap
 				}
 				else
 				{
+					u32* SrcRow = source.PixelBGRA + (u32)sourceY * source.Width;
 					for (s32 i = 0; i < DstClip.w; i++)
 					{
 						x += sxdx;
@@ -219,6 +220,7 @@ struct Bitmap
 			}
 			else if (PixelSize == 4)
 			{
+				u32* SrcRow = source.PixelBGRA + (u32)sourceY * source.Width;
 				for (s32 i = 0; i < DstClip.w; i++)
 				{
 					if (x < 0) x += source.Width;

@@ -130,4 +130,4 @@ int tia_colors[] = {
 	0x0064f6ff
 };
 
-int defaultFrameBuffer[160 * 192];
+int defaultFrameBuffer[160 * 220];
