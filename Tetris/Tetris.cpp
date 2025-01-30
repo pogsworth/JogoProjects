@@ -488,9 +488,9 @@ public:
 		s32 x2 = mouseY + deltaX;
 		s32 y2 = mouseY + deltaY;
 		bool clipped = BackBuffer.ClipLine(x1, y1, x2, y2, { 0,0, (s32)BackBuffer.Width, (s32)BackBuffer.Height });
-		const char* Clipped = "Clipped!";
-		const char* NotClipped = "";
-		const char* Message = !clipped ? Clipped : NotClipped;
+		const str8 Clipped = "Clipped!";
+		const str8 NotClipped = "";
+		const str8 Message = !clipped ? Clipped : NotClipped;
 		DefaultFont.DrawText(0, 0, Message, 0, BackBuffer);
 
 		// TODO: move to debug section
@@ -560,7 +560,7 @@ public:
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
 
 		static u32 choice = -1;
-		const char* RadioButtons[] =
+		const str8 RadioButtons[] =
 		{
 			"Banana",
 			"Apple",

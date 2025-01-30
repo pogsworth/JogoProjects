@@ -220,7 +220,7 @@ struct Bitmap
 			}
 			else if (PixelSize == 4)
 			{
-				u32* SrcRow = source.PixelBGRA + (u32)sourceY * source.Width;
+				u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
 				for (s32 i = 0; i < DstClip.w; i++)
 				{
 					if (x < 0) x += source.Width;

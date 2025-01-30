@@ -63,14 +63,14 @@ namespace Jogo
 
 	// graphics
 	void Show(u32* Buffer, int Width, int Height);
-	void DrawString(int x, int y, const char* string);
+	void DrawString(int x, int y, const str8& string);
 
 	// input
 	bool IsKeyPressed(int key);
 	void GetMousePos(int& x, int& y);
 
 	// debug
-	void DebugOut(char* message);
+	void DebugOut(const str8& message);
 
 	u32 copystring(const char* src, char* dst, u32 len, u32 destmax);
 

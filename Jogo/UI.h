@@ -3,6 +3,7 @@
 #include "Jogo.h"
 #include "Bitmap.h"
 #include "Font.h"
+#include "str8.h"
 
 namespace UI
 {
@@ -185,7 +186,7 @@ namespace UI
 		return clicked;
 	}
 
-	void DrawButton(Bitmap::Rect& r, const char* Text)
+	void DrawButton(Bitmap::Rect& r, const Jogo::str8& Text)
 	{
 		Target.FillRect(r, CurrentColor);
 		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, HiColor);
@@ -195,7 +196,7 @@ namespace UI
 		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
-	Bitmap::Rect GetButtonSize(const char* Text)
+	Bitmap::Rect GetButtonSize(const Jogo::str8& Text)
 	{
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Text);
 		TextSize.w += 8;
@@ -203,7 +204,7 @@ namespace UI
 		return TextSize;
 	}
 
-	bool Button(const char* Text)
+	bool Button(const Jogo::str8& Text)
 	{
 		bool clicked = false;
 
@@ -234,7 +235,7 @@ namespace UI
 		return clicked;
 	}
 
-	void DrawLabel(Bitmap::Rect& r, const char* Text)
+	void DrawLabel(Bitmap::Rect& r, const Jogo::str8& Text)
 	{
 		u32 LabelID = GetID();
 
@@ -247,7 +248,7 @@ namespace UI
 		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
-	void Label(const char* Text)
+	void Label(const Jogo::str8& Text)
 	{
 		Bitmap::Rect TextSize = GetButtonSize(Text);
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
@@ -260,7 +261,7 @@ namespace UI
 		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
 	}
 
-	void DrawEditBox(Bitmap::Rect& r, const char* Text)
+	void DrawEditBox(Bitmap::Rect& r, const Jogo::str8& Text)
 	{
 		Target.FillRect(r, CurrentColor);
 		Target.DrawHLine(r.y, r.x, r.x + r.w - 1, HiColor);
@@ -270,18 +271,15 @@ namespace UI
 		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
-	const char* EditBox(const char* Text)
+	const char* EditBox(const Jogo::str8& Text)
 	{
 		u32 EditID = GetID();
 		int x, y;
 		Jogo::GetMousePos(x, y);
 		Bitmap::Rect TextSize = GetButtonSize("DefaultSize");
-		const char* result = Text;
+		const char* result = Text.chars;
 
-		if (Text)
-		{
-			TextSize = GetButtonSize(Text);
-		}
+		TextSize = GetButtonSize(Text);
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
 
@@ -291,9 +289,8 @@ namespace UI
 			if (Interact(EditID, TextSize, x, y))
 			{
 				FocusID = EditID;
-				u32 TextLen = stringlength(Text);
-				Jogo::copystring(Text, EditBuffer, TextLen, sizeof(EditBuffer));
-				InsertionPoint = TextLen;
+				Jogo::copystring(Text.chars, EditBuffer, (u32)Text.len, sizeof(EditBuffer));
+				InsertionPoint = (u32)Text.len;
 			}
 		}
 		if (FocusID == EditID)
@@ -321,7 +318,7 @@ namespace UI
 		return result;
 	}
 
-	void DrawRadioButton(Bitmap::Rect& r, const char* Text, bool clicked)
+	void DrawRadioButton(Bitmap::Rect& r, const Jogo::str8& Text, bool clicked)
 	{
 		u32 OuterRadius = (r.h - 10) / 2;
 		Target.FillRect(r, CurrentColor);
@@ -333,7 +330,7 @@ namespace UI
 		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
-	void RadioButton(const char* Text)
+	void RadioButton(const Jogo::str8& Text)
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = GetButtonSize(Text);
@@ -355,7 +352,7 @@ namespace UI
 		FrameStack[CurrentFrame].CursorY += TextSize.h;
 	}
 
-	u32 RadioButtons(u32 choice, const char* strings[], u32 count)
+	u32 RadioButtons(u32 choice, const Jogo::str8 strings[], u32 count)
 	{
 		Bitmap::Rect MaxRadio{ 0,0,0,0 };
 		for (u32 i = 0; i < count; i++)
@@ -381,7 +378,7 @@ namespace UI
 		return RadioChoice;
 	}
 
-	void DrawCheckBox(Bitmap::Rect& r, const char* label, bool checked)
+	void DrawCheckBox(Bitmap::Rect& r, const Jogo::str8& label, bool checked)
 	{
 		Bitmap::Rect DrawBox = { r.x + 4, r.y + 4, r.h - 7, r.h - 8 };
 		Target.FillRect(r, CurrentColor);
@@ -403,7 +400,7 @@ namespace UI
 		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, label, TextColor, Target);
 	}
 
-	bool CheckBox(const char* label, bool checked)
+	bool CheckBox(const Jogo::str8& label, bool checked)
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
@@ -473,7 +470,7 @@ namespace UI
 		EndFrame();
 	}
 
-	void DrawMenuButton(Bitmap::Rect& r, const char* Text, bool open)
+	void DrawMenuButton(Bitmap::Rect& r, const Jogo::str8& Text, bool open)
 	{
 		if (open)
 		{
@@ -488,7 +485,7 @@ namespace UI
 		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
 	}
 
-	bool MenuButton(const char* label, bool open)
+	bool MenuButton(const Jogo::str8& label, bool open)
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
@@ -511,7 +508,7 @@ namespace UI
 		return open;
 	}
 
-	bool MenuItem(const char* Item, bool checked)
+	bool MenuItem(const Jogo::str8& Item, bool checked)
 	{
 		u32 MenuItemID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Item);

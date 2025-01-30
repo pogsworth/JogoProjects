@@ -324,37 +324,37 @@ namespace Jogo
 		u32 bits = 0;
 		u32 pos = 0;
 
-		// look for leading '0'
-		if (spec[0] == '0')
-		{
-			pos++;
-			bits |= SPEC_ZERO;
-		}
-		// look for alignment
-		if (spec[pos] == '<')
-		{
-			pos++;
-			bits |= SPEC_LEFT;
-		}
-		if (spec[pos] == '>')
-		{
-			pos++;
-			bits &= ~SPEC_LEFT;
-			bits |= SPEC_RIGHT;
-		}
-		if (spec[pos] == '^')
-		{
-			pos++;
-			bits &= ~(SPEC_LEFT | SPEC_RIGHT);
-			bits |= SPEC_CTR;
-		}
-
 		// look for width and precision
 		u32 colon = spec.find(':');
 		if (colon != (u32)-1 && colon < spec.len - 1)
 		{
 			// look for digits
 			pos = colon + 1;
+			// look for alignment
+			if (spec[pos] == '<')
+			{
+				pos++;
+				bits |= SPEC_LEFT;
+			}
+			if (spec[pos] == '>')
+			{
+				pos++;
+				bits &= ~SPEC_LEFT;
+				bits |= SPEC_RIGHT;
+			}
+			if (spec[pos] == '^')
+			{
+				pos++;
+				bits &= ~(SPEC_LEFT | SPEC_RIGHT);
+				bits |= SPEC_CTR;
+			}
+			// look for leading '0'
+			if (spec[pos] == '0')
+			{
+				pos++;
+				bits |= SPEC_ZERO;
+			}
+
 			while (!isdigit(spec[pos]) && spec[pos] != '.' && pos < spec.len)
 				pos++;
 			if (pos < spec.len)

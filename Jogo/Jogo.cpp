@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <timeapi.h>
 #include "Jogo.h"
+#include <malloc.h>
 
 namespace Jogo
 {
@@ -269,9 +270,13 @@ namespace Jogo
 		y = point.y;
 	}
 
-	void DebugOut(char* message)
+	void DebugOut(const str8& message)
 	{
-		OutputDebugString(message);
+		char* localstring = (char*)_alloca(message.len+1);
+		Jogo::copystring(message.chars, localstring, (u32)message.len, (u32)message.len);
+		localstring[message.len] = 0;
+
+		OutputDebugString(localstring);
 	}
 
 	u32 copystring(const char* src, char* dst, u32 len, u32 destmax)

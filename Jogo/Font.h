@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "Bitmap.h"
+#include "str8.h"
 
 #ifdef max
 #undef max
@@ -27,25 +28,24 @@ struct Font {
 	Bitmap::Rect* CharacterRects;
 	Bitmap FontBitmap;
 
-	Bitmap::Rect GetTextSize(const char* Text)
+	Bitmap::Rect GetTextSize(const Jogo::str8& Text)
 	{
 		// FixedWidth Font
 		if (!CharacterRects)
 		{
 			// TODO: don't count characters that aren't mapped
-			s32 len = 0;
-			const char* p = Text;
-			while (*p++)
-				len++;
+			s32 len = (s32)Text.len;
 			Bitmap::Rect r = { 0, 0, len * (s32)CharacterWidth, (s32)CharacterHeight };
 			return r;
 		}
 		else
 		{
 			Bitmap::Rect r = { 0,0 };
-			for (const char* p = Text; *p; p++)
+			s32 len = (s32)Text.len;
+			const char* p = Text.chars;
+			for (int i=0; i<len; i++)
 			{
-				u8 c = *p - CharacterMin;
+				u8 c = *p++ - CharacterMin;
 				if (c > 0 && c < CharacterCount)
 				{
 					r.w += CharacterRects[c].w;
@@ -57,7 +57,7 @@ struct Font {
 	}
 
 	// TODO: Add support for BGRA fonts and anti-aliased alpha fonts
-	void DrawText(s32 x, s32 y, const char* Text, u32 color, Bitmap destination, s32 scale = 1)
+	void DrawText(s32 x, s32 y, const Jogo::str8& Text, u32 color, Bitmap destination, s32 scale = 1)
 	{
 		// FixedWidth Font - assume characters are packed Bitmap.Width / Font.CharacterWidth per row
 		if (!CharacterRects)
@@ -66,7 +66,8 @@ struct Font {
 			s32 cursor = x;
 			s32 DestWidth = CharacterWidth * scale;
 			s32 DestHeight = CharacterHeight * scale;
-			for (const char* p = Text; *p; p++, cursor += DestWidth)
+			s32 i = 0;
+			for (const char* p = Text.chars; i<Text.len; i++, p++, cursor += DestWidth)
 			{
 				char c = *p - CharacterMin;
 				s32 sx = (c % CharactersPerRow) * CharacterWidth;
@@ -80,7 +81,8 @@ struct Font {
 		else
 		{
 			s32 cursor = x;
-			for (const char* p = Text; *p; p++)
+			s32 i = 0;
+			for (const char* p = Text.chars; i<Text.len; p++)
 			{
 				u8 c = *p - CharacterMin;
 				if (c > 0 && c < CharacterCount)

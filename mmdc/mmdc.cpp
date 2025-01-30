@@ -1,4 +1,6 @@
 #include "Jogo.h"
+#include "UI.h"
+#include "str8.h"
 #include "2600/2600.h"
 
 using namespace Jogo;
@@ -127,11 +129,15 @@ struct MMDC : public JogoApp
 	bool step_line = false;
 	bool step_frame = false;
 	bool Done = false;
+	static const char* Name;
 
 	MMDC()
 	{
 		vcs2600.Init6502();
+		UI::Init(BackBuffer, DefaultFont);
 	}
+
+	const char* GetName() const override { return (char*)Name; }
 
 	void ShowVideo()
 	{
@@ -140,59 +146,76 @@ struct MMDC : public JogoApp
 		videoFrame.Height = 220;
 		videoFrame.PixelSize = 4;
 		videoFrame.Pixels = vcs2600.tia.frameBuffer;
-//		BackBuffer.PasteBitmap(VIDEO_X, VIDEO_Y, videoFrame, 0);
-//		BackBuffer.PasteBitmapSelectionScaled({ VIDEO_X, VIDEO_Y, 160, 220 }, videoFrame, { 0,0,160,220 }, 0);
-		BackBuffer.PasteBitmapSelectionScaled({ 0,0,640, 440 }, videoFrame, { 0,0, 160,220 }, 0);
-//		BackBuffer.PasteBitmapSelection( 0,0, videoFrame, { 0,0, 160,220 }, 0);
+		BackBuffer.PasteBitmapSelectionScaled({ 0,0,320, 220 }, videoFrame, { 0,0, 160,220 }, 0);
 	}
 
 	void ShowRegisters()
 	{
-		//char reg[256];
-		//wsprintf(reg, "A: %02X", vcs2600.cpu.a);
-		//SetWindowText(registerA, reg);
-		//wsprintf(reg, "X: %02X", vcs2600.cpu.x);
-		//SetWindowText(registerX, reg);
-		//wsprintf(reg, "Y: %02X", vcs2600.cpu.y);
-		//SetWindowText(registerY, reg);
-		//wsprintf(reg, "S: %02X", vcs2600.cpu.s);
-		//SetWindowText(registerS, reg);
-		//wsprintf(reg, "PC: %04X", vcs2600.cpu.pc);
-		//SetWindowText(registerPC, reg);
-		//wsprintf(reg, "FLAGS: %02X", vcs2600.cpu.status);
-		//SetWindowText(registerFLAG, reg);
-		//wsprintf(reg, "OpCode: %02X", vcs2600.cpu.opcode);
-		//SetWindowText(registerOpCode, reg);
-		//wsprintf(reg, "Clock: %d", vcs2600.cpu.cycles);
-		//SetWindowText(registerClock, reg);
-		//wsprintf(reg, "Frame: %d", vcs2600.frameCounter);
-		//SetWindowText(registerFrames, reg);
+		u8 reg[256];
+		Arena stack = Arena::GetScratchArena(reg, sizeof(reg));
+		UI::BeginFrame({ 328,4, 200, 9 * 24 });
+
+		str8 a = str8::format("   A: {:02X}", stack, vcs2600.cpu.a);
+		UI::Label(a);
+		stack.Clear();
+		str8 x = str8::format("   X: {:02X}", stack, vcs2600.cpu.x);
+		UI::Label(x);
+		stack.Clear();
+		str8 y = str8::format("   Y: {:02X}", stack, vcs2600.cpu.y);
+		UI::Label(y);
+		stack.Clear();
+		str8 s = str8::format("   S: {:02X}", stack, vcs2600.cpu.s);
+		UI::Label(s);
+		stack.Clear();
+		str8 pc = str8::format("PC: {:04X}", stack, vcs2600.cpu.pc);
+		UI::Label(pc);
+		stack.Clear();
+		str8 flags = str8::format("FLAGS: {:02X}", stack, vcs2600.cpu.status);
+		UI::Label(flags);
+		stack.Clear();
+		str8 opcode = str8::format("OpCode: {:02X}", stack, vcs2600.cpu.opcode);
+		UI::Label(opcode);
+		stack.Clear();
+		str8 clock = str8::format("Clock: {}", stack, vcs2600.cpu.cycles);
+		UI::Label(clock);
+		stack.Clear();
+		str8 frame = str8::format("Frame: {}", stack, vcs2600.frameCounter);
+		UI::Label(frame);
+		stack.Clear();
 
 		//for (int i = 0; i < TIA_COUNT; i++)
 		//{
 		//	wsprintf(reg, "%02X %6s: %02X", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]);
 		//	SetWindowText(tiaRefs[i].hwnd, reg);
 		//}
+		UI::EndFrame();
 	}
 
 	void ShowRam()
 	{
-		//char ram[2560];
-		//int sofar;
-		//for (int i = 0; i < RAM_ROWS; i++)
-		//{
-		//	sofar = wsprintf(ram, "%03X ", i * 16 + 128);
-		//	for (int j = 0; j < 8; j++)
-		//	{
-		//		sofar += wsprintf(ram + sofar, "%02X ", vcs2600.ram[j + i * 16]);
-		//	}
-		//	sofar += wsprintf(ram + sofar, " ");
-		//	for (int j = 0; j < 8; j++)
-		//	{
-		//		sofar += wsprintf(ram + sofar, "%02X ", vcs2600.ram[j + 8 + i * 16]);
-		//	}
-		//	SetWindowText(ramWindow[i], ram);
-		//}
+		u8 ram[2560];
+		Arena stack = Arena::GetScratchArena(ram, sizeof(ram));
+		UI::BeginFrame({ 4, 232, 560, RAM_ROWS * 24 });
+		for (int i = 0; i < RAM_ROWS; i++)
+		{
+			str8 mem = str8::format("{:03X}: ", stack, i * 16 + 128);
+			for (int j = 0; j < 8; j++)
+			{
+				str8 m = str8::format("{:02X} ", stack, vcs2600.ram[j + i * 16]);
+				mem.len += m.len;
+			}
+			str8 space = str8::format(" ", stack);
+			mem.len += space.len;
+			for (int j = 0; j < 8; j++)
+			{
+				str8 m = str8::format("{:02X} ", stack, vcs2600.ram[j + 8 + i * 16]);
+				mem.len += m.len;
+			}
+			UI::Label(mem);
+
+			stack.Clear();
+		}
+		UI::EndFrame();
 	}
 
 	void ShowSource()
@@ -245,23 +268,6 @@ struct MMDC : public JogoApp
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 	}
 
-			// create all the child panels we need
-			// video panel
-			// registers panel - with multiple edit controls and labels
-			// disassembly panel - edit control with multiple rows of text
-			// button panel, for pausing, stepping program control
-			//videoPanel = CreateWindowEx(0, "Static", "", WS_CHILD | WS_VISIBLE | SS_OWNERDRAW, VIDEO_X, VIDEO_Y, VIDEO_W, VIDEO_H, hwnd, (HMENU)ID_VIDEO, NULL, NULL);
-			//HDC hdc = GetDC(hwnd);
-			//videoBitmap.bmiHeader.biSize = sizeof(videoBitmap.bmiHeader);
-			//videoBitmap.bmiHeader.biWidth = 160;
-			//videoBitmap.bmiHeader.biHeight = -220;
-			//videoBitmap.bmiHeader.biPlanes = 1;
-			//videoBitmap.bmiHeader.biBitCount = 32;
-			//videoBitmap.bmiHeader.biCompression = BI_RGB;
-			//videoBitmap.bmiHeader.biSizeImage = VIDEO_W * VIDEO_H * 4;
-			//dibSection = CreateDIBSection(hdc, &videoBitmap, 0, &pbitmapMemory, NULL, 0);
-			//*(int*)pbitmapMemory = 0xffffffff;
-			//vcs2600.tia.setVideoMemory((int*)pbitmapMemory);
 			//pauseButton = CreateWindowEx(0, "BUTTON", "||", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP, BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RUNPAUSE, NULL, NULL);
 			//stepButton = CreateWindowEx(0, "BUTTON", ">|", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + 2 * BUTTON_GAP + BUTTON_SIZE, BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_STEP_OP, NULL, NULL);
 			//lineButton = CreateWindowEx(0, "BUTTON", ">>|", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 2 * (BUTTON_GAP + BUTTON_SIZE), BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_STEP_LINE, NULL, NULL);
@@ -331,26 +337,14 @@ struct MMDC : public JogoApp
 			//	}
 			//break;
 
-		//case WM_PAINT:
-		//{
-		//	PAINTSTRUCT ps;
-		//	HDC hdc = BeginPaint(hwnd, &ps);
-		//	//FillRect(hdc, &ps.rcPaint, (HBRUSH)GetStockObject(WHITE_BRUSH));
-		//	ShowVideo(hdc);
-		//	ShowRegisters();
-		//	ShowSource();
-		//	ShowRam();
-		//	EndPaint(hwnd, &ps);
-		//}
-		//break;
-
-				//case VK_F1:
-				//	// turn off low bit of console switches - reset button
-				//	vcs2600.riot.SWCHB &= 0xfe;
-				//	break;
+			//case VK_F1:
+			//	// turn off low bit of console switches - reset button
+			//	vcs2600.riot.SWCHB &= 0xfe;
+			//	break;
 
 };
 
+const char* MMDC::Name = "MMDC";
 
 int main(int argc, char* argv[])
 {
