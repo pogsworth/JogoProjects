@@ -155,19 +155,66 @@ namespace Jogo
 		u32 hextoi();
 		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6);
 		float atof();
+		static u32 parseSpec(const str8& spec);
+
+		static const u32 SPEC_WIDTH = 1;
+		static const u32 SPEC_PREC = 2;
+		static const u32 SPEC_HEX = 4;
+		static const u32 SPEC_HEX_UPPER = 8;
+		static const u32 SPEC_LEFT = 16;
+		static const u32 SPEC_CTR = 32;
+		static const u32 SPEC_RIGHT = 64;
+		static const u32 SPEC_ZERO = 128;
+		static const u32 SPEC_WIDTH_SHIFT = 8; // starts at bit 7 = 128
+		static const u32 SPEC_WIDTH_MASK = 255;	// allow width up to 255
+		static const u32 SPEC_PREC_SHIFT = 16; // start at bit 15 = 32768
+		static const u32 SPEC_PREC_MASK = 255; // allow precision up to 31 digits
 
 		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
 
 		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
 		{
+			u32 bits = parseSpec(spec);
 			return ftoa(fnumber, stringspace, maxlen);
 		}
 
 		static u32 toString(const char* string, const str8& spec, char* stringspace, u32 maxlen)
 		{
+			u32 bits = parseSpec(spec);
 			size_t len = Length(string);
 			len = Jogo::min((u32)len, maxlen);
+			if (bits & SPEC_WIDTH)
+			{
+				u32 width = (bits >> SPEC_WIDTH_SHIFT) & SPEC_WIDTH_MASK;
+				if (width > len)
+				{
+					u32 diff = width - (u32)len;
+					len += diff;
+					for (u32 i = 0; i < diff; i++)
+						*stringspace++ = ' ';
+				}
+			}
 			copystring(stringspace, string, len);
+			return (u32)len;
+		}
+
+		static u32 toString(const str8& string, const str8& spec, char* stringspace, u32 maxlen)
+		{
+			u32 bits = parseSpec(spec);
+			size_t len = string.len;
+			len = Jogo::min((u32)len, maxlen);
+			if (bits & SPEC_WIDTH)
+			{
+				u32 width = (bits >> SPEC_WIDTH_SHIFT) & SPEC_WIDTH_MASK;
+				if (width > len)
+				{
+					u32 diff = width - (u32)len;
+					len += diff;
+					for (u32 i = 0; i < diff; i++)
+						*stringspace++ = ' ';
+				}
+			}
+			copystring(stringspace, string.chars, len);
 			return (u32)len;
 		}
 

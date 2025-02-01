@@ -423,6 +423,7 @@ namespace UI
 		return checked;
 	}
 
+	// TODO: fix potential buffer overrun with unpaired BeginFrame/EndFrame
 	void PushFrame(Bitmap::Rect ThisFrame)
 	{
 		Jogo::Assert(CurrentFrame < MaxFrameStack);

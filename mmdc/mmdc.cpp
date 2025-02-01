@@ -8,7 +8,6 @@ using namespace Jogo;
 #define GUI_W 640
 #define GUI_H 480
 
-#define ID_VIDEO 10001
 #define VIDEO_X 4
 #define VIDEO_Y 4
 #define VIDEO_W 320
@@ -17,25 +16,17 @@ using namespace Jogo;
 #define REGISTERS_X 328
 #define REGISTERS_Y 4
 #define REGISTERS_W 90
-#define REGISTERS_H 200
+#define REGISTERS_H 226
 #define REGISTER_SIZE 14
-#define ID_REGISTERA 10101
-#define ID_REGISTERX 10102
-#define ID_REGISTERY 10103
-#define ID_REGISTERS 10104
-#define ID_REGISTERPC 10105
-#define ID_REGISTERFLAGS 10106
-#define ID_REGISTEROPCODE 10107
-#define ID_REGISTERCLOCK 10108
-#define ID_REGISTERFRAMES 10109
 
 #define TIA_REG(t,id) {#t,id}
-#define TIA_X 430
+#define TIA_X 580
 #define TIA_Y 4
 #define TIA_W REGISTERS_W*2
 #define TIA_H 200
 #define TIA_SIZE 18
 #define TIA_COUNT 45
+
 
 struct tia_refs {
 	char name[8];
@@ -92,37 +83,28 @@ tia_refs tiaRefs[] =
 	TIA_REG(CXCLR, 10445)
 };
 
-#define ID_SOURCE 10200
 #define SOURCE_X 4
-#define SOURCE_Y 208
-#define SOURCE_W 104
+#define SOURCE_Y 224
+#define SOURCE_W 130
 #define SOURCE_H 150
 #define SOURCE_ROWS 8
 
-#define ID_BUTTONPANEL 10300
 #define BUTTON_SIZE 32
 #define BUTTON_GAP 4
 #define BUTTON_PANEL_X 4
 #define BUTTON_PANEL_Y 360
 #define BUTTON_PANEL_W (10*(BUTTON_SIZE+BUTTON_GAP)+BUTTON_GAP)
 #define BUTTON_PANEL_H 48
-#define ID_RUNPAUSE 10301
-#define ID_STEP_OP 10302
-#define ID_STEP_LINE 10303
-#define ID_STEP_FRAME 10304
-#define ID_RESET 10305
-#define ID_RESET_CLOCK 10306
-#define ID_FRAME_COUNT 10307
 
-#define ID_RAM 10400
-#define RAM_X 108
-#define RAM_Y 208
-#define RAM_W 320
+#define RAM_X 138
+#define RAM_Y 224
+#define RAM_W 432
 #define RAM_H 152
 #define RAM_ROWS 8
 
 struct MMDC : public JogoApp
 {
+	Font AtariFont;
 	VCS2600 vcs2600;
 	bool paused = false;
 	bool step = false;
@@ -134,7 +116,8 @@ struct MMDC : public JogoApp
 	MMDC()
 	{
 		vcs2600.Init6502();
-		UI::Init(BackBuffer, DefaultFont);
+		AtariFont = Font::Load("../Jogo/Atari8Tall.fnt", DefaultArena);
+		UI::Init(BackBuffer, AtariFont);
 	}
 
 	const char* GetName() const override { return (char*)Name; }
@@ -151,85 +134,72 @@ struct MMDC : public JogoApp
 
 	void ShowRegisters()
 	{
-		u8 reg[256];
-		Arena stack = Arena::GetScratchArena(reg, sizeof(reg));
-		UI::BeginFrame({ 328,4, 200, 9 * 24 });
+		Arena& sa = FrameArena;
+		UI::BeginFrame({ REGISTERS_X, REGISTERS_Y, REGISTERS_W, REGISTERS_H });
 
-		str8 a = str8::format("   A: {:02X}", stack, vcs2600.cpu.a);
-		UI::Label(a);
-		stack.Clear();
-		str8 x = str8::format("   X: {:02X}", stack, vcs2600.cpu.x);
-		UI::Label(x);
-		stack.Clear();
-		str8 y = str8::format("   Y: {:02X}", stack, vcs2600.cpu.y);
-		UI::Label(y);
-		stack.Clear();
-		str8 s = str8::format("   S: {:02X}", stack, vcs2600.cpu.s);
-		UI::Label(s);
-		stack.Clear();
-		str8 pc = str8::format("PC: {:04X}", stack, vcs2600.cpu.pc);
-		UI::Label(pc);
-		stack.Clear();
-		str8 flags = str8::format("FLAGS: {:02X}", stack, vcs2600.cpu.status);
-		UI::Label(flags);
-		stack.Clear();
-		str8 opcode = str8::format("OpCode: {:02X}", stack, vcs2600.cpu.opcode);
-		UI::Label(opcode);
-		stack.Clear();
-		str8 clock = str8::format("Clock: {}", stack, vcs2600.cpu.cycles);
-		UI::Label(clock);
-		stack.Clear();
-		str8 frame = str8::format("Frame: {}", stack, vcs2600.frameCounter);
-		UI::Label(frame);
-		stack.Clear();
+		UI::Label(str8::format("   A: {:02X}", sa, vcs2600.cpu.a));
+		UI::Label(str8::format("   X: {:02X}", sa, vcs2600.cpu.x));
+		UI::Label(str8::format("   Y: {:02X}", sa, vcs2600.cpu.y));
+		UI::Label(str8::format("   S: {:02X}", sa, vcs2600.cpu.s));
+		UI::Label(str8::format("PC: {:04X}", sa, vcs2600.cpu.pc));
+		UI::Label(str8::format("FLAGS: {:02X}", sa, vcs2600.cpu.status));
+		UI::Label(str8::format("OpCode: {:02X}", sa, vcs2600.cpu.opcode));
+		UI::Label(str8::format("Clock: {}", sa, vcs2600.cpu.cycles));
+		UI::Label(str8::format("Frame: {}", sa, vcs2600.frameCounter));
 
-		//for (int i = 0; i < TIA_COUNT; i++)
-		//{
-		//	wsprintf(reg, "%02X %6s: %02X", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]);
-		//	SetWindowText(tiaRefs[i].hwnd, reg);
-		//}
+		UI::EndFrame();
+
+		UI::BeginFrame({ TIA_X, TIA_Y, TIA_W, TIA_H });
+		for (int i = 0; i < TIA_COUNT; i++)
+		{
+			UI::Label(str8::format("{:02X} {:6}: {:02X}", sa, i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
+		}
 		UI::EndFrame();
 	}
 
 	void ShowRam()
 	{
-		u8 ram[2560];
-		Arena stack = Arena::GetScratchArena(ram, sizeof(ram));
-		UI::BeginFrame({ 4, 232, 560, RAM_ROWS * 24 });
+		Arena& sa = FrameArena;
+		size_t savedAlignment = sa.Alignment;
+		sa.Alignment = 1;
+		UI::BeginFrame({ RAM_X, RAM_Y, RAM_W, RAM_H });
 		for (int i = 0; i < RAM_ROWS; i++)
 		{
-			str8 mem = str8::format("{:03X}: ", stack, i * 16 + 128);
+			str8 mem = str8::format("{:03X}: ", sa, i * 16 + 128);
 			for (int j = 0; j < 8; j++)
 			{
-				str8 m = str8::format("{:02X} ", stack, vcs2600.ram[j + i * 16]);
+				str8 m = str8::format("{:02X} ", sa, vcs2600.ram[j + i * 16]);
 				mem.len += m.len;
 			}
-			str8 space = str8::format(" ", stack);
+			str8 space = str8::format(" ", sa);
 			mem.len += space.len;
 			for (int j = 0; j < 8; j++)
 			{
-				str8 m = str8::format("{:02X} ", stack, vcs2600.ram[j + 8 + i * 16]);
+				str8 m = str8::format("{:02X} ", sa, vcs2600.ram[j + 8 + i * 16]);
 				mem.len += m.len;
 			}
 			UI::Label(mem);
-
-			stack.Clear();
 		}
 		UI::EndFrame();
+		sa.Alignment = savedAlignment;
+
 	}
 
 	void ShowSource()
 	{
-		//int length = 0;
-		//char dis[256];
-		//// loop through a few instructions and add them to the text output
-		//for (int i = 0; i < SOURCE_ROWS; i++)
-		//{
-		//	int address = sprintf_s(dis, sizeof(dis), "%04X ", vcs2600.cpu.pc + length);
-		//	length += vcs2600.cpu.disassemble(vcs2600.cpu.pc + length, dis, sizeof(dis));
-		//	strcat_s(dis, sizeof(dis), "      ");
-		//	SetWindowText(sourceWindow[i], dis);
-		//}
+		int length = 0;
+		char dis[256];
+		// loop through a few instructions and add them to the text output
+		UI::BeginFrame({ SOURCE_X, SOURCE_Y, SOURCE_W, SOURCE_H });
+		for (int i = 0; i < SOURCE_ROWS; i++)
+		{
+			str8 s = str8::format("{:04X} ", FrameArena, vcs2600.cpu.pc + length);
+//			int address = sprintf_s(dis, sizeof(dis), "%04X ", vcs2600.cpu.pc + length);
+			length += vcs2600.cpu.disassemble(vcs2600.cpu.pc + length, dis, sizeof(dis));
+			str8 diss = str8::format("{}{}", FrameArena, s, dis);
+			UI::Label(diss);
+		}
+		UI::EndFrame();
 	}
 
 	void KeyDown(u32 key)
@@ -261,6 +231,9 @@ struct MMDC : public JogoApp
 
 	void Draw() override
 	{
+		BackBuffer.Erase(0);
+		AtariFont.DrawText(100, 400, "MMDC", 0x400000, BackBuffer, 25);
+		FrameArena.Clear();
 		ShowVideo();
 		ShowRegisters();
 		ShowSource();
@@ -275,16 +248,6 @@ struct MMDC : public JogoApp
 			//resetButton = CreateWindowEx(0, "BUTTON", "Reset", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 4 * (BUTTON_GAP + BUTTON_SIZE), BUTTON_PANEL_Y + BUTTON_GAP, 2 * BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RESET, NULL, NULL);
 			//resetClockButton = CreateWindowEx(0, "BUTTON", "Reset Clock", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 5 * (BUTTON_GAP + BUTTON_SIZE) + BUTTON_SIZE, BUTTON_PANEL_Y + BUTTON_GAP, 3 * BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RESET_CLOCK, NULL, NULL);
 
-			//registerA = CreateWindowEx(0, "STATIC", "A: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERA, NULL, NULL);
-			//registerX = CreateWindowEx(0, "STATIC", "X: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERX, NULL, NULL);
-			//registerY = CreateWindowEx(0, "STATIC", "Y: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 2 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERY, NULL, NULL);
-			//registerS = CreateWindowEx(0, "STATIC", "S: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 3 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERS, NULL, NULL);
-			//registerPC = CreateWindowEx(0, "STATIC", "PC: 0000", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 4 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERPC, NULL, NULL);
-			//registerFLAG = CreateWindowEx(0, "STATIC", "FLAGS: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 5 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERFLAGS, NULL, NULL);
-			//registerOpCode = CreateWindowEx(0, "STATIC", "OpCode: 00", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 6 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTEROPCODE, NULL, NULL);
-			//registerClock = CreateWindowEx(0, "STATIC", "Clock: 0", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 7 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERCLOCK, NULL, NULL);
-			//registerFrames = CreateWindowEx(0, "STATIC", "Frame: 0", WS_CHILD | WS_VISIBLE | SS_SIMPLE, REGISTERS_X, REGISTERS_Y + 8 * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)ID_REGISTERFRAMES, NULL, NULL);
-
 			//for (int i = 0; i < SOURCE_ROWS; i++)
 			//{
 			//	sourceWindow[i] = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE | SS_SIMPLE | SS_NOPREFIX, SOURCE_X, SOURCE_Y + i * REGISTER_SIZE, SOURCE_W, REGISTER_SIZE, hwnd, (HMENU)(ID_SOURCE + i), NULL, NULL);
@@ -298,7 +261,7 @@ struct MMDC : public JogoApp
 			//	ramWindow[i] = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE | SS_SIMPLE | SS_NOPREFIX, RAM_X, RAM_Y + i * REGISTER_SIZE, RAM_W, REGISTER_SIZE, hwnd, (HMENU)(ID_RAM + i), NULL, NULL);
 			//}
 
-			//HFONT hf = CreateFont(8, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH, "Atari Classic Chunky");
+			//HFONT hf = CreateFont(8, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIsa, CLIP_DEFAULT_PRECIsa, DEFAULT_QUALITY, FIXED_PITCH, "Atari Classic Chunky");
 			//EnumChildWindows(hwnd, (WNDENUMPROC)SetFont, (LPARAM)hf);
 			//	switch (LOWORD(wParam))
 			//	{

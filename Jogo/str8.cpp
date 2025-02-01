@@ -305,21 +305,8 @@ namespace Jogo
 		return (float)(integer * pow10);
 	}
 
-	static const u32 SPEC_WIDTH = 1;
-	static const u32 SPEC_PREC = 2;
-	static const u32 SPEC_HEX = 4;
-	static const u32 SPEC_HEX_UPPER = 8;
-	static const u32 SPEC_LEFT = 16;
-	static const u32 SPEC_CTR = 32;
-	static const u32 SPEC_RIGHT = 64;
-	static const u32 SPEC_ZERO = 128;
-	static const u32 SPEC_WIDTH_SHIFT = 8; // starts at bit 7 = 128
-	static const u32 SPEC_WIDTH_MASK = 255;	// allow width up to 255
-	static const u32 SPEC_PREC_SHIFT = 16; // start at bit 15 = 32768
-	static const u32 SPEC_PREC_MASK = 255; // allow precision up to 31 digits
-
 	// return bits indicating what fields are in the spec
-	static u32 parseSpec(const str8& spec)
+	u32 str8::parseSpec(const str8& spec)
 	{
 		u32 bits = 0;
 		u32 pos = 0;
