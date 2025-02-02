@@ -15,14 +15,14 @@ using namespace Jogo;
 
 #define REGISTERS_X 328
 #define REGISTERS_Y 4
-#define REGISTERS_W 90
+#define REGISTERS_W 100
 #define REGISTERS_H 226
 #define REGISTER_SIZE 14
 
 #define TIA_REG(t,id) {#t,id}
-#define TIA_X 580
+#define TIA_X 590
 #define TIA_Y 4
-#define TIA_W REGISTERS_W*2
+#define TIA_W REGISTERS_W
 #define TIA_H 200
 #define TIA_SIZE 18
 #define TIA_COUNT 45
@@ -92,7 +92,7 @@ tia_refs tiaRefs[] =
 #define BUTTON_SIZE 32
 #define BUTTON_GAP 4
 #define BUTTON_PANEL_X 4
-#define BUTTON_PANEL_Y 360
+#define BUTTON_PANEL_Y 400
 #define BUTTON_PANEL_W (10*(BUTTON_SIZE+BUTTON_GAP)+BUTTON_GAP)
 #define BUTTON_PANEL_H 48
 
@@ -150,7 +150,14 @@ struct MMDC : public JogoApp
 		UI::EndFrame();
 
 		UI::BeginFrame({ TIA_X, TIA_Y, TIA_W, TIA_H });
-		for (int i = 0; i < TIA_COUNT; i++)
+		for (int i = 0; i < TIA_COUNT / 2; i++)
+		{
+			UI::Label(str8::format("{:02X} {:6}: {:02X}", sa, i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
+		}
+		UI::EndFrame();
+
+		UI::BeginFrame({ TIA_X+TIA_W+16, TIA_Y, TIA_W, TIA_H });
+		for (int i = TIA_COUNT/2; i < TIA_COUNT; i++)
 		{
 			UI::Label(str8::format("{:02X} {:6}: {:02X}", sa, i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
 		}
@@ -229,6 +236,28 @@ struct MMDC : public JogoApp
 		return Done;
 	}
 
+	void DoButtons()
+	{
+		UI::BeginFrame({ BUTTON_PANEL_X, BUTTON_PANEL_Y, BUTTON_PANEL_W, BUTTON_PANEL_H });
+		if (UI::Button(" >  "))
+		{
+			paused = !paused;
+		}
+		if (UI::Button(" >| "))
+		{
+			step = true;
+		}
+		if (UI::Button(" >>|"))
+		{
+			step_line = true;
+		}
+		if (UI::Button(">>>|"))
+		{
+			step_frame = true;
+		}
+		UI::EndFrame();
+	}
+
 	void Draw() override
 	{
 		BackBuffer.Erase(0);
@@ -238,72 +267,9 @@ struct MMDC : public JogoApp
 		ShowRegisters();
 		ShowSource();
 		ShowRam();
+		DoButtons();
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 	}
-
-			//pauseButton = CreateWindowEx(0, "BUTTON", "||", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP, BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RUNPAUSE, NULL, NULL);
-			//stepButton = CreateWindowEx(0, "BUTTON", ">|", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + 2 * BUTTON_GAP + BUTTON_SIZE, BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_STEP_OP, NULL, NULL);
-			//lineButton = CreateWindowEx(0, "BUTTON", ">>|", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 2 * (BUTTON_GAP + BUTTON_SIZE), BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_STEP_LINE, NULL, NULL);
-			//frameButton = CreateWindowEx(0, "BUTTON", ">>>|", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 3 * (BUTTON_GAP + BUTTON_SIZE), BUTTON_PANEL_Y + BUTTON_GAP, BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_STEP_FRAME, NULL, NULL);
-			//resetButton = CreateWindowEx(0, "BUTTON", "Reset", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 4 * (BUTTON_GAP + BUTTON_SIZE), BUTTON_PANEL_Y + BUTTON_GAP, 2 * BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RESET, NULL, NULL);
-			//resetClockButton = CreateWindowEx(0, "BUTTON", "Reset Clock", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, BUTTON_PANEL_X + BUTTON_GAP + 5 * (BUTTON_GAP + BUTTON_SIZE) + BUTTON_SIZE, BUTTON_PANEL_Y + BUTTON_GAP, 3 * BUTTON_SIZE, BUTTON_SIZE, hwnd, (HMENU)ID_RESET_CLOCK, NULL, NULL);
-
-			//for (int i = 0; i < SOURCE_ROWS; i++)
-			//{
-			//	sourceWindow[i] = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE | SS_SIMPLE | SS_NOPREFIX, SOURCE_X, SOURCE_Y + i * REGISTER_SIZE, SOURCE_W, REGISTER_SIZE, hwnd, (HMENU)(ID_SOURCE + i), NULL, NULL);
-			//}
-			//for (int i = 0; i < TIA_COUNT; i++)
-			//{
-			//	tiaRefs[i].hwnd = CreateWindowEx(0, "STATIC", tiaRefs[i].name, WS_CHILD | WS_VISIBLE | SS_SIMPLE | SS_NOPREFIX, TIA_X + (i / 23) * REGISTERS_W, TIA_Y + (i % 23) * REGISTER_SIZE, REGISTERS_W, REGISTER_SIZE, hwnd, (HMENU)tiaRefs[i].id, NULL, NULL);
-			//}
-			//for (int i = 0; i < RAM_ROWS; i++)
-			//{
-			//	ramWindow[i] = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE | SS_SIMPLE | SS_NOPREFIX, RAM_X, RAM_Y + i * REGISTER_SIZE, RAM_W, REGISTER_SIZE, hwnd, (HMENU)(ID_RAM + i), NULL, NULL);
-			//}
-
-			//HFONT hf = CreateFont(8, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIsa, CLIP_DEFAULT_PRECIsa, DEFAULT_QUALITY, FIXED_PITCH, "Atari Classic Chunky");
-			//EnumChildWindows(hwnd, (WNDENUMPROC)SetFont, (LPARAM)hf);
-			//	switch (LOWORD(wParam))
-			//	{
-			//	case ID_RUNPAUSE:
-			//		if (paused)
-			//		{
-			//			SetWindowText(pauseButton, "||");
-			//			paused = false;
-			//		}
-			//		else
-			//		{
-			//			SetWindowText(pauseButton, ">");
-			//			paused = true;
-			//		}
-			//		break;
-
-			//	case ID_STEP_OP:
-			//		step = true;
-			//		break;
-
-			//	case ID_STEP_LINE:
-			//		step_line = true;
-			//		break;
-
-			//	case ID_STEP_FRAME:
-			//		step_frame = true;
-			//		break;
-
-			//	case ID_RESET:
-			//		break;
-
-			//	case ID_RESET_CLOCK:
-			//		vcs2600.cpu.resetCycles();
-			//		break;
-
-			//	}
-			//break;
-
-			//case VK_F1:
-			//	// turn off low bit of console switches - reset button
-			//	vcs2600.riot.SWCHB &= 0xfe;
-			//	break;
 
 };
 
