@@ -556,7 +556,7 @@ public:
 		}
 		static char buffer[256] = "Test";
 		const char* newstring = UI::EditBox(buffer);
-		Jogo::copystring(newstring, buffer, UI::stringlength(newstring), sizeof(buffer));
+		str8::copystring(newstring, buffer, str8::cstringlength(newstring), sizeof(buffer));
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
 
 		static u32 choice = -1;

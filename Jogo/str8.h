@@ -12,19 +12,18 @@ namespace Jogo
 		const char* chars;
 		size_t	len;
 
-		static size_t Length(const char* string)
+		static size_t cstringlength(const char* src)
 		{
-			const char* s = string;
-			size_t size = 0;
-			while (*s++)
-				size++;
-			return size;
+			const char* s = src;
+			while (*s) s++;
+			return (size_t)(s - src);
 		}
 
-		static u32 copystring(char* dest, const char* src, size_t len)
+		static size_t copystring(const char* src, char* dest, size_t len, size_t destmax)
 		{
-			__movsb((unsigned char*)dest, (unsigned char*)src, len);
-			return (u32)len;
+			size_t num = min(len, destmax);
+			__movsb((unsigned char*)dest, (unsigned char*)src, num);
+			return num;
 		}
 
 		str8() {}
@@ -178,11 +177,11 @@ namespace Jogo
 			return ftoa(fnumber, stringspace, maxlen);
 		}
 
-		static u32 toString(const char* string, const str8& spec, char* stringspace, u32 maxlen)
+		static u32 toString(const char* string, const str8& spec, char* stringspace, size_t maxlen)
 		{
 			u32 bits = parseSpec(spec);
-			size_t len = Length(string);
-			len = Jogo::min((u32)len, maxlen);
+			size_t len = cstringlength(string);
+			len = Jogo::min(len, maxlen);
 			if (bits & SPEC_WIDTH)
 			{
 				u32 width = (bits >> SPEC_WIDTH_SHIFT) & SPEC_WIDTH_MASK;
@@ -194,15 +193,14 @@ namespace Jogo
 						*stringspace++ = ' ';
 				}
 			}
-			copystring(stringspace, string, len);
+			copystring(string, stringspace, len, maxlen);
 			return (u32)len;
 		}
 
-		static u32 toString(const str8& string, const str8& spec, char* stringspace, u32 maxlen)
+		static u32 toString(const str8& string, const str8& spec, char* stringspace, size_t maxlen)
 		{
 			u32 bits = parseSpec(spec);
-			size_t len = string.len;
-			len = Jogo::min((u32)len, maxlen);
+			size_t len = Jogo::min(string.len, maxlen);
 			if (bits & SPEC_WIDTH)
 			{
 				u32 width = (bits >> SPEC_WIDTH_SHIFT) & SPEC_WIDTH_MASK;
@@ -214,7 +212,7 @@ namespace Jogo
 						*stringspace++ = ' ';
 				}
 			}
-			copystring(stringspace, string.chars, len);
+			copystring(string.chars, stringspace, len, maxlen);
 			return (u32)len;
 		}
 
@@ -235,9 +233,9 @@ namespace Jogo
 					if (pos == (u32)-1 || (pos == (fmtsub.len - 1)))
 					{
 						// TODO: remove escaped right braces } up to pos
-						return len + copystring(d, fmtsub.chars, fmtsub.len);
+						return len + (u32)copystring(fmtsub.chars, d, fmtsub.len, (size_t)-1);
 					}
-					len += copystring(d, fmtsub.chars, pos);
+					len += (u32)copystring(fmtsub.chars, d, pos, (size_t)-1);
 					d += pos;
 
 					// put escaped { in output 
@@ -256,7 +254,7 @@ namespace Jogo
 				u32 end = fmtsub.find('}');
 				if (end == (u32)-1)
 				{
-					return len + copystring(d, fmtsub.chars + 1, fmtsub.len - 1);
+					return len + (u32)copystring(fmtsub.chars + 1, d, fmtsub.len - 1, (size_t)-1);
 				}
 				else
 				{
@@ -270,7 +268,7 @@ namespace Jogo
 
 			u32 format(const str8& fmt, char* dest)
 			{
-				return copystring(dest, fmt.chars, fmt.len);
+				return (u32)copystring(fmt.chars, dest, fmt.len, (size_t)-1);
 			}
 
 		};
@@ -283,7 +281,7 @@ namespace Jogo
 
 			formatter format_arg;
 
-			newstr.len = format_arg.format(fmt, newchars, args...);
+			newstr.len = (size_t)format_arg.format(fmt, newchars, args...);
 
 			newstr.chars = newchars;
 			arena.Allocate(newstr.len);	// bump arena by size of string

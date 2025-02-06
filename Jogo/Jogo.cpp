@@ -273,21 +273,10 @@ namespace Jogo
 	void DebugOut(const str8& message)
 	{
 		char* localstring = (char*)_alloca(message.len+1);
-		Jogo::copystring(message.chars, localstring, (u32)message.len, (u32)message.len);
+		str8::copystring(message.chars, localstring, (u32)message.len, (u32)message.len);
 		localstring[message.len] = 0;
 
 		OutputDebugString(localstring);
-	}
-
-	u32 copystring(const char* src, char* dst, u32 len, u32 destmax)
-	{
-		u32 num = min(len, destmax);
-		for (u32 i = 0; i < num; i++)
-		{
-			*dst++ = *src++;
-		}
-		*dst = 0;
-		return num;
 	}
 
 	int JogoApp::KEY_LEFT = VK_LEFT;

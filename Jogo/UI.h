@@ -13,6 +13,25 @@ namespace UI
 		u32 CursorX;
 		u32 CursorY;
 		u32 NextID;
+		u32 FlowDir;
+
+		Bitmap::Rect PrimitiveBegin()
+		{
+			Bitmap::Rect loc { (s32)CursorX, (s32)CursorY };
+			return loc;
+		}
+		
+		void PrimitiveEnd(const Bitmap::Rect& size)
+		{
+			if (FlowDir)
+			{
+				CursorX += size.w + 1;
+			}
+			else
+			{
+				CursorY += size.h + 1;
+			}
+		}
 	};
 	const u32 MaxFrameStack = 15;
 	Frame FrameStack[MaxFrameStack];
@@ -45,13 +64,13 @@ namespace UI
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
 	// or follow some kind of layout rules establed by BeginFrame
+	// TODO: need to be able to specify:
+	// container
+	// flow direction
+	// Colors
+	// Spacing
+	// 
 
-	inline u32 stringlength(const char* src)
-	{
-		const char* s = src;
-		while (*s) s++;
-		return (u32)(s - src);
-	}
 
 	void Init(Bitmap& InTarget, Font InDefaultFont)
 	{
@@ -144,9 +163,13 @@ namespace UI
 		return FrameStack[CurrentFrame].NextID++;
 	}
 
-	bool Interact(u32 Id, const Bitmap::Rect& r, s32 mousex, s32 mousey)
+	bool Interact(u32 Id, const Bitmap::Rect& r)
 	{
 		bool clicked = false;
+		s32 mousex;
+		s32 mousey;
+
+		Jogo::GetMousePos(mousex, mousey);
 
 		if (ActiveID == Id)
 		{
@@ -213,24 +236,21 @@ namespace UI
 		// compare to hot and active
 		// calc return value (based on mouse in rect for this button)
 		Bitmap::Rect ButtonSize = GetButtonSize(Text);
-		ButtonSize.x = FrameStack[CurrentFrame].CursorX;
-		ButtonSize.y = FrameStack[CurrentFrame].CursorY;
+		Bitmap::Rect location = FrameStack[CurrentFrame].PrimitiveBegin();
+		ButtonSize.x = location.x;
+		ButtonSize.y = location.y;
 		CurrentColor = ButtonColor;
 		HiColor = HiLight;
 		LoColor = LoLight;
 
-		int x, y;
-		Jogo::GetMousePos(x, y);
 
 		// TODO: call Layout here?  to give a chance for UI layout to arrange things...
 
-		clicked = Interact(ButtonID, ButtonSize, x, y);
+		clicked = Interact(ButtonID, ButtonSize);
 
 		DrawButton(ButtonSize, Text);
 
-		// advance layout cursor
-		// TODO: maybe this belongs in a UI::Layout function?
-		FrameStack[CurrentFrame].CursorY += ButtonSize.h + 1;
+		FrameStack[CurrentFrame].PrimitiveEnd(ButtonSize);
 
 		return clicked;
 	}
@@ -274,8 +294,6 @@ namespace UI
 	const char* EditBox(const Jogo::str8& Text)
 	{
 		u32 EditID = GetID();
-		int x, y;
-		Jogo::GetMousePos(x, y);
 		Bitmap::Rect TextSize = GetButtonSize("DefaultSize");
 		const char* result = Text.chars;
 
@@ -286,10 +304,10 @@ namespace UI
 		CurrentColor = EditColor;
 		if (!FocusID)
 		{
-			if (Interact(EditID, TextSize, x, y))
+			if (Interact(EditID, TextSize))
 			{
 				FocusID = EditID;
-				Jogo::copystring(Text.chars, EditBuffer, (u32)Text.len, sizeof(EditBuffer));
+				Jogo::str8::copystring(Text.chars, EditBuffer, (u32)Text.len, sizeof(EditBuffer));
 				InsertionPoint = (u32)Text.len;
 			}
 		}
@@ -300,7 +318,7 @@ namespace UI
 			DrawEditBox(TextSize, EditBuffer);
 			// draw the current insertion point
 			char PartialText[256];
-			Jogo::copystring(EditBuffer, PartialText, InsertionPoint, sizeof(PartialText));
+			Jogo::str8::copystring(EditBuffer, PartialText, InsertionPoint, sizeof(PartialText));
 			Bitmap::Rect PartialSize = DefaultFont.GetTextSize(PartialText);
 			s32 CaretX = TextSize.x + PartialSize.w + 4;
 			s32 CaretY = TextSize.y+2;
@@ -340,16 +358,13 @@ namespace UI
 
 		CurrentColor = ButtonColor;
 
-		int x, y;
-		Jogo::GetMousePos(x, y);
-
-		if (Interact(ButtonID, TextSize, x, y))
+		if (Interact(ButtonID, TextSize))
 		{
 			RadioChoice = CurrentRadio;
 		}
 		DrawRadioButton(TextSize, Text, RadioChoice == CurrentRadio);
 		CurrentRadio++;
-		FrameStack[CurrentFrame].CursorY += TextSize.h;
+		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
 	}
 
 	u32 RadioButtons(u32 choice, const Jogo::str8 strings[], u32 count)
@@ -410,21 +425,18 @@ namespace UI
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
 
-		int x, y;
-		Jogo::GetMousePos(x, y);
-
-		if (Interact(ButtonID, TextSize, x, y))
+		if (Interact(ButtonID, TextSize))
 		{
 			checked = !checked;
 		}
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
 		DrawCheckBox(TextSize, label, checked);
 
 		return checked;
 	}
 
 	// TODO: fix potential buffer overrun with unpaired BeginFrame/EndFrame
-	void PushFrame(Bitmap::Rect ThisFrame)
+	void PushFrame(Bitmap::Rect ThisFrame, u32 FlowDir)
 	{
 		Jogo::Assert(CurrentFrame < MaxFrameStack);
 		CurrentFrame++;
@@ -432,6 +444,7 @@ namespace UI
 		FrameStack[CurrentFrame].CursorX = ThisFrame.x;
 		FrameStack[CurrentFrame].CursorY = ThisFrame.y;
 		FrameStack[CurrentFrame].NextID = CurrentFrame << 12;
+		FrameStack[CurrentFrame].FlowDir = FlowDir;
 	}
 
 	void PopFrame()
@@ -442,9 +455,9 @@ namespace UI
 
 	// need to pass in input state to BeginFrame
 	// TODO: reset and establish layout rules within this frame
-	void BeginFrame(Bitmap::Rect Frame)
+	void BeginFrame(Bitmap::Rect Frame, u32 Flow = 0)
 	{
-		PushFrame(Frame);
+		PushFrame(Frame, Flow);
 	}
 
 	void EndFrame()
@@ -496,14 +509,11 @@ namespace UI
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
 
-		int x, y;
-		Jogo::GetMousePos(x, y);
-
-		if (Interact(ButtonID, TextSize, x, y))
+		if (Interact(ButtonID, TextSize))
 		{
 			open = !open;
 		}
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
 		DrawMenuButton(TextSize, label, open);
 
 		return open;
@@ -518,13 +528,11 @@ namespace UI
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
 
 		DrawButton(TextSize, Item);
-		int x, y;
-		Jogo::GetMousePos(x, y);
 
-		if (Interact(MenuItemID, TextSize, x, y))
+		if (Interact(MenuItemID, TextSize))
 		{
 			checked = !checked;
 		}
