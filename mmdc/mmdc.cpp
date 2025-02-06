@@ -111,6 +111,7 @@ struct MMDC : public JogoApp
 	bool step_line = false;
 	bool step_frame = false;
 	bool Done = false;
+	u32 paused_frame = 0;
 	static const char* Name;
 
 	MMDC()
@@ -215,6 +216,28 @@ struct MMDC : public JogoApp
 		{
 			Done = true;
 		}
+
+		if (key == ' ')
+		{
+			paused = !paused;
+			if (paused)
+				paused_frame = vcs2600.frameCounter;
+		}
+
+		if (key == 'J')
+		{
+			step = true;
+		}
+
+		if (key == 'K')
+		{
+			step_line = true;
+		}
+
+		if (key == 'L')
+		{
+			step_frame = true;
+		}
 	}
 
 	bool Tick(float dt) override
@@ -225,23 +248,32 @@ struct MMDC : public JogoApp
 		else if (step)
 			vcs2600.step();
 		else if (step_line)
+		{
 			vcs2600.scanLine();
+			if (paused_frame != vcs2600.frameCounter)
+			{
+				memset(vcs2600.tia.frameBuffer, 0, 160 * 220 * 4);
+				paused_frame = vcs2600.frameCounter;
+			}
+		}
 		else if (step_frame)
 			vcs2600.runFrame();
-
-		if (step_frame)
-			memset(vcs2600.tia.frameBuffer, 0, 160 * 220 * 4);
-		step = step_line = step_frame = false;
 
 		return Done;
 	}
 
 	void DoButtons()
 	{
-		UI::BeginFrame({ BUTTON_PANEL_X, BUTTON_PANEL_Y, BUTTON_PANEL_W, BUTTON_PANEL_H });
-		if (UI::Button(" >  "))
+		UI::BeginFrame({ BUTTON_PANEL_X, BUTTON_PANEL_Y, BUTTON_PANEL_W, BUTTON_PANEL_H }, 1);
+		if (paused)
+		{
+			if (UI::Button(" >  "))
+				paused = !paused;
+		}
+		else if (UI::Button(" || "))
 		{
 			paused = !paused;
+			paused_frame = vcs2600.frameCounter;
 		}
 		if (UI::Button(" >| "))
 		{
@@ -267,8 +299,10 @@ struct MMDC : public JogoApp
 		ShowRegisters();
 		ShowSource();
 		ShowRam();
+		step = step_line = step_frame = false;
 		DoButtons();
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
+
 	}
 
 };

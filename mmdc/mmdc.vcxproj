@@ -163,6 +163,13 @@
       <Project>{412e1076-401c-4aa8-a98b-267ce45ce69d}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="2600\2600.h" />
+    <ClInclude Include="2600\tia.h" />
+    <ClInclude Include="2600\tia_palette.h" />
+    <ClInclude Include="2600\tia_registers.h" />
+    <ClInclude Include="2600\vcs.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

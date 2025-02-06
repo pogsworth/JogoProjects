@@ -198,7 +198,6 @@ void VCS2600::runFrame()
 		scanLine();
 	}
 	//cpu.resetCycles();
-	frameCounter++;
 }
 
 
@@ -235,7 +234,11 @@ byte* tiaMemoryMapper(int address)
 			if (address == 0)
 				VCS2600::tia.SetVSync();
 			if (address == 1)
-				VCS2600::tia.SetVBlank( (data & 2) != 0 );
+			{
+				if (!VCS2600::tia.vBlank && (data & 2))
+					VCS2600::frameCounter++;
+				VCS2600::tia.SetVBlank((data & 2) != 0);
+			}
 			// here is where we can capture any interesting behavior by TIA
 			// as a result of 'strobing' an address etc.
 
