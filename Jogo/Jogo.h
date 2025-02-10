@@ -27,7 +27,7 @@ namespace Jogo
 		virtual void Init() {}
 		virtual bool Tick(float dt) { return false; }
 		virtual void Draw() {}
-		virtual void Resize(int width, int height) { Width = width, Height = height; }
+		virtual void Resize(int width, int height);
 
 		//input
 		virtual void KeyDown(u32 key) {}

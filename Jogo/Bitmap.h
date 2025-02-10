@@ -6,11 +6,6 @@
 #include "JMath.h"
 
 
-namespace Jogo
-{
-	void Show(u32* Buffer, int Width, int Height);
-}
-
 struct Bitmap
 {
 	u32 Width;
@@ -312,7 +307,7 @@ struct Bitmap
 
 		// clip the line to the dimensions of the Bitmap
 		u32 code1 = ((x1 < clipRect.x) << 3) | ((y1 < clipRect.y) << 2) | ((x1 >= clipRect.x + clipRect.w) << 1) | (y1 >= clipRect.y + clipRect.h);
-		u32 code2 = ((x2 < clipRect.x) << 3) | ((y2 < clipRect.y) << 2) | ((x2 >= clipRect.x + clipRect.h) << 1) | (y2 >= clipRect.y + clipRect.h);
+		u32 code2 = ((x2 < clipRect.x) << 3) | ((y2 < clipRect.y) << 2) | ((x2 >= clipRect.x + clipRect.w) << 1) | (y2 >= clipRect.y + clipRect.h);
 		
 		// if both endpoints are outside of any of the same edge, then the whole line is out
 		if (code1 & code2)
@@ -353,7 +348,7 @@ struct Bitmap
 			{
 				x2 = x;
 				y2 = y;
-				code2 = ((x2 < clipRect.x) << 3) | ((y2 < clipRect.y) << 2) | ((x2 >= clipRect.x + clipRect.h) << 1) | (y2 >= clipRect.y + clipRect.h);
+				code2 = ((x2 < clipRect.x) << 3) | ((y2 < clipRect.y) << 2) | ((x2 >= clipRect.x + clipRect.w) << 1) | (y2 >= clipRect.y + clipRect.h);
 			}
 			if (code1 & code2)
 				return false;
@@ -908,7 +903,6 @@ struct Bitmap
 				r += grad.drdx;
 				g += grad.dgdx;
 				b += grad.dbdx;
-//				Jogo::Show(PixelBGRA, Width, Height);
 			}
 
 			// update left and right edge x

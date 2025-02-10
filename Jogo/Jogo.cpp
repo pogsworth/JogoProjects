@@ -17,8 +17,21 @@ namespace Jogo
 		DefaultArena = Arena::Create(DefaultArenaSize);
 		FrameArena = Arena::Create(1024*1024);
 		BackBuffer = { (u32)Width, (u32)Height, sizeof(u32) };
-		BackBuffer.Pixels = DefaultArena.Allocate(Width * Height * sizeof(u32));
+		BackBuffer.Pixels = Allocate(Width * Height * sizeof(u32));
 		DefaultFont = Font::Load("../Jogo/Font16.fnt", DefaultArena);
+	}
+
+	void JogoApp::Resize(int width, int height)
+	{
+		if (width * height > Width * Height)
+		{
+			Free(BackBuffer.Pixels);
+			BackBuffer.Pixels = Allocate(width * height * 4);
+		}
+		BackBuffer.Width = width;
+		BackBuffer.Height = height;
+		Width = width;
+		Height = height;
 	}
 
 	LRESULT CALLBACK JogoWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

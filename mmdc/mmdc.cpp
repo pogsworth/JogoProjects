@@ -121,6 +121,12 @@ struct MMDC : public JogoApp
 		UI::Init(BackBuffer, AtariFont);
 	}
 
+	void Resize(int width, int height)
+	{
+		JogoApp::Resize(width, height);
+		UI::Init(BackBuffer, AtariFont);
+	}
+
 	const char* GetName() const override { return (char*)Name; }
 
 	void ShowVideo()
