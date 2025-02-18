@@ -247,7 +247,7 @@ public:
 
 	void Char(u32 character) override
 	{
-		if (UI::FocusID)
+		if (UI::GetFocusID())
 		{
 			UI::Char(character);
 		}
@@ -255,7 +255,7 @@ public:
 
 	void KeyDown(u32 key) override
 	{
-		if (UI::FocusID)
+		if (UI::GetFocusID())
 		{
 			UI::KeyDown(key);
 			return;
@@ -531,10 +531,10 @@ public:
 			if (HeartBeatCount & 1)
 			{
 
-				char GameOver[32] = "Game Over";
+				char GameOver[] = "Game Over";
 				Bitmap::Rect GameOverSize = DefaultFont.GetTextSize(GameOver);
 				DefaultFont.DrawText((Width - GameOverSize.w)/2, (Height - DefaultFont.CharacterHeight)/2, GameOver, 0xffffff, BackBuffer);
-				char PressEnterToPlay[32] = "Press Enter to Play";
+				char PressEnterToPlay[] = "Press Enter to Play";
 				Bitmap::Rect MessageSize = DefaultFont.GetTextSize(PressEnterToPlay);
 				DefaultFont.DrawText((Width - MessageSize.w)/2, (Height + DefaultFont.CharacterHeight*3)/2, PressEnterToPlay, 0xffffff, BackBuffer);
 			}
@@ -555,7 +555,8 @@ public:
 			}
 		}
 		static char buffer[256] = "Test";
-		const char* newstring = UI::EditBox(buffer);
+		const Jogo::str8 bufferStr(buffer, Jogo::str8::cstringlength(buffer));
+		const char* newstring = UI::EditBox(bufferStr);
 		str8::copystring(newstring, buffer, str8::cstringlength(newstring), sizeof(buffer));
 		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
 

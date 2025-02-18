@@ -151,7 +151,7 @@ struct MMDC : public JogoApp
 		UI::Label(str8::format("PC: {:04X}", sa, vcs2600.cpu.pc));
 		UI::Label(str8::format("FLAGS: {:02X}", sa, vcs2600.cpu.status));
 		UI::Label(str8::format("OpCode: {:02X}", sa, vcs2600.cpu.opcode));
-		UI::Label(str8::format("Clock: {}", sa, vcs2600.cpu.cycles));
+		UI::Label(str8::format("Clock: {:04X}", sa, vcs2600.cpu.cycles&0xffff));
 		UI::Label(str8::format("Frame: {}", sa, vcs2600.frameCounter));
 
 		UI::EndFrame();
