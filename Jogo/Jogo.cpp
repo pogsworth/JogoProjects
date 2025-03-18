@@ -2,17 +2,17 @@
 #include <Windows.h>
 #include <timeapi.h>
 #include "Jogo.h"
-#include <malloc.h>
 
 namespace Jogo
 {
-	const char* JogoApp::JogoName = "Jogo Default";
+	const char* App::JogoName = "Jogo Default";
 
 	HDC hdc;
 	HWND hwnd;
 	bool Pause = false;
+	Input::InputHandler* UIHandler = nullptr;
 
-	JogoApp::JogoApp()
+	App::App()
 	{
 		DefaultArena = Arena::Create(DefaultArenaSize);
 		FrameArena = Arena::Create(1024*1024);
@@ -21,7 +21,7 @@ namespace Jogo
 		DefaultFont = Font::Load("../Jogo/Font16.fnt", DefaultArena);
 	}
 
-	void JogoApp::Resize(int width, int height)
+	void App::Resize(int width, int height)
 	{
 		if (width * height > Width * Height)
 		{
@@ -34,24 +34,37 @@ namespace Jogo
 		Height = height;
 	}
 
+	void SetUIHandler(Input::InputHandler* UIHandler)
+	{
+		Jogo::UIHandler = UIHandler;
+	}
+
 	LRESULT CALLBACK JogoWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		JogoApp* app = (JogoApp*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		// get current input handler
+		App* app = (App*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		Input::Keys key = (Input::Keys)wParam;
 		switch (uMsg)
 		{
 		case WM_KEYDOWN:
-			if (app)
-				app->KeyDown((u32)wParam);
+			if (!UIHandler || (UIHandler && !UIHandler->KeyDown(key)))
+			{
+				if (app)
+					app->KeyDown(key);
+			}
 			break;
 
 		case WM_KEYUP:
 			if (app)
-				app->KeyUp((u32)wParam);
+				app->KeyUp(key);
 			break;
 
 		case WM_CHAR:
-			if (app)
-				app->Char((u32)wParam);
+			if (!UIHandler || (UIHandler && !UIHandler->Char((char)wParam)))
+			{
+				if (app)
+					app->Char((char)wParam);
+			}
 			break;
 
 		case WM_LBUTTONDOWN:
@@ -59,7 +72,7 @@ namespace Jogo
 		case WM_MBUTTONDOWN:
 			SetCapture(hwnd);
 			if (app)
-				app->MouseDown((s16)LOWORD(lParam), (s16)HIWORD(lParam), (u32)wParam);
+				app->MouseDown((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
 			break;
 
 		case WM_LBUTTONUP:
@@ -67,12 +80,12 @@ namespace Jogo
 		case WM_MBUTTONUP:
 			ReleaseCapture();
 			if (app)
-				app->MouseUp((s16)LOWORD(lParam), (s16)HIWORD(lParam), (u32)wParam);
+				app->MouseUp((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
 			break;
 
 		case WM_MOUSEMOVE:
 			if (app)
-				app->MouseMove((s16)LOWORD(lParam), (s16)HIWORD(lParam), (u32)wParam);
+				app->MouseMove((s32)LOWORD(lParam), (s32)HIWORD(lParam));
 			break;
 
 		case WM_MOUSEWHEEL:
@@ -158,7 +171,7 @@ namespace Jogo
 		return State;
 	}
 
-	void Run(JogoApp& App, int TargetFPS)
+	void Run(App& App, int TargetFPS)
 	{
 		// register window class
 		WNDCLASS wc = {};
@@ -269,20 +282,6 @@ namespace Jogo
 		DrawText(hdc, string, -1, &r, DT_NOCLIP);
 	}
 
-	bool IsKeyPressed(int key)
-	{
-		return (GetAsyncKeyState(key) & 0x8000) != 0;
-	}
-
-	void GetMousePos(int& x, int& y)
-	{
-		POINT point;
-		GetCursorPos(&point);
-		ScreenToClient(hwnd, &point);
-		x = point.x;
-		y = point.y;
-	}
-
 	void DebugOut(const str8& message)
 	{
 		char* localstring = (char*)_alloca(message.len+1);
@@ -292,18 +291,21 @@ namespace Jogo
 		OutputDebugString(localstring);
 	}
 
-	int JogoApp::KEY_LEFT = VK_LEFT;
-	int JogoApp::KEY_RIGHT = VK_RIGHT;
-	int JogoApp::KEY_UP = VK_UP;
-	int JogoApp::KEY_DOWN = VK_DOWN;
-	int JogoApp::KEY_ESC = VK_ESCAPE;
-	int JogoApp::KEY_ENTER = VK_RETURN;
-	int JogoApp::KEY_BACKSPACE = VK_BACK;
-	int JogoApp::KEY_DELETE = VK_DELETE;
-	int JogoApp::KEY_TAB = VK_TAB;
-	int JogoApp::KEY_HOME = VK_HOME;
-	int JogoApp::KEY_END = VK_END;
-	int JogoApp::BUTTON_LEFT = VK_LBUTTON;
-	int JogoApp::BUTTON_RIGHT = VK_RBUTTON;
-	int JogoApp::BUTTON_MIDDLE = VK_MBUTTON;
+};
+
+namespace Input
+{
+	bool IsKeyPressed(int key)
+	{
+		return (GetAsyncKeyState(key) & 0x8000) != 0;
+	}
+
+	void GetMousePos(int& x, int& y)
+	{
+		POINT point;
+		GetCursorPos(&point);
+		ScreenToClient(Jogo::hwnd, &point);
+		x = point.x;
+		y = point.y;
+	}
 };

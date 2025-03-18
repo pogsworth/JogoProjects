@@ -1,4 +1,6 @@
 #include "UI.h"
+#include "Input.h"
+#include "Font.h"
 
 namespace UI
 {
@@ -29,6 +31,7 @@ namespace UI
 	s32 RadioButtonGroupWidth;
 	u32 RadioChoice = -1;
 	u32 CurrentRadio = -1;
+	UIInputHandler UIHandler;
 
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
@@ -41,15 +44,82 @@ namespace UI
 	// 
 
 
-	void Init(Bitmap& InTarget, Font InDefaultFont)
+	void Init(const Bitmap& InTarget, const Font& InDefaultFont)
 	{
 		Target = InTarget;
 		DefaultFont = InDefaultFont;
 		// override input handler during capture
+		Jogo::SetUIHandler(&UIHandler);
 	}
 
-	void Char(u32 character)
+	bool UIInputHandler::KeyDown(Input::Keys key)
 	{
+		if (!FocusID)
+			return false;
+
+		if (key == Input::KEY_BACKSPACE)
+		{
+			if (InsertionPoint > 0)
+			{
+				InsertionPoint--;
+				char* p = EditBuffer + InsertionPoint;
+				while (*p)
+				{
+					*p = p[1];
+					p++;
+				}
+			}
+		}
+		if (key == Input::KEY_DELETE)
+		{
+			char* p = EditBuffer + InsertionPoint;
+			if (*p)
+			{
+				do
+				{
+					*p = p[1];
+					p++;
+				} while (p[-1]);
+			}
+		}
+		if (key == Input::KEY_LEFT)
+		{
+			if (InsertionPoint > 0)
+			{
+				InsertionPoint--;
+			}
+		}
+		if (key == Input::KEY_RIGHT)
+		{
+			if (EditBuffer[InsertionPoint] != 0)
+			{
+				InsertionPoint++;
+			}
+		}
+		if (key == Input::KEY_HOME)
+		{
+			InsertionPoint = 0;
+		}
+		if (key == Input::KEY_END)
+		{
+			while (EditBuffer[InsertionPoint] != 0)
+			{
+				InsertionPoint++;
+			}
+		}
+		if (key == Input::KEY_ENTER || key == Input::KEY_TAB)
+		{
+			FocusID = 0;
+		}
+
+		return true;
+	}
+
+	bool UIInputHandler::Char(char character)
+	{
+		if (!FocusID)
+			return false;
+
 		if (character >= 32 && character < 128 && InsertionPoint < sizeof(EditBuffer))
 		{
 			if (EditBuffer[InsertionPoint] != 0)
@@ -67,64 +137,8 @@ namespace UI
 				EditBuffer[InsertionPoint] = 0;
 			}
 		}
-	}
 
-	void KeyDown(u32 key)
-	{
-		if (key == Jogo::JogoApp::KEY_BACKSPACE)
-		{
-			if (InsertionPoint > 0)
-			{
-				InsertionPoint--;
-				char* p = EditBuffer + InsertionPoint;
-				while (*p)
-				{
-					*p = p[1];
-					p++;
-				}
-			}
-		}
-		if (key == Jogo::JogoApp::KEY_DELETE)
-		{
-			char* p = EditBuffer + InsertionPoint;
-			if (*p)
-			{
-				do
-				{
-					*p = p[1];
-					p++;
-				} while (p[-1]);
-			}
-		}
-		if (key == Jogo::JogoApp::KEY_LEFT)
-		{
-			if (InsertionPoint > 0)
-			{
-				InsertionPoint--;
-			}
-		}
-		if (key == Jogo::JogoApp::KEY_RIGHT)
-		{
-			if (EditBuffer[InsertionPoint] != 0)
-			{
-				InsertionPoint++;
-			}
-		}
-		if (key == Jogo::JogoApp::KEY_HOME)
-		{
-			InsertionPoint = 0;
-		}
-		if (key == Jogo::JogoApp::KEY_END)
-		{
-			while (EditBuffer[InsertionPoint] != 0)
-			{
-				InsertionPoint++;
-			}
-		}
-		if (key == Jogo::JogoApp::KEY_ENTER || key == Jogo::JogoApp::KEY_TAB)
-		{
-			FocusID = 0;
-		}
+		return true;
 	}
 
 	u32 GetID()
@@ -143,13 +157,13 @@ namespace UI
 		s32 mousex;
 		s32 mousey;
 
-		Jogo::GetMousePos(mousex, mousey);
+		Input::GetMousePos(mousex, mousey);
 
 		if (ActiveID == Id)
 		{
 			HiColor = LoLight;
 			LoColor = HiLight;
-			if (!Jogo::IsKeyPressed(Jogo::JogoApp::BUTTON_LEFT))
+			if (!Input::IsKeyPressed(Input::BUTTON_LEFT))
 			{
 				if (HotID == Id)
 				{
@@ -160,7 +174,7 @@ namespace UI
 		}
 		else if (Id == HotID)
 		{
-			if (Jogo::IsKeyPressed(Jogo::JogoApp::BUTTON_LEFT))
+			if (Input::IsKeyPressed(Input::BUTTON_LEFT))
 			{
 				ActiveID = Id;
 			}
@@ -169,7 +183,7 @@ namespace UI
 		// SetHot
 		if (mousex >= r.x && mousex < r.x + r.w && mousey >= r.y && mousey < r.y + r.h)
 		{
-			if (ActiveID == Id || (ActiveID == 0 && !Jogo::IsKeyPressed(Jogo::JogoApp::BUTTON_LEFT)))
+			if (ActiveID == Id || (ActiveID == 0 && !Input::IsKeyPressed(Input::BUTTON_LEFT)))
 			{
 				HotID = Id;
 				CurrentColor = HotColor;
@@ -412,7 +426,7 @@ namespace UI
 	}
 
 	// TODO: fix potential buffer overrun with unpaired BeginFrame/EndFrame
-	void PushFrame(Bitmap::Rect ThisFrame, u32 FlowDir)
+	void PushFrame(const Bitmap::Rect& ThisFrame, u32 FlowDir)
 	{
 		CurrentFrame++;
 		Jogo::Assert(CurrentFrame < MaxFrameStack);
@@ -431,7 +445,7 @@ namespace UI
 
 	// need to pass in input state to BeginFrame
 	// TODO: reset and establish layout rules within this frame
-	void BeginFrame(Bitmap::Rect r, u32 Flow)
+	void BeginFrame(const Bitmap::Rect& r, u32 Flow)
 	{
 		PushFrame(r, Flow);
 	}

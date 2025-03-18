@@ -102,7 +102,7 @@ tia_refs tiaRefs[] =
 #define RAM_H 152
 #define RAM_ROWS 8
 
-struct MMDC : public JogoApp
+struct MMDC : public Jogo::App
 {
 	Font AtariFont;
 	VCS2600 vcs2600;
@@ -123,7 +123,7 @@ struct MMDC : public JogoApp
 
 	void Resize(int width, int height)
 	{
-		JogoApp::Resize(width, height);
+		Jogo::App::Resize(width, height);
 		UI::Init(BackBuffer, AtariFont);
 	}
 
@@ -218,7 +218,7 @@ struct MMDC : public JogoApp
 
 	void KeyDown(u32 key)
 	{
-		if (key == KEY_ESC)
+		if (key == Input::KEY_ESC)
 		{
 			Done = true;
 		}

@@ -4,11 +4,11 @@
 #include "Bitmap.h"
 #include "Font.h"
 #include "JMath.h"
+#include "Input.h"
 
 namespace Jogo
 {
-
-	class JogoApp
+	class App : public Input::InputHandler
 	{
 		static const char* JogoName;
 	public:
@@ -20,7 +20,7 @@ namespace Jogo
 		Bitmap BackBuffer;
 		Font DefaultFont;
 
-		JogoApp();
+		App();
 
 		virtual const char* GetName() const { return JogoName; }
 
@@ -28,34 +28,12 @@ namespace Jogo
 		virtual bool Tick(float dt) { return false; }
 		virtual void Draw() {}
 		virtual void Resize(int width, int height);
-
-		//input
-		virtual void KeyDown(u32 key) {}
-		virtual void KeyUp(u32 key) {}
-		virtual void Char(u32 character) {}
-		virtual void MouseDown(s32 x, s32 y, u32 buttons) {}
-		virtual void MouseUp(s32 x, s32 y, u32 buttons) {}
-		virtual void MouseMove(s32 x, s32 y, u32 buttons) {}
-		virtual void MouseWheel(s32 wheelScroll) {}
-
-		static int KEY_LEFT;
-		static int KEY_RIGHT;
-		static int KEY_UP;
-		static int KEY_DOWN;
-		static int KEY_ESC;
-		static int KEY_ENTER;
-		static int KEY_TAB;
-		static int KEY_BACKSPACE;
-		static int KEY_DELETE;
-		static int KEY_HOME;
-		static int KEY_END;
-		static int BUTTON_LEFT;
-		static int BUTTON_RIGHT;
-		static int BUTTON_MIDDLE;
 	};
 
 	// event loop
-	void Run(JogoApp& App, int TargetFPS);
+	void Run(Jogo::App& App, int TargetFPS);
+
+	void SetUIHandler(Input::InputHandler* UIHandler);
 
 	// memory
 	void* Allocate(size_t Size);
@@ -64,10 +42,6 @@ namespace Jogo
 	// graphics
 	void Show(u32* Buffer, int Width, int Height);
 	void DrawString(int x, int y, const str8& string);
-
-	// input
-	bool IsKeyPressed(int key);
-	void GetMousePos(int& x, int& y);
 
 	// debug
 	void DebugOut(const str8& message);

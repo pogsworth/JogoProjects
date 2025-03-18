@@ -7,7 +7,7 @@
 
 using namespace Jogo;
 
-class TetrisGame : public Jogo::JogoApp
+class TetrisGame : public Jogo::App
 {
 	static const char* Name;
 
@@ -245,37 +245,24 @@ public:
 		Jogo::DebugOut(PieceList);
 	}
 
-	void Char(u32 character) override
+	bool KeyDown(Input::Keys key) override
 	{
-		if (UI::GetFocusID())
-		{
-			UI::Char(character);
-		}
-	}
-
-	void KeyDown(u32 key) override
-	{
-		if (UI::GetFocusID())
-		{
-			UI::KeyDown(key);
-			return;
-		}
 		LastChar[0] = key;
 		if (!GameOver)
 		{
-			if (key == KEY_LEFT)
+			if (key == Input::KEY_LEFT)
 			{
 				if (!TestCollision(CurrentRow, CurrentCol - 1, CurrentRotation))
 					CurrentCol--;
 			}
 
-			if (key == KEY_RIGHT)
+			if (key == Input::KEY_RIGHT)
 			{
 				if (!TestCollision(CurrentRow, CurrentCol + 1, CurrentRotation))
 					CurrentCol++;
 			}
 
-			if (key == KEY_DOWN)
+			if (key == Input::KEY_DOWN)
 			{
 				while (!TestCollision(CurrentRow - 1, CurrentCol, CurrentRotation))
 				{
@@ -284,7 +271,7 @@ public:
 				Step += StepTime;
 			}
 
-			if (key == KEY_UP)
+			if (key == Input::KEY_UP)
 			{
 				int NewRotation = CurrentRotation + 1;
 				if (NewRotation > 3)
@@ -317,7 +304,7 @@ public:
 		}
 		else
 		{
-			if (key == KEY_ENTER)
+			if (key == Input::KEY_ENTER)
 			{
 				GameOver = false;
 				for (int i = 0; i < PlayFieldWidth * PlayFieldHeight; i++)
@@ -333,36 +320,44 @@ public:
 				Score = 0;
 			}
 		}
+
+		return true;
 	}
 
 	// TODO: eventually remove mouse processing - not needed
-	void MouseDown(s32 x, s32 y, u32 buttons) override
+	bool MouseDown(s32 x, s32 y, Input::Keys buttons) override
 	{
 		mouseX = x;
 		mouseY = y;
 		dragging = true;
+
+		return true;
 	}
 
-	void MouseMove(s32 x, s32 y, u32 buttons) override
+	bool MouseMove(s32 x, s32 y) override
 	{
 		if (dragging)
 		{
 			deltaX = x - mouseX;
 			deltaY = y - mouseY;
 		}
+
+		return true;
 	}
 
-	void MouseUp(s32 x, s32 y, u32 buttons) override
+	bool MouseUp(s32 x, s32 y, Input::Keys buttons) override
 	{
 		if (dragging)
 		{
 			dragging = false;
 		}
+
+		return true;
 	}
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
-		if (Jogo::IsKeyPressed(KEY_ESC))
+		if (Input::IsKeyPressed(Input::KEY_ESC))
 		{
 			return true;
 		}
@@ -513,7 +508,7 @@ public:
 		}
 
 		// TODO: move to DrawScore function
-		char ScoreString[32] = "Score: 000000";
+		char ScoreString[] = "Score: 000000";
 		char* p = ScoreString;
 		while (*p) p++;
 		p--;

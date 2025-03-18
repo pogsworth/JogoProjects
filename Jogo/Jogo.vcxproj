@@ -183,6 +183,7 @@
     <ClInclude Include="Arena.h" />
     <ClInclude Include="Bitmap.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="Input.h" />
     <ClInclude Include="int_types.h" />
     <ClInclude Include="Jogo.h" />
     <ClInclude Include="JMath.h" />

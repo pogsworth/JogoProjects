@@ -24,7 +24,7 @@ struct PointF
 	float y;
 };
 
-class Curves : public Jogo::JogoApp
+class Curves : public Jogo::App
 {
 	static const char* Name;
 	static const u32 MAX_POINTS = 100;
@@ -41,38 +41,46 @@ public:
 
 	const char* GetName() const override { return Name; }
 
-	virtual void KeyDown(u32 key) override
+	virtual bool KeyDown(Input::Keys key) override
 	{
-		if (key == KEY_ESC)
+		if (key == Input::KEY_ESC)
 		{
 			Done = true;
 		}
+
+		return true;
 	}
 
-	virtual void MouseDown(s32 x, s32 y, u32 buttons) override
+	virtual bool MouseDown(s32 x, s32 y, Input::Keys buttons) override
 	{
 		if (buttons & 1)
 		{
 			Down = PointF(x, y);
 			Dragging = true;
 		}
+
+		return true;
 	}
 
-	virtual void MouseUp(s32 x, s32 y, u32 buttons) override
+	virtual bool MouseUp(s32 x, s32 y, Input::Keys buttons) override
 	{
 		if (Dragging)
 		{
 			Points[NumPoints++] = Down;
 			Dragging = false;
 		}
+
+		return true;
 	}
 
-	virtual void MouseMove(s32 x, s32 y, u32 buttons) override
+	virtual bool MouseMove(s32 x, s32 y) override
 	{
 		if (Dragging)
 		{
 			Down = PointF(x, y);
 		}
+
+		return true;
 	}
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override

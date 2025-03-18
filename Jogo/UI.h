@@ -2,8 +2,10 @@
 
 #include "Jogo.h"
 #include "Bitmap.h"
-#include "Font.h"
 #include "str8.h"
+#include "Input.h"
+
+struct Font;
 
 namespace UI
 {
@@ -34,9 +36,19 @@ namespace UI
 		}
 	};
 
-	void Init(Bitmap& InTarget, Font InDefaultFont);
-	void Char(u32 character);
-	void KeyDown(u32 key);
+	struct UIInputHandler : public Input::InputHandler
+	{
+		bool KeyDown(Input::Keys key) override;
+		bool KeyUp(Input::Keys key) override { return false; }
+		virtual bool Char(char c) override;
+		virtual bool MouseDown(s32 x, s32 y, Input::Keys button) override { return false; }
+		virtual bool MouseUp(s32 x, s32 y, Input::Keys button) override { return false; }
+		virtual bool MouseMove(s32 x, s32 y) override { return false; }
+		virtual bool MouseWheel(s32 wheelScroll) override { return false; }
+	};
+
+	void Init(const Bitmap& InTarget, const Font& InDefaultFont);
+	Input::InputHandler GetHandler();
 
 	u32 GetID();
 	u32 GetFocusID();
@@ -49,12 +61,12 @@ namespace UI
 	bool CheckBox(const Jogo::str8& label, bool checked);
 
 	// TODO: fix potential buffer overrun with unpaired BeginFrame/EndFrame
-	void PushFrame(Bitmap::Rect ThisFrame, u32 FlowDir);
+	void PushFrame(const Bitmap::Rect& ThisFrame, u32 FlowDir);
 	void PopFrame();
 
 	// need to pass in input state to BeginFrame
 	// TODO: reset and establish layout rules within this frame
-	void BeginFrame(Bitmap::Rect r, u32 Flow = 0);
+	void BeginFrame(const Bitmap::Rect& r, u32 Flow = 0);
 	void EndFrame();
 
 	Bitmap::Rect MenuFrame();

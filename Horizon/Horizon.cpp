@@ -3,7 +3,7 @@
 
 using namespace Jogo;
 
-class Horizon : public JogoApp
+class Horizon : public Jogo::App
 {
 	static const char* Name;
 	bool Done = false;
@@ -48,11 +48,11 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
-		if (IsKeyPressed(KEY_RIGHT))
+		if (Input::IsKeyPressed(Input::KEY_RIGHT))
 		{
 			roll += 30.0f * DT;
 		}
-		if (IsKeyPressed(KEY_LEFT))
+		if (Input::IsKeyPressed(Input::KEY_LEFT))
 		{
 			roll -= 30.0f * DT;
 		}
@@ -73,54 +73,64 @@ public:
 			}
 		}
 		DebugOut(timerString);
-		if (IsKeyPressed(KEY_UP))
+		if (Input::IsKeyPressed(Input::KEY_UP))
 		{
 			pitch += 20.0f * DT;
 		}
-		if (IsKeyPressed(KEY_DOWN))
+		if (Input::IsKeyPressed(Input::KEY_DOWN))
 		{
 			pitch -= 20.0f * DT;
 		}
 		return Done;
 	}
 
-	void KeyDown(u32 key)
+	bool KeyDown(Input::Keys key) override
 	{
-		if (key == KEY_ESC)
+		if (key == Input::KEY_ESC)
 		{
 			Done = true;
 		}
+
+		return true;
 	}
 
-	void MouseDown(s32 x, s32 y, u32 buttons)
+	bool MouseDown(s32 x, s32 y, Input::Keys buttons) override
 	{
 		dragx = x;
 		dragy = y;
 		dragging = true;
+
+		return true;
 	}
 
-	void MouseUp(s32 x, s32 y, u32 buttons)
+	bool MouseUp(s32 x, s32 y, Input::Keys buttons) override
 	{
 		originx += (float)deltax;
 		originy += (float)deltay;
 		deltax = 0;
 		deltay = 0;
 		dragging = false;
+
+		return true;
 	}
 
-	void MouseMove(s32 x, s32 y, u32 buttons)
+	bool MouseMove(s32 x, s32 y) override
 	{
 		if (dragging)
 		{
 			deltax = x - dragx;
 			deltay = y - dragy;
 		}
+
+		return true;
 	}
 
-	void MouseWheel(s32 scroll)
+	bool MouseWheel(s32 scroll) override
 	{
 		this->scroll = scroll;
 		scale *= 1.0f + (float)scroll / 20;
+
+		return true;
 	}
 
 	template<class T>
