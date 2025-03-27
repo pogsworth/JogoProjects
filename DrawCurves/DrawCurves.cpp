@@ -374,5 +374,7 @@ int main(int argc, char* argv[])
 	printf("%*s\n", (int)s.len, s.chars);
 	s = str8::format("number: {0:2x}", curves.FrameArena, 15);
 	printf("%*s\n", (int)s.len, s.chars);
+
+	float l2 = Jogo::log2(64);
 	return 0;
 }

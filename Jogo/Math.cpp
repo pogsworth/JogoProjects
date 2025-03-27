@@ -148,4 +148,103 @@ namespace Jogo
 		}
 	}
 
+	float tangent(float x)
+	{
+		return sine(x) / cosine(x);
+	}
+
+	float arctangent(float x)
+	{
+		const float PIOVER6 = PI / 6.0f;
+		const float PIOVER12 = PI / 12.0f;
+		const float ROOT3OVER3 = 0.577350269f;
+		const float TWOMINUSROOT3 = 0.267949192f;
+		const float c0 = 0.999999020228907f;
+		const float c1 = 0.257977658811405f;
+		const float c2 = 0.59120450521312f;
+
+		float a = x;
+		bool neg = x < 0;
+		if (neg)
+			a = -x;
+
+		bool inv = a > 1.0f;
+		if (inv)
+			a = 1 / a;
+
+		bool high = a > TWOMINUSROOT3;
+		if (high)
+			a = (a - ROOT3OVER3) / (1 + ROOT3OVER3 * a);
+
+		float aa = a * a;
+		a = a * (c0 + c1 * aa) / (1 + c2 * aa);
+
+		if (high)
+			a += PIOVER6;
+
+		if (inv)
+			a = PIOVER2 - a;
+
+		if (neg)
+			a = -a;
+
+		return a;
+	}
+
+	float arctangent(float x, float y)
+	{
+		if (x == 0)
+		{
+			if (y < 0)
+				return -PIOVER2;
+			return PIOVER2;
+		}
+
+		float a = arctangent(y / x);
+		if (x < 0)
+			a += PI;
+
+		return a;
+	}
+
+	// Fast exp2/log2 functions adapted from here:
+	// http://www.machinedlearnings.com/2011/06/fast-approximate-logarithm-exponential.html
+	// https://github.com/etheory/fastapprox/tree/master/fastapprox/src
+
+	float log2(float x)
+	{
+		IntFloat f = { x };
+		IntFloat mx;
+		mx.i = (f.i & 0x7fffff) | 0x3f000000;
+
+		float y = f.i * (1.0f / (1 << 23));
+		return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
+	}
+
+	float log(float x)
+	{
+		return 0.69314718f * log2(x);
+	}
+
+	float exp2(float x)
+	{
+		float offset = (x < 0) ? 1.0f : 0.0f;
+		float clipp = (x < -126) ? -126.0f : x;
+		s32 w = (s32)clipp;
+		float z = clipp - w + offset;
+		IntFloat v;
+		v.i = (u32)((1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z));
+
+		return v.f;
+	}
+
+	float exp(float x)
+	{
+		return exp2(1.442695040f * x);
+	}
+
+	float pow(float x, float y)
+	{
+		return exp2(y * log2(x));
+	}
 };

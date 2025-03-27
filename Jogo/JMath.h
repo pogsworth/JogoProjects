@@ -81,4 +81,10 @@ namespace Jogo
 	void remainder(float num, float denom, float invdenom, int& quotient, float& remainder);
 	float sine(float x);
 	float cosine(float x);
+	float tangent(float x);
+	float arctangent(float x);
+	float arctangent(float x, float y);
+	float log2(float x);
+	float log(float x);
+	float exp(float x);
 };

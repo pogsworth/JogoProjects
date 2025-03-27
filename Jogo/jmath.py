@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import struct
+
 def showplots(f,approxlist,a,b,fname):
     x = np.linspace(a,b,1000)
     plt.figure(1)
@@ -81,9 +83,9 @@ def arctan2(x):
     return x + x * xx * (coef3 + xx *(coef5 + xx *(coef7 + xx * coef9)))
 
 def arctan1(x):
-    if x > ROOT2 -1:
-        return np.pi/4 - arctan2((1-x)/(1+x))
-    else:
+    # if x > ROOT2 -1:
+    #     return np.pi/4 - arctan2((1-x)/(1+x))
+    # else:
         return arctan2(x)
     
 def arctan0(x):
@@ -92,13 +94,13 @@ def arctan0(x):
     else:
         return arctan1(x)
 
-def arctan_old(x):
+def arctan(x):
     if x < 0:
         return -arctan0(-x)
     else:
         return arctan0(x)
 
-def arctan(x):
+def arctan_new(x):
     b = np.pi/6
     k = 0.577350269     # tan pi/6 (root3/3)
     b0 = b/2
@@ -135,6 +137,104 @@ def arctan(x):
     
     return a
 
+def fastlen(x):
+    y = 1
+    xx=abs(x)
+    yy=abs(y)
+    a = max(abs(xx),abs(yy))
+    b = min(xx,yy)
+    return a + b*b/a
+
+def length(x):
+    return np.sqrt(x*x+1)
+
+def power(x, n):
+    ret = 1
+    factor = x
+    while n != 0:
+        if n & 1:
+            ret *= factor
+        factor *= factor
+        n >>= 1
+    return ret
+
+def exp2_old(x):
+    roote = 1.2840254167
+    c0 = 1.000000034751
+    c1 = 0.49999799
+    c2 = 0.166704078
+    c3 = 0.04136542
+    c4 = 0.009419273
+
+    x *= 4
+    n = int(x)
+    x -= n
+    x /= 4
+    e = ((((x*c4 + c3)*x + c2)*x + c1)*x + c0)*x + 1
+    p = power(roote, n)
+    return e * p
+
+def exp_old(x):
+#    y = x * 1.442695040889
+    if (x<0):
+        return 1/exp2(-x)
+    else:
+        return exp2(x)
+
+def log2_double(x):
+    fb = struct.pack('!d', x)
+    ib = struct.unpack('!q', fb)[0]
+    y = float(ib) * 2.2204460492503130808472633361816e-16
+    ib &= 0xfffffffffffff
+    ib |= 0x3ff0000000000000
+    fi = struct.pack('!q', ib)
+    mx = float(struct.unpack('!d', fi)[0])
+#    i = mx * (1<<53)
+#    y /= float(1<<52)
+    #mx *= .5
+    n = 1.498030302 * mx + 1.72587999 / (0.3520887068 + mx)
+    return y - 1000.651196 - n # * 0.69314718
+
+def log2(x):
+    fb = struct.pack('!f', x)
+    ib = struct.unpack('!i', fb)[0]
+    y = ib * 1.0/(1<<23)
+    ib &= 0x7fffff
+    ib |= 0x3f000000
+    fi = struct.pack('!i', ib)
+    mx = struct.unpack('!f', fi)[0]
+#    i = mx * (1<<53)
+#    y /= float(1<<52)
+    #mx *= .5
+    n = 1.498030302 * mx + 1.72587999 / (0.3520887068 + mx)
+    return y - 124.22551499 - n # * 0.69314718
+
+def log2_004(x):
+    mx, ex = np.frexp(x)
+    mx *= 2
+    ex -= 2
+    ex += (-0.34484843*mx + 2.02466578) * mx - 0.67487759
+    # ex *= 0.69314718
+    return ex
+
+def exp2(x):
+    offset = 1.0 if x < 0 else 0.0
+    clipp = -126.0 if x < -126 else x
+    w = int(clipp)
+    z = clipp - w + offset
+    v = int((1 << 23) * (clipp + 121.2740575 + 27.7280233 / (4.84252568 - z) - 1.49012907 * z))
+    vi = struct.pack('i',v)
+    vf = struct.unpack('f',vi)[0]
+    return vf
+
+def fastcos(x):
+    tp = 1./(2.*3.14159265358)
+    x *= tp
+    x -= .25 + np.floor(x + .25)
+    x *= 16.0 * (abs(x) - .5)
+    x += .225 * x * (abs(x) - 1.0)
+    return x
+
 def main():
     #matplotlib.use('svg')
 #    showplots(np.sin, [sine], -4*np.pi, 4*np.pi,"sine_error.svg")
@@ -142,8 +242,8 @@ def main():
     # print(sine(np.pi/4))
     # print(cosine(np.pi/4))
     # print(sine(np.pi/4)-cosine(np.pi/4))
-    showplots(np.arctan, [arctan], -4, 4, "arctan_error.svg")
-    print(arctan(-1.5))
+    showplots(np.cos, [fastcos], 1000000, 1000006, "arctan_error.svg")
+print(log2(64))
 
 if __name__ == '__main__':
     main()
