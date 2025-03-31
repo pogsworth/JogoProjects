@@ -375,6 +375,11 @@ int main(int argc, char* argv[])
 	s = str8::format("number: {0:2x}", curves.FrameArena, 15);
 	printf("%*s\n", (int)s.len, s.chars);
 
-	float l2 = Jogo::log2(64);
+	for (s32 i = 0; i < 32; i++)
+	{
+		float l2 = Jogo::log2((float)(1<<i));
+		s = str8::format("log of {} is {}", curves.FrameArena, 1 << i, l2);
+		printf("%*s\n", (int)s.len, s.chars);
+	}
 	return 0;
 }

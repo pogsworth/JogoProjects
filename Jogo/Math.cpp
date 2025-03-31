@@ -207,17 +207,24 @@ namespace Jogo
 		return a;
 	}
 
-	// Fast exp2/log2 functions adapted from here:
+	// exp2/log2 functions adapted from here:
 	// http://www.machinedlearnings.com/2011/06/fast-approximate-logarithm-exponential.html
 	// https://github.com/etheory/fastapprox/tree/master/fastapprox/src
 
 	float log2(float x)
 	{
+		if (x < 0)
+		{
+			IntFloat nan;
+			nan.i = 0xffffffff;
+			return nan.f;
+		}
+
 		IntFloat f = { x };
 		IntFloat mx;
 		mx.i = (f.i & 0x7fffff) | 0x3f000000;
 
-		float y = f.i * (1.0f / (1 << 23));
+		float y = f.i * (1.0f / (1<<23));
 		return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
 	}
 

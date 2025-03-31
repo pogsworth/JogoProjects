@@ -389,7 +389,7 @@ namespace Jogo
 	u32 str8::toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
 	{
 		u32 bits = parseSpec(spec);
-		bool neg = number < 0 && !(bits & SPEC_HEX);
+		bool neg = number < 0 && !(bits & SPEC_HEX) && number != 1 << 31;
 		char intchars[64];
 		u32 len = 0;
 		if (bits & SPEC_HEX)

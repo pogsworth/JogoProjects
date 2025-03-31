@@ -225,45 +225,79 @@ namespace Jogo
 				u32 len = 0;
 				str8 fmtsub = fmt;
 				char* d = dest;
-				bool escaped = false;
-				do {
-					escaped = false;
-					fmtsub = fmtsub.substr(pos);
-					pos = fmtsub.find('{');
-					if (pos == (u32)-1 || (pos == (fmtsub.len - 1)))
-					{
-						// TODO: remove escaped right braces } up to pos
-						return len + (u32)copystring(fmtsub.chars, d, fmtsub.len, (size_t)-1);
-					}
-					len += (u32)copystring(fmtsub.chars, d, pos, (size_t)-1);
-					d += pos;
+				s32 opened = -1;
+				s32 closed = -1;
 
-					// put escaped { in output 
-					if (fmtsub[pos + 1] == '{')
+				while (pos < fmtsub.len && closed == -1)
+				{
+					if (fmtsub[pos] == '{')
 					{
-						*d++ = '{';
+						// ignore any open braces inside a spec
+						if (opened != -1)
+						{
+							pos++;
+						}
+						else if (pos + 1 < fmtsub.len && fmtsub[pos + 1] == '{')
+						{
+							// put escaped { in output
+							*d++ = '{';
+							len++;
+							pos += 2;
+						}
+						else
+						{
+							opened = pos;
+							pos++;
+						}
+						continue;
+					}
+					if (fmtsub[pos] == '}')
+					{
+						if (opened != -1)
+						{
+							pos++;
+							closed = pos;
+						}
+						else if (pos + 1 < fmtsub.len && fmtsub[pos + 1] == '}')
+						{
+							*d++ = '}';
+							len++;
+							pos += 2;
+						}
+						else
+						{
+							// ignore single } outside spec
+							pos++;
+						}
+						continue;
+					}
+					if (opened == -1)
+					{
+						*d++ = fmtsub[pos];
 						len++;
-						pos += 2;
-						escaped = true;
+						pos++;
 					}
-				} while (escaped);
-				fmtsub = fmtsub.substr(pos);
+					else
+					{
+						pos++;
+					}
+				}
 
-				// find matching } and pass format specifiers to toString
-				str8 spec(nullptr, (size_t)0);
-				u32 end = fmtsub.find('}');
-				if (end == (u32)-1)
+				if (closed == -1)
 				{
-					return len + (u32)copystring(fmtsub.chars + 1, d, fmtsub.len - 1, (size_t)-1);
+					return len;
 				}
-				else
-				{
-					spec = fmtsub.substr(1, end-1);
-					u32 l = toString(arg, spec, d, (u32)-1);
-					d += l;
-					len += l;
-				}
-				return len + format(fmtsub.substr((u32)spec.len + 2), d, rest...);
+
+				// pass format specifiers to toString
+				str8 spec = fmtsub.substr(opened, closed - opened);
+				u32 l = toString(arg, spec, d, (u32)-1);
+				d += l;
+				len += l;
+
+				if (closed < fmtsub.len)
+					return len + format(fmtsub.substr(closed), d, rest...);
+
+				return len;
 			}
 
 			u32 format(const str8& fmt, char* dest)
