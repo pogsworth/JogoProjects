@@ -304,7 +304,7 @@ public:
 		//char scrollString[32];
 		//str8::itoa(scroll, scrollString);
 		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
-		AtariFont.DrawText(0, 0, "Hello", 0, BackBuffer);
+		AtariFont.DrawText(0, 0, "Hello", 0, 0, BackBuffer);
 
 		static int counter = 1234567;
 		counter++;

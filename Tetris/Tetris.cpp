@@ -486,7 +486,7 @@ public:
 		const str8 Clipped = "Clipped!";
 		const str8 NotClipped = "";
 		const str8 Message = !clipped ? Clipped : NotClipped;
-		DefaultFont.DrawText(0, 0, Message, 0, BackBuffer);
+		DefaultFont.DrawText(0, 0, Message, 0, 0, BackBuffer);
 
 		// TODO: move to debug section
 		char X[16] = {};
@@ -494,9 +494,9 @@ public:
 		str8::itoa(mouseX + deltaX, X, sizeof(X));
 		str8::itoa(mouseY + deltaY, Y, sizeof(Y));
 
-		DefaultFont.DrawText(0, 16, X, 0, BackBuffer);
-		DefaultFont.DrawText(0, 32, Y, 0, BackBuffer);
- 		DefaultFont.DrawText(0, 48, LastChar, 0, BackBuffer);
+		DefaultFont.DrawText(0, 16, X, 0, 0, BackBuffer);
+		DefaultFont.DrawText(0, 32, Y, 0, 0, BackBuffer);
+ 		DefaultFont.DrawText(0, 48, LastChar, 0, 0, BackBuffer);
 
 //		BackBuffer.DrawLine(mouseX, mouseY, mouseX + deltaX, mouseY + deltaY, 0x00ff00);
 		DrawPlayField();
@@ -519,7 +519,7 @@ public:
 			PrintScore /= 10;
 		}
 		Bitmap::Rect ScoreSize = DefaultFont.GetTextSize(ScoreString);
-		DefaultFont.DrawText((Width - ScoreSize.w) / 2, 0, ScoreString, 0, BackBuffer);
+		DefaultFont.DrawText((Width - ScoreSize.w) / 2, 0, ScoreString, 0, 0, BackBuffer);
 
 		if (GameOver)
 		{
@@ -528,10 +528,10 @@ public:
 
 				char GameOver[] = "Game Over";
 				Bitmap::Rect GameOverSize = DefaultFont.GetTextSize(GameOver);
-				DefaultFont.DrawText((Width - GameOverSize.w)/2, (Height - DefaultFont.CharacterHeight)/2, GameOver, 0xffffff, BackBuffer);
+				DefaultFont.DrawText((Width - GameOverSize.w)/2, (Height - DefaultFont.CharacterHeight)/2, GameOver, 0xffffff, 0, BackBuffer);
 				char PressEnterToPlay[] = "Press Enter to Play";
 				Bitmap::Rect MessageSize = DefaultFont.GetTextSize(PressEnterToPlay);
-				DefaultFont.DrawText((Width - MessageSize.w)/2, (Height + DefaultFont.CharacterHeight*3)/2, PressEnterToPlay, 0xffffff, BackBuffer);
+				DefaultFont.DrawText((Width - MessageSize.w)/2, (Height + DefaultFont.CharacterHeight*3)/2, PressEnterToPlay, 0xffffff, 0, BackBuffer);
 			}
 		}
 		UI::BeginFrame({ 100,0,Width,Height });
@@ -551,9 +551,9 @@ public:
 		}
 		static char buffer[256] = "Test";
 		const Jogo::str8 bufferStr(buffer, Jogo::str8::cstringlength(buffer));
-		const char* newstring = UI::EditBox(bufferStr);
-		str8::copystring(newstring, buffer, str8::cstringlength(newstring), sizeof(buffer));
-		DefaultFont.DrawText(0, 200, Clicked, 0, BackBuffer);
+		const Jogo::str8 newstring = UI::EditBox(bufferStr);
+		str8::copystring(newstring.chars, buffer, newstring.len, sizeof(buffer));
+		DefaultFont.DrawText(0, 200, Clicked, 0, 0, BackBuffer);
 
 		static u32 choice = -1;
 		const str8 RadioButtons[] =

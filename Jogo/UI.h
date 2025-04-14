@@ -55,7 +55,7 @@ namespace UI
 	bool Interact(u32 Id, const Bitmap::Rect& r);
 	bool Button(const Jogo::str8& Text);
 	void Label(const Jogo::str8& Text);
-	const char* EditBox(const Jogo::str8& Text);
+	const Jogo::str8 EditBox(const Jogo::str8& Text);
 	void RadioButton(const Jogo::str8& Text);
 	u32 RadioButtons(u32 choice, const Jogo::str8 strings[], u32 count);
 	bool CheckBox(const Jogo::str8& label, bool checked);

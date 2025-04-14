@@ -11,6 +11,9 @@ namespace Jogo
 	HWND hwnd;
 	bool Pause = false;
 	Input::InputHandler* UIHandler = nullptr;
+	u32 NumTickHandlers = 0;
+	const u32 MaxTickHandlers = 8;
+	TickHandler* TickHandlers[MaxTickHandlers];
 
 	App::App()
 	{
@@ -37,6 +40,14 @@ namespace Jogo
 	void SetUIHandler(Input::InputHandler* UIHandler)
 	{
 		Jogo::UIHandler = UIHandler;
+	}
+
+	void SetTickHandler(TickHandler Handler)
+	{
+		if (NumTickHandlers < MaxTickHandlers)
+		{
+			TickHandlers[NumTickHandlers++] = Handler;
+		}
 	}
 
 	LRESULT CALLBACK JogoWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -227,6 +238,10 @@ namespace Jogo
 
 						DT = Clamp(DT, 0.001f, 0.1f);
 						Done = App.Tick(DT);
+						for (u32 t = 0; t < NumTickHandlers; t++)
+						{
+							TickHandlers[t](DT);
+						}
 						App.Draw();
 					}
 					// message pump

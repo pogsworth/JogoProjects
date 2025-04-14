@@ -28,12 +28,12 @@ struct Bitmap
 
 	void FillRect(const Rect& r, u32 color);
 	bool ClipRect(const Rect& r, Rect& Clipped);
-	void PasteBitmap(int x, int y, Bitmap source, u32 color)
+	void PasteBitmap(int x, int y, Bitmap source, u32 color, u32 bkcolor = 0)
 	{
-		PasteBitmapSelection(x, y, source, { 0, 0, (s32)source.Width, (s32)source.Height }, color);
+		PasteBitmapSelection(x, y, source, { 0, 0, (s32)source.Width, (s32)source.Height }, color, bkcolor);
 	}
-	void PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const Rect& srcRect, u32 color);
-	void PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRect, u32 color);
+	void PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const Rect& srcRect, u32 color, u32 bkcolor = 0);
+	void PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRect, u32 color, u32 bkcolor = 0);
 	void SetPixel(s32 x, s32 y, u32 color)
 	{
 		if (x < 0 || x >= (s32)Width || y < 0 || y >= (s32)Height)

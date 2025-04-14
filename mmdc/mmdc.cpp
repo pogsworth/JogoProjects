@@ -299,7 +299,7 @@ struct MMDC : public Jogo::App
 	void Draw() override
 	{
 		BackBuffer.Erase(0);
-		AtariFont.DrawText(100, 400, "MMDC", 0x400000, BackBuffer, 25);
+		AtariFont.DrawText(100, 400, "MMDC", 0x400000, 0, BackBuffer, 25);
 		FrameArena.Clear();
 		ShowVideo();
 		ShowRegisters();

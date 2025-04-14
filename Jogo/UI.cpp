@@ -20,18 +20,26 @@ namespace UI
 	u32 HiLight = 0xc0c0c0;
 	u32 LoLight = 0x404040;
 	u32 TextColor = 0xf0f0f0;
+	u32 BackColor = 0;
+	u32 SelectColor = 0xff4040c0;
 	u32 CurrentColor;
 	u32 HiColor;
 	u32 LoColor;
 	u32 Black = 0;
 	u32 White = 0xffffff;
 	char EditBuffer[256] = { '0' };
+	size_t EditBufferLen = 0;
 	u32 InsertionPoint = 0;
+	s32 SelectionBegin = -1;
+	s32 SelectionEnd = -1;
 	s32 RadioButtonGroupStart = -1;
 	s32 RadioButtonGroupWidth;
 	u32 RadioChoice = -1;
 	u32 CurrentRadio = -1;
 	UIInputHandler UIHandler;
+	float CursorBlinkInterval = .5f;
+	float CursorTime = 0;
+	bool bTextEditCursorVisible = false;
 
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
@@ -43,6 +51,7 @@ namespace UI
 	// Spacing
 	// 
 
+	Jogo::TickHandler UITick;
 
 	void Init(const Bitmap& InTarget, const Font& InDefaultFont)
 	{
@@ -50,6 +59,76 @@ namespace UI
 		DefaultFont = InDefaultFont;
 		// override input handler during capture
 		Jogo::SetUIHandler(&UIHandler);
+		Jogo::SetTickHandler(UITick);
+	}
+
+	void UITick(float DeltaTime)
+	{
+		CursorTime += DeltaTime;
+		if (CursorTime > CursorBlinkInterval)
+		{
+			bTextEditCursorVisible = !bTextEditCursorVisible;
+			CursorTime -= CursorBlinkInterval;
+		}
+	}
+
+	void ClearSelection()
+	{
+		SelectionBegin = SelectionEnd = -1;
+	}
+
+	void DeleteSelection()
+	{
+		if (SelectionEnd > SelectionBegin)
+		{
+			char* s = EditBuffer + SelectionEnd;
+			char* d = EditBuffer + SelectionBegin;
+			size_t l = EditBufferLen - SelectionEnd;
+			while (l--)
+			{
+				*d++ = *s++;
+			}
+			EditBufferLen -= SelectionEnd - SelectionBegin;
+		}
+		ClearSelection();
+	}
+
+	void InsertChars(Jogo::str8 insert)
+	{
+
+	}
+
+	void InsertChar(char character)
+	{
+		if (SelectionBegin != -1)
+		{
+			InsertionPoint = SelectionBegin;
+			DeleteSelection();
+		}
+		if (InsertionPoint <= EditBufferLen && EditBufferLen < sizeof(EditBuffer))
+		{
+			// move all characters down to make room for current character
+			char* s = EditBuffer + InsertionPoint;
+			char* p = EditBuffer + EditBufferLen;
+			while (p > s)
+			{
+				*p-- = p[-1];
+			}
+			EditBuffer[InsertionPoint++] = character;
+			EditBufferLen++;
+		}
+	}
+
+	void DeleteChar()
+	{
+		char* p = EditBuffer + InsertionPoint;
+		size_t l = EditBufferLen - InsertionPoint;
+		while (l--)
+		{
+			*p = p[1];
+			p++;
+		}
+		EditBufferLen--;
 	}
 
 	bool UIInputHandler::KeyDown(Input::Keys key)
@@ -57,62 +136,173 @@ namespace UI
 		if (!FocusID)
 			return false;
 
+		// keep cursor visible while typing
+		bTextEditCursorVisible = true;
+		CursorTime = 0.0f;
+
 		if (key == Input::KEY_BACKSPACE)
 		{
-			if (InsertionPoint > 0)
+			bool bSelection = SelectionBegin > -1;
+			if (InsertionPoint == SelectionEnd)
+			{
+				InsertionPoint = SelectionBegin;
+			}
+			DeleteSelection();
+			if (!bSelection && InsertionPoint > 0)
 			{
 				InsertionPoint--;
-				char* p = EditBuffer + InsertionPoint;
-				while (*p)
-				{
-					*p = p[1];
-					p++;
-				}
+				DeleteChar();
 			}
+			return true;
 		}
 		if (key == Input::KEY_DELETE)
 		{
-			char* p = EditBuffer + InsertionPoint;
-			if (*p)
+			bool bSelection = SelectionBegin > -1;
+			if (InsertionPoint == SelectionEnd)
 			{
-				do
-				{
-					*p = p[1];
-					p++;
-				} while (p[-1]);
+				InsertionPoint = SelectionBegin;
 			}
+			DeleteSelection();
+			if (!bSelection && InsertionPoint < EditBufferLen)
+			{
+				DeleteChar();
+			}
+			return true;
 		}
 		if (key == Input::KEY_LEFT)
 		{
+			// add change selection if SHIFT is down
+			// add skip left word if CTRL is down
 			if (InsertionPoint > 0)
 			{
 				InsertionPoint--;
+				if (Input::IsKeyPressed(Input::KEY_SHIFT))
+				{
+					if (SelectionBegin == -1)
+					{
+						SelectionBegin = InsertionPoint;
+						SelectionEnd = SelectionBegin + 1;
+					}
+					else
+					{
+						if (InsertionPoint < (u32)SelectionBegin)
+						{
+							SelectionBegin = InsertionPoint;
+						}
+						else
+						{
+							SelectionEnd = InsertionPoint;
+
+						}
+						if (SelectionBegin == SelectionEnd)
+						{
+							ClearSelection();
+						}
+					}
+				}
+				else
+				{
+					ClearSelection();
+				}
 			}
+			return true;
 		}
 		if (key == Input::KEY_RIGHT)
 		{
-			if (EditBuffer[InsertionPoint] != 0)
+			// add change selection if SHIFT is down
+			// add skp right word if CTRL is down
+			if (InsertionPoint < EditBufferLen)
 			{
 				InsertionPoint++;
+				if (Input::IsKeyPressed(Input::KEY_SHIFT))
+				{
+					if (SelectionBegin == -1)
+					{
+						SelectionBegin = InsertionPoint - 1;
+						SelectionEnd = SelectionBegin + 1;
+					}
+					else
+					{
+						if (InsertionPoint > (u32)SelectionEnd)
+						{
+							SelectionEnd = InsertionPoint;
+						}
+						else
+						{
+							SelectionBegin = InsertionPoint;
+						}
+						if (SelectionBegin == SelectionEnd)
+						{
+							ClearSelection();
+						}
+					}
+				}
+				else
+				{
+					ClearSelection();
+				}
 			}
+			return true;
 		}
 		if (key == Input::KEY_HOME)
 		{
+			if (Input::IsKeyPressed(Input::KEY_SHIFT))
+			{
+				if (SelectionBegin == -1)
+				{
+					SelectionEnd = InsertionPoint;;
+				}
+				else if (InsertionPoint == SelectionEnd)
+				{
+					SelectionEnd = SelectionBegin;
+				}
+				SelectionBegin = 0;
+				if (SelectionBegin == SelectionEnd)
+				{
+					ClearSelection();
+				}
+			}
+			else
+			{
+				ClearSelection();
+			}
 			InsertionPoint = 0;
+			return true;
 		}
 		if (key == Input::KEY_END)
 		{
-			while (EditBuffer[InsertionPoint] != 0)
+			if (Input::IsKeyPressed(Input::KEY_SHIFT))
 			{
-				InsertionPoint++;
+				if (SelectionBegin == -1)
+				{
+					SelectionBegin = InsertionPoint;;
+				}
+				else if (InsertionPoint == SelectionBegin)
+				{
+					SelectionBegin = SelectionEnd;
+				}
+				SelectionEnd = (s32)EditBufferLen;
+				if (SelectionBegin == SelectionEnd)
+				{
+					ClearSelection();
+				}
 			}
+			else
+			{
+				ClearSelection();
+			}
+			InsertionPoint = (u32)EditBufferLen;
+			return true;
 		}
 		if (key == Input::KEY_ENTER || key == Input::KEY_TAB)
 		{
+			// tab should advance the FocusID to the next ID, SHIFT tab should go to previous ID
+			ClearSelection();
 			FocusID = 0;
+			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	bool UIInputHandler::Char(char character)
@@ -121,21 +311,9 @@ namespace UI
 			return false;
 
 		if (character >= 32 && character < 128 && InsertionPoint < sizeof(EditBuffer))
-		{
-			if (EditBuffer[InsertionPoint] != 0)
-			{
-				// move all characters down to make room for current character
-				char* s = EditBuffer + InsertionPoint;
-				char* p = s;
-				while (*p && p - EditBuffer < sizeof(EditBuffer)) p++;
-				while (p > s) *p-- = p[-1];
-			}
-			bool IsEnd = EditBuffer[InsertionPoint] == 0;
-			EditBuffer[InsertionPoint++] = character;
-			if (IsEnd)
-			{
-				EditBuffer[InsertionPoint] = 0;
-			}
+		{			
+			DeleteSelection();
+			InsertChar(character);
 		}
 
 		return true;
@@ -204,7 +382,7 @@ namespace UI
 		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
 		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
 		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
-		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, BackColor, UI::Target);
 	}
 
 	Bitmap::Rect GetButtonSize(const Jogo::str8& Text)
@@ -253,7 +431,7 @@ namespace UI
 		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, LoColor);
 		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
 
-		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, BackColor, UI::Target);
 	}
 
 	void Label(const Jogo::str8& Text)
@@ -276,45 +454,67 @@ namespace UI
 		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
 		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
 		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
-		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
+		if (SelectionBegin != -1)
+		{
+			u32 SelectionX = DefaultFont.GetTextSize(Text.substr(0, SelectionBegin)).w;
+			u32 SelectionLen = (u32)(SelectionEnd - SelectionBegin);
+			u32 SelectionEndX = SelectionX + DefaultFont.GetTextSize(Text.substr(SelectionBegin, SelectionLen)).w;
+			DefaultFont.DrawText(r.x + 4, r.y + 4, Text.substr(0, (u32)SelectionBegin), TextColor, BackColor, UI::Target);
+			DefaultFont.DrawText(r.x + 4 + SelectionX, r.y + 4, Text.substr((u32)SelectionBegin, SelectionLen), TextColor, SelectColor, UI::Target);
+			DefaultFont.DrawText(r.x + 4 + SelectionEndX, r.y + 4, Text.substr((u32)SelectionEnd, (u32)(EditBufferLen - (u32)SelectionEnd)), TextColor, BackColor, UI::Target);
+		}
+		else
+		{
+			DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, BackColor, UI::Target);
+		}
 	}
 
-	const char* EditBox(const Jogo::str8& Text)
+	const Jogo::str8 EditBox(const Jogo::str8& Text)
 	{
 		u32 EditID = GetID();
-		Bitmap::Rect TextSize = GetButtonSize("DefaultSize");
-		const char* result = Text.chars;
+		Bitmap::Rect TextSize = GetButtonSize(Text);
+		Jogo::str8 result = Text;
 
 		TextSize = GetButtonSize(Text);
 		TextSize.x = FrameStack[CurrentFrame].CursorX;
 		TextSize.y = FrameStack[CurrentFrame].CursorY;
 
 		CurrentColor = EditColor;
+		HiColor = HiLight;
+		LoColor = LoLight;
+		
 		if (!FocusID)
 		{
 			if (Interact(EditID, TextSize))
 			{
 				FocusID = EditID;
 				Jogo::str8::copystring(Text.chars, EditBuffer, (u32)Text.len, sizeof(EditBuffer));
-				// TODO: do we need to put a 0 at the end of this string?
 				InsertionPoint = (u32)Text.len;
+				EditBufferLen = Text.len;
 			}
 		}
 		if (FocusID == EditID)
 		{
 			CurrentColor = EditColorActive;
+
 			// draw the current EditBuffer
-			const Jogo::str8 EditText(EditBuffer, Jogo::str8::cstringlength(EditBuffer));
+			const Jogo::str8 EditText(EditBuffer, EditBufferLen);
+			Bitmap::Rect Size = GetButtonSize(EditText);
+			TextSize.w = Size.w;
+			TextSize.h = Size.h;
 			DrawEditBox(TextSize, EditText);
+			result = Jogo::str8(EditBuffer, EditBufferLen);
+
 			// draw the current insertion point
-			char PartialText[256];
-			Jogo::str8::copystring(EditBuffer, PartialText, InsertionPoint, sizeof(PartialText));
-			Bitmap::Rect PartialSize = DefaultFont.GetTextSize(PartialText);
-			s32 CaretX = TextSize.x + PartialSize.w + 4;
-			s32 CaretY = TextSize.y + 2;
-			Target.DrawLine(CaretX, CaretY, CaretX, CaretY + PartialSize.h + 2, 0xff0000);
-			// and manage to blink it...
-			result = EditBuffer;
+			if (bTextEditCursorVisible)
+			{
+				Jogo::str8 PartialText = Jogo::str8(EditBuffer).substr(0, InsertionPoint);
+				//Jogo::str8::copystring(EditBuffer, PartialText, InsertionPoint, sizeof(PartialText));
+				Bitmap::Rect PartialSize = DefaultFont.GetTextSize(PartialText);
+				s32 CaretX = TextSize.x + PartialSize.w + 4;
+				s32 CaretY = TextSize.y + 2;
+				Target.DrawLine(CaretX, CaretY, CaretX, CaretY + PartialSize.h + 2, 0xff0000);
+			}
 		}
 		else
 		{
@@ -335,7 +535,7 @@ namespace UI
 		{
 			Target.FillCircle(r.x + r.h / 2, r.y + r.h / 2 - 1, OuterRadius - 3, Black);
 		}
-		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, Text, TextColor, UI::Target);
+		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, Text, TextColor, BackColor, UI::Target);
 	}
 
 	void RadioButton(const Jogo::str8& Text)
@@ -402,7 +602,7 @@ namespace UI
 			Target.DrawLine(x2 - 1, y1, x1, y2 - 1, Black);
 			Target.DrawLine(x2, y1 + 1, x1 + 1, y2, Black);
 		}
-		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, label, TextColor, Target);
+		DefaultFont.DrawText(r.x + r.h + 4, r.y + 4, label, TextColor, BackColor, Target);
 	}
 
 	bool CheckBox(const Jogo::str8& label, bool checked)
@@ -486,7 +686,7 @@ namespace UI
 		Target.DrawHLine(r.y + r.h - 1, r.x, r.x + r.w - 1, LoColor);
 		Target.DrawVLine(r.x, r.y, r.y + r.h - 1, HiColor);
 		Target.DrawVLine(r.x + r.w, r.y, r.y + r.h - 1, LoColor);
-		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, UI::Target);
+		DefaultFont.DrawText(r.x + 4, r.y + 4, Text, TextColor, BackColor, UI::Target);
 	}
 
 	bool MenuButton(const Jogo::str8& label, bool open)
@@ -498,6 +698,8 @@ namespace UI
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
+		HiColor = HiLight;
+		LoColor = LoLight;
 
 		if (Interact(ButtonID, TextSize))
 		{
@@ -518,14 +720,16 @@ namespace UI
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
+		HiColor = HiLight;
+		LoColor = LoLight;
 		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
-
-		DrawButton(TextSize, Item);
 
 		if (Interact(MenuItemID, TextSize))
 		{
 			checked = !checked;
 		}
+		DrawButton(TextSize, Item);
+
 		return checked;
 	}
 }

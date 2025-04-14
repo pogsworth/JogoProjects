@@ -34,6 +34,8 @@ namespace Jogo
 	void Run(Jogo::App& App, int TargetFPS);
 
 	void SetUIHandler(Input::InputHandler* UIHandler);
+	typedef void TickHandler(float DeltaTime);
+	void SetTickHandler(TickHandler);
 
 	// memory
 	void* Allocate(size_t Size);

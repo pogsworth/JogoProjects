@@ -13,6 +13,11 @@ namespace Input
 		KEY_BACKSPACE = 0x08,
 		KEY_TAB = 0x09,
 		KEY_ENTER = 0x0D,
+		KEY_SHIFT = 0x10,
+		KEY_CONTROL = 0x11,
+		KEY_ALT = 0x12,
+		KEY_PAUSE = 0x13,
+		KEY_CAPSLOCK = 0x14,
 		KEY_ESC = 0x1B,
 		KEY_PAGEUP = 0x21,
 		KEY_PAGEDOWN = 0x22,
@@ -27,14 +32,6 @@ namespace Input
 
 	struct InputHandler
 	{
-		//virtual bool KeyDown(Keys key) = 0;
-		//virtual bool KeyUp(Keys key) = 0;
-		//virtual bool Char(char c) = 0;
-		//virtual bool MouseDown(s32 x, s32 y, Keys button) = 0;
-		//virtual bool MouseUp(s32 x, s32 y, Keys button) = 0;
-		//virtual bool MouseMove(s32 x, s32 y) = 0;
-		//virtual bool MouseWheel(s32 wheelScroll) = 0;
-
 		virtual bool KeyDown(Keys key) { return false; }
 		virtual bool KeyUp(Keys key) { return false; }
 		virtual bool Char(char c) { return false; }

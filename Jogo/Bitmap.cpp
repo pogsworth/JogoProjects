@@ -108,7 +108,7 @@ bool Bitmap::ClipRect(const Rect& r, Rect& Clipped)
 	return true;
 }
 
-void Bitmap::PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const Rect& srcRect, u32 color)
+void Bitmap::PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const Rect& srcRect, u32 color, u32 bkcolor)
 {
 	if (!source.Pixels)
 		return;
@@ -187,17 +187,32 @@ void Bitmap::PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const R
 		}
 		else if (PixelSize == 4)
 		{
-			u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
-			for (s32 i = 0; i < DstClip.w; i++)
+			if (bkcolor & 0xff000000)
 			{
-				if (x < 0) x += source.Width;
-				if (x >= source.Width) x -= source.Width;
-				if (*(SrcRow + (u32)x))
+				u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
+				for (s32 i = 0; i < DstClip.w; i++)
 				{
-					*((u32*)Dest) = color;
+					if (x < 0) x += source.Width;
+					if (x >= source.Width) x -= source.Width;
+					*((u32*)Dest) = (*(SrcRow + (u32)x)) ? color : bkcolor;
+					Dest += PixelStep;
+					x += sxdx;
 				}
-				Dest += PixelStep;
-				x += sxdx;
+			}
+			else
+			{
+				u8* SrcRow = source.PixelA + (u32)sourceY * source.Width;
+				for (s32 i = 0; i < DstClip.w; i++)
+				{
+					if (x < 0) x += source.Width;
+					if (x >= source.Width) x -= source.Width;
+					if (*(SrcRow + (u32)x))
+					{
+						*((u32*)Dest) = color;
+					}
+					Dest += PixelStep;
+					x += sxdx;
+				}
 			}
 		}
 		sourceY += sydy;
@@ -209,7 +224,7 @@ void Bitmap::PasteBitmapSelectionScaled(const Rect& dest, Bitmap source, const R
 	}
 }
 
-void Bitmap::PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRect, u32 color)
+void Bitmap::PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRect, u32 color, u32 bkcolor)
 {
 	if (!source.Pixels)
 		return;
@@ -242,14 +257,26 @@ void Bitmap::PasteBitmapSelection(int x, int y, Bitmap source, const Rect& srcRe
 		{
 			u8* src = SrcRow;
 			u32* dst = (u32*)DstRow;
-			for (s32 i = 0; i < DstClip.w; i++)
+			if (bkcolor & 0xff000000)
 			{
-				if (*src)
+				for (s32 i = 0; i < DstClip.w; i++)
 				{
-					*dst = color;
+					*dst = *src ? color : bkcolor;
+					src++;
+					dst++;
 				}
-				src++;
-				dst++;
+			}
+			else
+			{
+				for (s32 i = 0; i < DstClip.w; i++)
+				{
+					if (*src)
+					{
+						*dst = color;
+					}
+					src++;
+					dst++;
+				}
 			}
 			SrcRow += source.Width;
 			DstRow += Width * PixelSize;
