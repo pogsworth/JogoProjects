@@ -82,16 +82,32 @@ namespace Jogo
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 			SetCapture(hwnd);
-			if (app)
-				app->MouseDown((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
+			if (!UIHandler || (UIHandler && !UIHandler->MouseDown((s32)LOWORD(lParam), (s32)HIWORD(lParam), key)))
+			{
+				if (app)
+					app->MouseDown((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
+			}
 			break;
 
 		case WM_LBUTTONUP:
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
 			ReleaseCapture();
-			if (app)
-				app->MouseUp((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
+			if (!UIHandler || (UIHandler && !UIHandler->MouseUp((s32)LOWORD(lParam), (s32)HIWORD(lParam), key)))
+			{
+				if (app)
+					app->MouseUp((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
+			}
+			break;
+
+		case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDBLCLK:
+			if (!UIHandler || (UIHandler && !UIHandler->MouseDoubleClick((s32)LOWORD(lParam), (s32)HIWORD(lParam), key)))
+			{
+				if (app)
+					app->MouseDoubleClick((s32)LOWORD(lParam), (s32)HIWORD(lParam), key);
+			}
 			break;
 
 		case WM_MOUSEMOVE:
@@ -186,6 +202,7 @@ namespace Jogo
 	{
 		// register window class
 		WNDCLASS wc = {};
+		wc.style = WS_OVERLAPPED | CS_DBLCLKS;
 		wc.lpfnWndProc = JogoWndProc;
 		HINSTANCE hInstance = GetModuleHandle(nullptr);
 		wc.hInstance = hInstance;
@@ -201,7 +218,7 @@ namespace Jogo
 
 			// create window
 			if (hwnd = CreateWindowEx(0, App.GetName(), App.GetName(),
-				WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, WindowWidth, WindowHeight,
+				WS_OVERLAPPEDWINDOW|CS_DBLCLKS, CW_USEDEFAULT, CW_USEDEFAULT, WindowWidth, WindowHeight,
 				nullptr, nullptr, hInstance, nullptr))
 			{
 				SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&App);

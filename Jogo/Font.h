@@ -56,6 +56,55 @@ struct Font {
 		}
 	}
 
+	u32 GetCursorPos(const Jogo::str8& Text, u32 mousex)
+	{
+		// find pos index of character in string closest to mousex
+		// pos = mousex - character width of each character in Text up to and not exceeding mousex
+		// index = mousex - closest character less than mousex
+		u32 len = (u32)Text.len;
+		if (!CharacterRects)
+		{
+			u32 pos = mousex / CharacterWidth;
+			if (pos > len)
+			{
+				pos = len;
+			}
+			else
+			{
+				u32 rest = mousex % CharacterWidth;
+				if (pos < len && rest > CharacterWidth / 2)
+				{
+					pos++;
+				}
+			}
+			return pos;
+		}
+		else
+		{
+			// we have variable width characters
+			u32 dist = 0;
+			u32 pos = 0;
+			u32 len = (u32)Text.len;
+			u32 lastwidth = 0;
+			const char* p = Text.chars;
+			for (u32 i = 0; i < len && dist < mousex; i++)
+			{
+				u8 c = *p++ - CharacterMin;
+				if (c > 0 && c < CharacterCount)
+				{
+					lastwidth = CharacterRects[c].w;
+					dist += lastwidth;
+				}
+				pos++;
+			}
+			if (dist - lastwidth / 2 > mousex)
+			{
+				pos--;
+			}
+			return pos;
+		}
+	}
+
 	// TODO: Add support for BGRA fonts and anti-aliased alpha fonts
 	void DrawText(s32 x, s32 y, const Jogo::str8& Text, u32 color, u32 bkcolor, Bitmap destination, s32 scale = 1)
 	{

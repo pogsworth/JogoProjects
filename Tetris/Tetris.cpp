@@ -470,7 +470,8 @@ public:
 	void Draw() override
 	{
 		u32 black = 0x00000000;
-//		ClearBuffer(black);
+		u32 white = 0xffffffff;
+		ClearBuffer(white);
 
 		// TODO: move to testing function
 		BackBuffer.PasteBitmap(deltaX*4, deltaY*4, TestBitmap, 0xff0000);
@@ -553,6 +554,7 @@ public:
 		const Jogo::str8 bufferStr(buffer, Jogo::str8::cstringlength(buffer));
 		const Jogo::str8 newstring = UI::EditBox(bufferStr);
 		str8::copystring(newstring.chars, buffer, newstring.len, sizeof(buffer));
+		buffer[newstring.len] = 0;
 		DefaultFont.DrawText(0, 200, Clicked, 0, 0, BackBuffer);
 
 		static u32 choice = -1;
@@ -600,10 +602,10 @@ public:
 			UI::EndMenu();
 		}
 		UI::EndFrame();
+		UI::PrintDebug(FrameArena);
 
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";
-		":?}{"
 		char ActiveID[] = "ActiveID: ";
 		char HotIDString[8];
 		char ActiveIDString[8];

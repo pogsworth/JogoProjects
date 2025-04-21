@@ -39,19 +39,16 @@ namespace UI
 	struct UIInputHandler : public Input::InputHandler
 	{
 		bool KeyDown(Input::Keys key) override;
-		bool KeyUp(Input::Keys key) override { return false; }
 		virtual bool Char(char c) override;
-		virtual bool MouseDown(s32 x, s32 y, Input::Keys button) override { return false; }
-		virtual bool MouseUp(s32 x, s32 y, Input::Keys button) override { return false; }
-		virtual bool MouseMove(s32 x, s32 y) override { return false; }
-		virtual bool MouseWheel(s32 wheelScroll) override { return false; }
+		virtual bool MouseDown(s32 x, s32 y, Input::Keys button) override;
+		virtual bool MouseUp(s32 x, s32 y, Input::Keys button) override;
+		virtual bool MouseDoubleClick(s32 x, s32 y, Input::Keys button) override;
 	};
 
 	void Init(const Bitmap& InTarget, const Font& InDefaultFont);
 	Input::InputHandler GetHandler();
 
 	u32 GetID();
-	u32 GetFocusID();
 	bool Interact(u32 Id, const Bitmap::Rect& r);
 	bool Button(const Jogo::str8& Text);
 	void Label(const Jogo::str8& Text);
@@ -74,5 +71,7 @@ namespace UI
 	void EndMenu();
 	bool MenuButton(const Jogo::str8& label, bool open);
 	bool MenuItem(const Jogo::str8& Item, bool checked);
+
+	void PrintDebug(Arena arena);
 }
 

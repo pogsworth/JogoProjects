@@ -170,6 +170,10 @@ namespace Jogo
 		static const u32 SPEC_PREC_MASK = 255; // allow precision up to 31 digits
 
 		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
+		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen)
+		{
+			return toString((s32)number, spec, stringspace, maxlen);
+		}
 
 		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
 		{
