@@ -138,6 +138,40 @@ namespace UI
 		EditBufferLen--;
 	}
 
+	void MoveWordLeft()
+	{
+		// search left to find next whitespace and stop on character to the right of it
+		while (InsertionPoint > 0 && EditBuffer[InsertionPoint] == ' ')
+			InsertionPoint--;
+		while (InsertionPoint > 0 && EditBuffer[InsertionPoint - 1] != ' ')
+			InsertionPoint--;
+	}
+
+	void MoveWordRight()
+	{
+		// skip all whitespace to the right until non-whitespace then stop on next whitespace
+		while (InsertionPoint < EditBufferLen && EditBuffer[InsertionPoint] == ' ')
+			InsertionPoint++;
+		while (InsertionPoint < EditBufferLen && EditBuffer[InsertionPoint] != ' ')
+			InsertionPoint++;
+	}
+
+	void ExpandSelection()
+	{
+		if (InsertionPoint < (u32)SelectionBegin)
+		{
+			SelectionBegin = InsertionPoint;
+		}
+		else
+		{
+			SelectionEnd = InsertionPoint;
+		}
+		if (SelectionBegin == SelectionEnd)
+		{
+			ClearSelection();
+		}
+	}
+
 	bool UIInputHandler::KeyDown(Input::Keys key)
 	{
 		if (!FocusID)
@@ -184,12 +218,7 @@ namespace UI
 				InsertionPoint--;
 				if (Input::IsKeyPressed(Input::KEY_CONTROL))
 				{
-					// search left to find next whitespace and stop on character to the right of it
-					while (InsertionPoint > 0 && EditBuffer[InsertionPoint] == ' ')
-						InsertionPoint--;
-					
-					while (InsertionPoint > 0 && EditBuffer[InsertionPoint-1] != ' ')
-						InsertionPoint--;
+					MoveWordLeft();
 				}
 				if (Input::IsKeyPressed(Input::KEY_SHIFT))
 				{
@@ -200,18 +229,7 @@ namespace UI
 					}
 					else
 					{
-						if (InsertionPoint < (u32)SelectionBegin)
-						{
-							SelectionBegin = InsertionPoint;
-						}
-						else
-						{
-							SelectionEnd = InsertionPoint;
-						}
-						if (SelectionBegin == SelectionEnd)
-						{
-							ClearSelection();
-						}
+						ExpandSelection();
 					}
 				}
 				else
@@ -219,25 +237,25 @@ namespace UI
 					ClearSelection();
 				}
 			}
+			else
+			{
+				if (!Input::IsKeyPressed(Input::KEY_SHIFT))
+					ClearSelection();
+			}
 			return true;
 		}
 		if (key == Input::KEY_RIGHT)
 		{
-			// add change selection if SHIFT is down
-			// add skp right word if CTRL is down
 			if (InsertionPoint < EditBufferLen)
 			{
 				u32 StartSelection = InsertionPoint;
-				InsertionPoint++;
 				if (Input::IsKeyPressed(Input::KEY_CONTROL))
 				{
-					// skip all whitespace to the right until non-whitespace then stop on next whitespace
-					while (InsertionPoint < EditBufferLen && EditBuffer[InsertionPoint + 1] == ' ')
-						InsertionPoint++;
-					while (InsertionPoint < EditBufferLen && EditBuffer[InsertionPoint+1] != ' ')
-						InsertionPoint++;
-					if (InsertionPoint < EditBufferLen)
-						InsertionPoint++;
+					MoveWordRight();
+				}
+				else
+				{
+					InsertionPoint++;
 				}
 				if (Input::IsKeyPressed(Input::KEY_SHIFT))
 				{
@@ -248,24 +266,18 @@ namespace UI
 					}
 					else
 					{
-						if (InsertionPoint > (u32)SelectionEnd)
-						{
-							SelectionEnd = InsertionPoint;
-						}
-						else
-						{
-							SelectionBegin = InsertionPoint;
-						}
-						if (SelectionBegin == SelectionEnd)
-						{
-							ClearSelection();
-						}
+						ExpandSelection();
 					}
 				}
 				else
 				{
 					ClearSelection();
 				}
+			}
+			else
+			{
+				if (!Input::IsKeyPressed(Input::KEY_SHIFT))
+					ClearSelection();
 			}
 			return true;
 		}
@@ -275,7 +287,7 @@ namespace UI
 			{
 				if (SelectionBegin == -1)
 				{
-					SelectionEnd = InsertionPoint;;
+					SelectionEnd = InsertionPoint;
 				}
 				else if (InsertionPoint == SelectionEnd)
 				{
@@ -556,7 +568,6 @@ namespace UI
 				Input::GetMousePos(mousex, mousey);
 				InsertionPoint = (u32)DefaultFont.GetCursorPos(Text, mousex - TextSize.x);
 				EditBufferLen = Text.len;
-				ClearSelection();
 				DoubleClickTime = 0;
 			}
 		}
@@ -603,12 +614,7 @@ namespace UI
 				}
 				else
 				{
-					ClearSelection();
 					SelectionAnchor = -1;
-					s32 mousex;
-					s32 mousey;
-					Input::GetMousePos(mousex, mousey);
-					InsertionPoint = (u32)DefaultFont.GetCursorPos(Text, mousex - TextSize.x);
 					DoubleClickTime = 0;
 				}
 			}
@@ -628,7 +634,7 @@ namespace UI
 				}
 				else
 				{
-					if (InsertionPoint < SelectionAnchor)
+					if ((s32)InsertionPoint < SelectionAnchor)
 					{
 						SelectionBegin = InsertionPoint;
 						SelectionEnd = SelectionAnchor;
