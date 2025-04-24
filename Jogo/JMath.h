@@ -30,11 +30,6 @@ namespace Jogo
 		return x >= y ? x : y;
 	}
 
-	inline bool isdigit(char n)
-	{
-		return n >= '0' && n <= '9';
-	}
-
 	inline s32 double2intround(double x)
 	{
 		__m128d m = _mm_set_sd(x);
@@ -66,17 +61,11 @@ namespace Jogo
 	const float R2D = 180.0f / PI;
 	const float D2R = PI / 180.0f;
 
-	u32 itoa(s32 number, char* string, u32 maxstring);
-	s32 atoi(const char* string);
-	u32 itohex(u32 number, char* string, u32 maxstring, u32 maxdigits = 8);
-	u32 hextoi(const char* input);
 	double intpow(float number, s32 power);
 	float floor(float n);
 	float ceil(float n);
 	bool isinfinite(float f);
 	bool isnan(float f);
-	u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6);
-	float atof(const char* string);
 	float sqrt(float x);
 	void remainder(float num, float denom, float invdenom, int& quotient, float& remainder);
 	float sine(float x);

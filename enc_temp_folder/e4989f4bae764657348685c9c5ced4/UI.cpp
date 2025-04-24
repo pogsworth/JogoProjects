@@ -669,6 +669,7 @@ namespace UI
 		}
 		else
 		{
+			SelectionEnd = SelectionEnd < EditBufferLen ? SelectionEnd : (s32)EditBufferLen;
 			DrawEditBox(TextSize, result);
 		}
 

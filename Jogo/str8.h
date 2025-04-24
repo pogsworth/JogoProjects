@@ -149,7 +149,7 @@ namespace Jogo
 
 		static double tenpow(s32 power);
 		static u32 itoa(s32 number, char* string, u32 maxstring);
-		s32 atoi();
+		s32 atoi() const;
 		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
 		u32 hextoi();
 		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6);

@@ -41,7 +41,7 @@ namespace Jogo
 		return numchars;
 	}
 
-	s32 str8::atoi()
+	s32 str8::atoi() const
 	{
 		const char* s = chars;
 		s32 neg = 1;

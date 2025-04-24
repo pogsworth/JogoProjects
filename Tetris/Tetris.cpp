@@ -553,6 +553,11 @@ public:
 		static char buffer[256] = "Test";
 		const Jogo::str8 bufferStr(buffer, Jogo::str8::cstringlength(buffer));
 		const Jogo::str8 newstring = UI::EditBox(bufferStr);
+		static u32 listofnumbers[10] = { 3,1,4,5,9,2,6,8,7,0 };
+		for (u32 i = 0; i < 10; i++)
+		{
+			listofnumbers[i] = UI::EditBox(Jogo::str8::format("{:02}", FrameArena, listofnumbers[i])).atoi();
+		}
 		str8::copystring(newstring.chars, buffer, newstring.len, sizeof(buffer));
 		buffer[newstring.len] = 0;
 		DefaultFont.DrawText(0, 200, Clicked, 0, 0, BackBuffer);
