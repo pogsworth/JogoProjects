@@ -381,30 +381,59 @@ void Bitmap::DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, u32 color)
 	}
 }
 
+struct CircleDDA
+{
+	s32 x;
+	s32 y;
+	s32 f;
+	s32 dx;
+	s32 dy;
+
+	void Start(s32 r)
+	{
+		f = 1 - r;
+		dx = 0;
+		dy = -2 * r;
+		x = 0;
+		y = r;
+	}
+
+	void Step()
+	{
+		if (f >= 0)
+		{
+			y--;
+			dy += 2;
+			f += dy;
+		}
+		x++;
+		dx += 2;
+		f += dx + 1;
+	}
+
+	bool Done()
+	{
+		return x >= y;
+	}
+};
+
+
 void Bitmap::DrawCircle(s32 cx, s32 cy, s32 r, u32 color)
 {
-	s32 f = 1 - r;
-	s32 ddx = 0;
-	s32 ddy = -2 * r;
-	s32 x = 0;
-	s32 y = r;
+	CircleDDA Octant = {};
+	Octant.Start(r);
 
 	SetPixel(cx, cy + r, color);
 	SetPixel(cx, cy - r, color);
 	SetPixel(cx + r, cy, color);
 	SetPixel(cx - r, cy, color);
 
-	while (x < y)
+	while (!Octant.Done())
 	{
-		if (f >= 0)
-		{
-			y--;
-			ddy += 2;
-			f += ddy;
-		}
-		x++;
-		ddx += 2;
-		f += ddx + 1;
+		Octant.Step();
+		
+		s32 x = Octant.x;
+		s32 y = Octant.y;
 		if (x <= y)
 		{
 			SetPixel(cx + x, cy + y, color);
@@ -424,34 +453,48 @@ void Bitmap::DrawCircle(s32 cx, s32 cy, s32 r, u32 color)
 
 void Bitmap::FillCircle(s32 cx, s32 cy, s32 r, u32 color)
 {
-	s32 f = 1 - r;
-	s32 ddx = 0;
-	s32 ddy = -2 * r;
-	s32 x = 0;
-	s32 y = r;
+	CircleDDA Octant = {};
+	Octant.Start(r);
 
 	DrawHLine(cy, cx - r, cx + r, color);
-	while (x < y)
+	while (!Octant.Done())
 	{
-		if (f >= 0)
+		s32 x = Octant.x;
+		s32 y = Octant.y;
+		if (Octant.f >= 0)
 		{
 			if (x <= y)
 			{
 				DrawHLine(cy - y, cx - x, cx + x, color);
 				DrawHLine(cy + y, cx - x, cx + x, color);
 			}
-			y--;
-			ddy += 2;
-			f += ddy;
 		}
-		x++;
-		ddx += 2;
-		f += ddx + 1;
+		Octant.Step();
+		x = Octant.x;
+		y = Octant.y;
 		if (x <= y)
 		{
 			DrawHLine(cy - x, cx - y, cx + y, color);
 			DrawHLine(cy + x, cx - y, cx + y, color);
 		}
+	}
+}
+
+void GetRoundedRWH(const Bitmap::Rect& box, s32 radius, s32& r, s32& w, s32& h)
+{
+	r = radius;
+	w = box.w - 2 * r - 1;
+	if (w < 0)
+	{
+		r = box.w / 2;
+		w = box.w - 2 * r - 1;
+	}
+	h = box.h - 2 * r - 1;
+	if (h < 0)
+	{
+		r = min(r, box.h / 2);
+		h = box.h - 2 * r - 1;
+		w = box.w - 2 * r - 1;
 	}
 }
 
@@ -466,20 +509,9 @@ void Bitmap::DrawRoundedRect(const Rect& box, s32 radius, u32 color)
 	s32 right = box.x + box.w - 1;
 	s32 bottom = box.y + box.h - 1;
 
-	s32 r = radius;
-	s32 w = box.w - 2 * r - 1;
-	if (w < 0)
-	{
-		r = box.w / 2;
-		w = box.w - 2 * r - 1;
-	}
-	s32 h = box.h - 2 * r - 1;
-	if (h < 0)
-	{
-		r = min(r, box.h / 2);
-		h = box.h - 2 * r - 1;
-		w = box.w - 2 * r - 1;
-	}
+	s32 r, w, h;
+	GetRoundedRWH(box, radius, r, w, h);
+
 	s32 lx = box.x + r;
 	s32 uy = box.y + r;
 	s32 rx = right - r;
@@ -498,23 +530,14 @@ void Bitmap::DrawRoundedRect(const Rect& box, s32 radius, u32 color)
 	}
 
 	// draw the rounded corners
-	s32 f = 1 - r;
-	s32 ddx = 0;
-	s32 ddy = -2 * r;
-	s32 x = 0;
-	s32 y = r;
-
-	while (x < y)
+	CircleDDA Octant = {};
+	Octant.Start(r);
+	
+	while (!Octant.Done())
 	{
-		if (f >= 0)
-		{
-			y--;
-			ddy += 2;
-			f += ddy;
-		}
-		x++;
-		ddx += 2;
-		f += ddx + 1;
+		Octant.Step();
+		s32 x = Octant.x;
+		s32 y = Octant.y;
 		if (x <= y)
 		{
 			SetPixel(rx + x, uy - y, color);
@@ -532,6 +555,87 @@ void Bitmap::DrawRoundedRect(const Rect& box, s32 radius, u32 color)
 	}
 }
 
+void Bitmap::DrawRoundedRect(const Rect& box, s32 radius, u32 thickness, u32 color)
+{
+	// how to clip this?
+	if (radius <= 0)
+	{
+		for (s32 t = 0; t < (s32)thickness; t++)
+		{
+			Rect r = { box.x + t, box.y + t, box.w - t * 2, box.h - t * 2};
+			DrawRect(r, color);
+		}
+		return;
+	}
+	s32 right = box.x + box.w - 1;
+	s32 bottom = box.y + box.h - 1;
+
+	s32 r, w, h;
+	GetRoundedRWH(box, radius, r, w, h);
+
+	s32 lx = box.x + r;
+	s32 uy = box.y + r;
+	s32 rx = right - r;
+	s32 ly = bottom - r;
+
+	// draw the straight edges
+	if (w)
+	{
+		for (u32 t = 0; t < thickness; t++)
+		{
+			DrawHLine(box.y + t, lx, rx, color);
+			DrawHLine(bottom - t, lx, rx, color);
+		}
+	}
+	if (h)
+	{
+		for (u32 t = 0; t < thickness; t++)
+		{
+			DrawVLine(box.x + t, uy, ly, color);
+			DrawVLine(right - t, uy, ly, color);
+		}
+	}
+
+	// draw the rounded corners
+	CircleDDA BigR = {};
+	CircleDDA LittleR = {};
+
+	BigR.Start(r);
+	s32 lr = r - thickness;
+	lr = lr < 0 ? 0 : lr;
+	LittleR.Start(lr);
+
+	while (!BigR.Done())
+	{
+		BigR.Step();
+		LittleR.Step();
+		
+		s32 x = BigR.x;
+		s32 y = BigR.y;
+		s32 span = Jogo::min(y - x + 1, y - LittleR.y);
+		if (x <= y)
+		{
+			for (u32 t = 0; t < (u32)span; t++)
+			{
+				SetPixel(rx + x, uy - y + t, color);
+				SetPixel(lx - x, uy - y + t, color);
+				SetPixel(rx + x, ly + y - t, color);
+				SetPixel(lx - x, ly + y - t, color);
+			}
+		}
+		if (x < y)
+		{
+			for (u32 t = 0; t < (u32)span; t++)
+			{
+				SetPixel(rx + y - t, uy - x, color);
+				SetPixel(lx - y + t, uy - x, color);
+				SetPixel(rx + y - t, ly + x, color);
+				SetPixel(lx - y + t, ly + x, color);
+			}
+		}
+	}
+}
+
 void Bitmap::FillRoundedRect(const Rect& box, s32 radius, u32 color)
 {
 	// how to clip this?
@@ -545,20 +649,9 @@ void Bitmap::FillRoundedRect(const Rect& box, s32 radius, u32 color)
 	s32 right = box.x + box.w - 1;
 	s32 bottom = box.y + box.h - 1;
 
-	s32 r = radius;
-	s32 w = box.w - 2 * r - 1;
-	if (w < 0)
-	{
-		r = box.w / 2;
-		w = max(0, box.w - 2 * r - 1);
-	}
-	s32 h = box.h - 2 * r - 1;
-	if (h < 0)
-	{
-		r = min(r, box.h / 2);
-		h = max(0, box.h - 2 * r - 1);
-		w = max(0, box.w - 2 * r - 1);
-	}
+	s32 r, w, h;
+	GetRoundedRWH(box, radius, r, w, h);
+
 	s32 lx = box.x + r;
 	s32 uy = box.y + r;
 	s32 rx = right - r - 1;
@@ -571,28 +664,26 @@ void Bitmap::FillRoundedRect(const Rect& box, s32 radius, u32 color)
 	}
 
 	// draw the rounded corners
-	s32 f = 1 - r;
-	s32 ddx = 0;
-	s32 ddy = -2 * r;
-	s32 x = 0;
-	s32 y = r;
+	CircleDDA Octant = {};
+	Octant.Start(r);
 
-	while (x < y)
+	while (!Octant.Done())
 	{
-		if (f >= 0)
+		s32 x = Octant.x;
+		s32 y = Octant.y;
+		if (Octant.f >= 0)
 		{
 			if (x <= y)
 			{
 				DrawHLine(uy - y, lx - x, rx + x, color);
 				DrawHLine(ly + y, lx - x, rx + x, color);
 			}
-			y--;
-			ddy += 2;
-			f += ddy;
 		}
-		x++;
-		ddx += 2;
-		f += ddx + 1;
+		Octant.Step();
+
+		x = Octant.x;
+		y = Octant.y;
+
 		if (x <= y)
 		{
 			DrawHLine(uy - x, lx - y, rx + y, color);

@@ -5,40 +5,29 @@ namespace Jogo
 {
 	u32 str8::itoa(s32 number, char* string, u32 maxstring)
 	{
+		char result[32];
 		u32 n = abs(number);
-		u32 numchars = 0;
-		char* p = string;
+		char* p = result;
 		do
 		{
-			if (numchars < maxstring)
-			{
-				*p++ = n % 10 + '0';
-				n /= 10;
-				numchars++;
-			}
-			else
-			{
-				return numchars;
-			}
+			*p++ = n % 10 + '0';
+			n /= 10;
 		} while (n);
 
-		if (number < 0 && numchars < maxstring)
+		if (number < 0)
 		{
 			*p++ = '-';
-			numchars++;
 		}
-		if (numchars < maxstring)
-		{
-			*p-- = 0;
-		}
-		char* b = string;
+		u32 len = (u32)(p - result);
+		p--;
+		char* b = result;
 		while (b < p)
 		{
 			char s = *b;
 			*b++ = *p;
 			*p-- = s;
 		}
-		return numchars;
+		return (u32)copystring(result, string, len, maxstring);
 	}
 
 	s32 str8::atoi() const
@@ -58,6 +47,7 @@ namespace Jogo
 
 	u32 str8::itohex(u32 number, char* string, u32 maxstring, bool leadingzeros, bool upper)
 	{
+		char result[32];
 		u32 numdigits = 8;
 		if (!leadingzeros)
 		{
@@ -66,7 +56,7 @@ namespace Jogo
 		}
 
 		u32 n = number;
-		char* p = string + numdigits - 1;
+		char* p = result + numdigits - 1;
 
 		char a = 'a';
 		if (upper)
@@ -81,7 +71,7 @@ namespace Jogo
 			n >>= 4;
 		} while (n);
 
-		return numdigits;
+		return (u32)copystring(result, string, numdigits, maxstring);
 	}
 
 	u32 str8::hextoi()
@@ -132,6 +122,7 @@ namespace Jogo
 	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
 	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision)
 	{
+		char result[32];
 		const float log10of2 = 0.30103f;
 		IntFloat intf{ number };
 
@@ -178,32 +169,29 @@ namespace Jogo
 			exp10++;
 
 		// round at requested precision
-		if (precision >= 0 && precision <= 9)
+		precision += exp10;
+		u32 numdigits = digits >= 1e9 ? 10 : 9;
+		if (precision < numdigits)
 		{
-			precision = precision ? precision : 1;
-			u32 numdigits = digits >= 1e9 ? 10 : 9;
-			if (precision < numdigits)
-			{
-				s32 rounder = ((s32)tenpow(numdigits - precision));
-				s32 even = 1 - ((digits / rounder) & 1);
-				s32 rounded = digits + (rounder / 2 - even);
-				if (digits < 1e9 && rounded >= 1e9)
-					exp10++;
-				if (digits >= 1e10 && rounded >= 1e11)
-					exp10++;
-				digits = rounded / rounder;
-			}
+			s32 rounder = ((s32)tenpow(numdigits - precision));
+			s32 even = 1 - ((digits / rounder) & 1);
+			s32 rounded = digits + (rounder / 2 - even);
+			if (digits < 1e9 && rounded >= 1e9)
+				exp10++;
+			if (digits >= 1e10 && rounded >= 1e11)
+				exp10++;
+			digits = rounded / rounder;
 		}
 
-		// remove trailing zeroes
-		while (digits && digits % 10 == 0)
-			digits /= 10;
+		// remove trailing zeroes up to requested precision
+//		while (digits && digits % 10 == 0)
+//			digits /= 10;
 
 		// output the string of digits
 		char decimaldigits[21];
 		u32 ilen = itoa(digits, decimaldigits, 20);
 		char* src = decimaldigits;
-		char* dst = string;
+		char* dst = result;
 		if (neg)
 			*dst++ = '-';
 		if (exp10 < 0 && exp10 > -5)
@@ -235,7 +223,12 @@ namespace Jogo
 			s32 p = exp10 - e;
 			while (p--)
 				*dst++ = '0';
-			e = exp10;
+		}
+		else if (e - exp10 < (s32)precision)
+		{
+			s32 p = precision - e;
+			while (p--)
+				*dst++ = '0';
 		}
 
 		// print signed exponent
@@ -253,8 +246,7 @@ namespace Jogo
 				*dst++ = *src++;
 		}
 		*dst = 0;
-
-		return (u32)(dst - string);
+		return (u32)copystring(result, string, dst - result, maxstring);
 	}
 
 	float str8::atof()

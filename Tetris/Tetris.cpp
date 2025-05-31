@@ -609,6 +609,26 @@ public:
 		UI::EndFrame();
 		UI::PrintDebug(FrameArena);
 
+#define TEST_ROUNDEDRECT
+#ifdef TEST_ROUNDEDRECT
+		static s32 rad = 40;
+		static s32 dr = -1;
+		Bitmap::Rect rounded = { 150, 400, 400, 400 };
+		BackBuffer.DrawRoundedRect(rounded, 2*rad, rad, 0x4080a0);
+
+		rad += dr;
+		if (rad < 0)
+		{
+			rad = 0;
+			dr = -dr;
+		}
+		if (rad > 100)
+		{
+			rad = 100;
+			dr = -dr;
+		}
+#endif		
+
 #ifdef DEBUG_UI
 		char HotID[] = "HotID: ";
 		char ActiveID[] = "ActiveID: ";

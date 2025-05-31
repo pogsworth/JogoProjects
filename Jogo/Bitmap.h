@@ -83,6 +83,7 @@ struct Bitmap
 	void DrawCircle(s32 cx, s32 cy, s32 r, u32 color);
 	void FillCircle(s32 cx, s32 cy, s32 r, u32 color);
 	void DrawRoundedRect(const Rect& box, s32 radius, u32 color);
+	void DrawRoundedRect(const Rect& box, s32 radius, u32 thickness, u32 color);
 	void FillRoundedRect(const Rect& box, s32 radius, u32 color);
 #ifdef RGB
 #undef RGB

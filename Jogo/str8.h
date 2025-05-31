@@ -147,12 +147,13 @@ namespace Jogo
 			return n >= '0' && n <= '9';
 		}
 
+		static const u32 DEFAULT_PREC = 6;
 		static double tenpow(s32 power);
 		static u32 itoa(s32 number, char* string, u32 maxstring);
 		s32 atoi() const;
 		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
 		u32 hextoi();
-		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = 6);
+		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = DEFAULT_PREC);
 		float atof();
 		static u32 parseSpec(const str8& spec);
 
@@ -164,10 +165,10 @@ namespace Jogo
 		static const u32 SPEC_CTR = 32;
 		static const u32 SPEC_RIGHT = 64;
 		static const u32 SPEC_ZERO = 128;
-		static const u32 SPEC_WIDTH_SHIFT = 8; // starts at bit 7 = 128
+		static const u32 SPEC_WIDTH_SHIFT = 8; // starts at bit 8 = 255
 		static const u32 SPEC_WIDTH_MASK = 255;	// allow width up to 255
-		static const u32 SPEC_PREC_SHIFT = 16; // start at bit 15 = 32768
-		static const u32 SPEC_PREC_MASK = 255; // allow precision up to 31 digits
+		static const u32 SPEC_PREC_SHIFT = 16; // start at bit 16 = 65536
+		static const u32 SPEC_PREC_MASK = 255; // allow precision up to 255 digits
 
 		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
 		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen)
@@ -178,7 +179,12 @@ namespace Jogo
 		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
 		{
 			u32 bits = parseSpec(spec);
-			return ftoa(fnumber, stringspace, maxlen);
+			u32 precision = DEFAULT_PREC;
+			if (bits & SPEC_PREC)
+			{
+				precision = (bits >> SPEC_PREC_SHIFT) & SPEC_PREC_MASK;
+			}
+			return ftoa(fnumber, stringspace, maxlen, precision);
 		}
 
 		static u32 toString(const char* string, const str8& spec, char* stringspace, size_t maxlen)
@@ -226,7 +232,6 @@ namespace Jogo
 			{
 				// find all escaped braces
 				u32 pos = 0;
-				u32 len = 0;
 				str8 fmtsub = fmt;
 				char* d = dest;
 				s32 opened = -1;
@@ -245,7 +250,6 @@ namespace Jogo
 						{
 							// put escaped { in output
 							*d++ = '{';
-							len++;
 							pos += 2;
 						}
 						else
@@ -265,7 +269,6 @@ namespace Jogo
 						else if (pos + 1 < fmtsub.len && fmtsub[pos + 1] == '}')
 						{
 							*d++ = '}';
-							len++;
 							pos += 2;
 						}
 						else
@@ -278,7 +281,6 @@ namespace Jogo
 					if (opened == -1)
 					{
 						*d++ = fmtsub[pos];
-						len++;
 						pos++;
 					}
 					else
@@ -289,14 +291,14 @@ namespace Jogo
 
 				if (closed == -1)
 				{
-					return len;
+					return (u32)(d-dest);
 				}
 
 				// pass format specifiers to toString
 				str8 spec = fmtsub.substr(opened, closed - opened);
 				u32 l = toString(arg, spec, d, (u32)-1);
 				d += l;
-				len += l;
+				u32 len = (u32)(d - dest);
 
 				if (closed < fmtsub.len)
 					return len + format(fmtsub.substr(closed), d, rest...);
@@ -304,9 +306,46 @@ namespace Jogo
 				return len;
 			}
 
+			// ran out of parameters, output the remainder of the format string
 			u32 format(const str8& fmt, char* dest)
 			{
-				return (u32)copystring(fmt.chars, dest, fmt.len, (size_t)-1);
+				u32 pos = 0;
+				char* d = dest;
+
+				// replace double braces in the remainder of the format string...
+				while (pos < fmt.len)
+				{
+					if (fmt[pos] == '{')
+					{
+						if (pos + 1 < fmt.len && fmt[pos + 1] == '{')
+						{
+							*d++ = '{';
+							pos += 2;
+						}
+						else
+						{
+							pos++;	// skip single {
+						}
+					}
+					else if (fmt[pos] == '}')
+					{
+						if (pos + 1 < fmt.len && fmt[pos + 1] == '}')
+						{
+							*d++ = '}';
+							pos += 2;
+						}
+						else
+						{
+							pos++;	// else skip single }
+						}
+					}
+					else
+					{
+						*d++ = fmt[pos++];
+					}
+				}
+
+				return (u32)(d - dest);
 			}
 
 		};

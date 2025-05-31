@@ -375,11 +375,56 @@ int main(int argc, char* argv[])
 	s = str8::format("number: {0:2x}", curves.FrameArena, 15);
 	printf("%*s\n", (int)s.len, s.chars);
 
-	for (s32 i = 0; i < 32; i++)
+	bool bTestLog = false;
+	if (bTestLog)
 	{
-		float l2 = Jogo::log2((float)(1<<i));
-		s = str8::format("log of {} is {}", curves.FrameArena, 1 << i, l2);
+		for (s32 i = 0; i < 32; i++)
+		{
+			float l2 = Jogo::log2((float)(1 << i));
+			s = str8::format("log of {} is {}", curves.FrameArena, 1 << i, l2);
+			printf("%*s\n", (int)s.len, s.chars);
+		}
+	}
+	bool bTestHundredRandom = false;
+	if (bTestHundredRandom)
+	{
+		Jogo::Random R;
+		for (u32 i = 0; i < 100; i++)
+		{
+			float x = R.GetNext() / 65536.0f;
+			s = str8::format("{:5.5}", curves.FrameArena, x);
+			printf("%*s\n", (int)s.len, s.chars);
+			s = str8::format("{:10.4}", curves.FrameArena, x);
+			printf("%*s\n", (int)s.len, s.chars);
+			printf("%4.g\n", x);
+		}
+	}
+	bool bTestPrecision = true;
+	if (bTestPrecision)
+	{
+		float a = 99998765.0f;
+		s = str8::format("{:.1}", curves.FrameArena, a);
 		printf("%*s\n", (int)s.len, s.chars);
+		printf("%.1f\n", a);
+		s = str8::format("{:.2}", curves.FrameArena, a);
+		printf("%*s\n", (int)s.len, s.chars);
+		printf("%.2f\n", a);
+		s = str8::format("{:.3}", curves.FrameArena, a);
+		printf("%*s\n", (int)s.len, s.chars);
+		printf("%.3f\n", a);
+		s = str8::format("{:.4}", curves.FrameArena, a);
+		printf("%*s\n", (int)s.len, s.chars);
+		printf("%.4f\n", a);
+
+		float n = 0.0003f;
+		for (int i = 0; i < 20; i++)
+		{
+			//str8 t = str8::format("{{:.{}}}", curves.FrameArena, i);
+ 			s = str8::format("{:.2}", curves.FrameArena, n);
+			printf("%*s\n", (int)s.len, s.chars);
+			printf("%.2f\n", n);
+			n *= 10;
+		}
 	}
 	return 0;
 }
