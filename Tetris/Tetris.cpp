@@ -617,7 +617,7 @@ public:
 		BackBuffer.DrawRoundedRect(rounded, 2*rad, rad, 0x4080a0);
 
 		rad += dr;
-		if (rad < 0)
+		if (rad <= 0)
 		{
 			rad = 0;
 			dr = -dr;

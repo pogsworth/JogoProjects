@@ -51,9 +51,15 @@ struct Bitmap
 	{
 		if (ClipLine(x1, y, x2, y, { 0,0,(s32)Width,(s32)Height }))
 		{
-			for (s32 x = x1; x <= x2; x++)
+			if (PixelSize == 1)
 			{
-				SetPixel(x, y, color);
+				u8* row = PixelA + y * Width + x1;
+				__stosb(row, (u8)color, (size_t)(x2 - x1));
+			}
+			else
+			{
+				u32* row = PixelBGRA + y * Width + x1;
+				__stosd((unsigned long*)row, color, (size_t)(x2 - x1));
 			}
 		}
 	}
@@ -164,9 +170,10 @@ struct Bitmap
 		float b;
 	};
 
-	Edge MakeEdge(const Vertex& a, const Vertex& b);
+	Edge MakeEdge(const Vertex& a, const Vertex& b, Gradient& g);
 	Gradient MakeGradient(Vertex corners[]);
 	void FillTriangle(Vertex corners[]);
+	void FillTriangle(Vertex* a, Vertex* b, Vertex* c);
 
 	static Bitmap Load(const char* filename, Arena& arena);
 	static Bitmap Create(u32 Width, u32 Height, u32 PixelSize, Arena& arena)

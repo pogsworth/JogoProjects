@@ -23,6 +23,9 @@ class Horizon : public Jogo::App
 	Font AtariFont;
 	Arena HorizonArena;
 	Bitmap F;
+	Timer fps;
+	double framespersecond = 0;
+	float frameDelta = 0;
 
 	// parameters to convert to and from Screen and Pitch space
 	const s32 HorizonWidth = 500;
@@ -31,7 +34,7 @@ class Horizon : public Jogo::App
 	const float PitchToScreenScale = HorizonHeight / 60.f;
 	float PitchOriginScreenSpaceX = 0.f;
 	float PitchOriginScreenSpaceY = 0.f;
-	float triangleTheta = 0.f;
+	float triangleTheta = -20.f * D2R;
 
 public:
 	Horizon() 
@@ -41,6 +44,7 @@ public:
 		F = Bitmap::Create(8, 8, 1, HorizonArena);
 		F.Erase(0xffffff);
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
+		fps.Start();
 	}
 
 	const char* GetName() const override { return Name; }
@@ -48,6 +52,10 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
+		frameDelta = DT;
+		double s = fps.GetSecondsSinceLast();
+		framespersecond = s;
+
 		if (Input::IsKeyPressed(Input::KEY_RIGHT))
 		{
 			roll += 30.0f * DT;
@@ -72,7 +80,7 @@ public:
 				break;
 			}
 		}
-		DebugOut(timerString);
+//		DebugOut(timerString);
 		if (Input::IsKeyPressed(Input::KEY_UP))
 		{
 			pitch += 20.0f * DT;
@@ -197,35 +205,35 @@ public:
 
 		// determine the first line of sky, which would be 
 		u32 color = SkyColor;
-		for (s32 screeny = frame.y; screeny < frame.y + frame.h; screeny++)
-		{
-			// is this line sky or ground?
-			float testx = (float)frame.x;
-			float testy = (float)screeny;
-			VectorToPitchOriginScreenSpace(testx, testy);
+		//for (s32 screeny = frame.y; screeny < frame.y + frame.h; screeny++)
+		//{
+		//	// is this line sky or ground?
+		//	float testx = (float)frame.x;
+		//	float testy = (float)screeny;
+		//	VectorToPitchOriginScreenSpace(testx, testy);
 
-			float LeftDot = testx * upx + testy * upy;
-			color = LeftDot > 0 ? SkyColor : GroundColor;
-			// TODO: coompute where sky turns to ground etc.
-			testx = (float)(frame.x + frame.w);
-			testy = (float)screeny;
-			VectorToPitchOriginScreenSpace(testx, testy);
-			float RightDot = testx * upx + testy * upy;
-			s32 RightEdge = frame.x + frame.w;
-			if ((RightDot >= 0 && LeftDot < 0) || (RightDot < 0 && LeftDot >= 0))
-			{
-				// compute the intersection of the horizon line with current scanline
-				RightEdge = frame.x + (s32)(LeftDot * frame.w / (LeftDot - RightDot));
-			}
-			BackBuffer.DrawHLine(screeny, frame.x, RightEdge, color);
-			color = color == SkyColor ? GroundColor: SkyColor;
-			BackBuffer.DrawHLine(screeny, RightEdge, frame.x + frame.w, color);
-		}
+		//	float LeftDot = testx * upx + testy * upy;
+		//	color = LeftDot > 0 ? SkyColor : GroundColor;
+		//	// TODO: coompute where sky turns to ground etc.
+		//	testx = (float)(frame.x + frame.w);
+		//	testy = (float)screeny;
+		//	VectorToPitchOriginScreenSpace(testx, testy);
+		//	float RightDot = testx * upx + testy * upy;
+		//	s32 RightEdge = frame.x + frame.w;
+		//	if ((RightDot >= 0 && LeftDot < 0) || (RightDot < 0 && LeftDot >= 0))
+		//	{
+		//		// compute the intersection of the horizon line with current scanline
+		//		RightEdge = frame.x + (s32)(LeftDot * frame.w / (LeftDot - RightDot));
+		//	}
+		//	BackBuffer.DrawHLine(screeny, frame.x, RightEdge, color);
+		//	color = color == SkyColor ? GroundColor: SkyColor;
+		//	BackBuffer.DrawHLine(screeny, RightEdge, frame.x + frame.w, color);
+		//}
 		// draw the horizon line
 
 		if (BackBuffer.ClipLine(x1, y1, x2, y2, frame))
 		{
-			BackBuffer.DrawLine(x1, y1, x2, y2, 0xffffff);
+			BackBuffer.DrawLine(x1, y1, x2, y2, 0);	// 0xffffff);
 
 			//s32 pox = PitchOriginScreenSpaceX;
 			//s32 poy = PitchOriginScreenSpaceY;
@@ -237,30 +245,33 @@ public:
 		Bitmap::Vertex triangle[] =
 		{
 			{180.0f, 180.0f, 0xff0000},
-			{240.0f, 200.0f, 0x00ff00},
-			{180.0f, 240, 0x0000ff}
+			{340.0f, 180.0f, 0xff00},
+			{180.0f, 240, 0xff}
 		};
 		
-		triangleTheta += D2R * 15.5f;
+		triangleTheta += D2R * 0.5f;
+		//if (triangleTheta > 20.0f * D2R)
+		//	triangleTheta = -20.0f * D2R;
 		static float xbump = 0.f;
 		xbump += 0.1f;
-		cx = 200.0f;
-		cy = 200.0f;
+		cx = 180.0f;
+		cy = 240.0f;
 		float co = cosine(triangleTheta);
 		float si = sine(triangleTheta);
 		for (int i = 0; i < 3; i++)
 		{
-			float x1 = triangle[i].x - cx;
-			float y1 = triangle[i].y - cy;
+			float x1 = (triangle[i].x - cx);
+			float y1 = (triangle[i].y - cy);
 			float x = co * x1 - si * y1;
 			float y = si * x1 + co * y1;
 			triangle[i].x = cx + x;
 			triangle[i].y = cy + y;
 		}
 		
-		for (s32 t = 0; t < 100; t++)
+//		for (s32 t = 0; t < 100; t++)
 		{
-			BackBuffer.FillTriangle(triangle);
+//			BackBuffer.FillTriangle(triangle);
+			BackBuffer.FillTriangle(triangle, triangle+1, triangle+2);
 		}
 		x1 = (s32)cx;	// PitchOriginScreenSpaceX;
 		y1 = (s32)cy;	// PitchOriginScreenSpaceY;
@@ -304,7 +315,9 @@ public:
 		//char scrollString[32];
 		//str8::itoa(scroll, scrollString);
 		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
-		AtariFont.DrawText(0, 0, "Hello", 0, 0, BackBuffer);
+		AtariFont.DrawText(0, 20, str8::format("{:}", FrameArena, frameDelta), 0, 0, BackBuffer);
+		AtariFont.DrawText(0, 0, str8::format("{:}", FrameArena, (float)framespersecond), 0, 0, BackBuffer);
+		//		AtariFont.DrawText(0, 0, "Hello", 0, 0, BackBuffer);
 
 		static int counter = 1234567;
 		counter++;
@@ -330,7 +343,7 @@ public:
 		float y = radius * sine(theta * D2R);
 		float cx = 350.f;
 		float cy = 300.f;
-		BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
+		//BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
 		radius += dradius;
 		theta += dtheta;
 

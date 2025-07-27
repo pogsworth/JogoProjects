@@ -20,6 +20,24 @@ namespace Jogo
 		return x <= y ? x : y;
 	}
 
+	template<typename T>
+	T min3(T a, T b, T c)
+	{
+		return a <= b ? a <= c ? a : c : b <= c ? b : c;
+	}
+
+	template<typename T>
+	T max3(T a, T b, T c)
+	{
+		return a >= b ? a >= c ? a : c : b >= c ? b : c;
+	}
+
+	template<typename T>
+	T clamp(T x, T a, T b)
+	{
+		return (x < a ? a : x > b ? b : x);
+	}
+
 #ifdef max
 #undef max
 #endif

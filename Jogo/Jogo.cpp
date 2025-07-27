@@ -183,8 +183,9 @@ namespace Jogo
 	{
 		u64 Now;
 		QueryPerformanceCounter((LARGE_INTEGER*)&Now);
-		return ((double)Now - Last) / Frequency;
+		double result = ((double)Now - Last) / Frequency;
 		Last = Now;
+		return result;
 	}
 
 	u64 Timer::Frequency = 0;

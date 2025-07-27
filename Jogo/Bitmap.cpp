@@ -692,7 +692,7 @@ void Bitmap::FillRoundedRect(const Rect& box, s32 radius, u32 color)
 	}
 }
 
-Bitmap::Edge Bitmap::MakeEdge(const Vertex& a, const Vertex& b)
+Bitmap::Edge Bitmap::MakeEdge(const Vertex& a, const Vertex& b, Gradient& g)
 {
 	Edge e;
 	if (a.y <= b.y)
@@ -719,6 +719,15 @@ Bitmap::Edge Bitmap::MakeEdge(const Vertex& a, const Vertex& b)
 		e.g = GetGfloat(b.c);
 		e.b = GetBfloat(b.c);
 	}
+
+	e.y = Jogo::ceil(e.y1);
+	float dy = e.y - e.y1;
+	float dx = dy * e.dxdy;
+	e.x = e.x1 + dx;
+	e.r += dy * g.drdy + dx * g.drdx;
+	e.g += dy * g.dgdy + dx * g.dgdx;
+	e.b += dy * g.dbdy + dx * g.dbdx;
+
 	return e;
 }
 
@@ -757,7 +766,7 @@ void Bitmap::FillTriangle(Vertex corners[])
 	Edge edges[3];
 	for (int i = 0; i < 3; i++)
 	{
-		edges[i] = MakeEdge(corners[i], corners[(i + 1) % 3]);
+		edges[i] = MakeEdge(corners[i], corners[(i + 1) % 3], grad);
 	}
 	// sort edges on beginning y value
 	// and first edge is the leftmost
@@ -795,17 +804,11 @@ void Bitmap::FillTriangle(Vertex corners[])
 		rightEdge = edges[2];
 		bThirdEdgeUsed = true;
 	}
-	s32 y1 = (s32)Jogo::ceil(edges[0].y1);
-	s32 y2 = (s32)Jogo::ceil(edges[2].y2);
-	float dy = y1 - leftEdge.y1;
-	float dx = dy * leftEdge.dxdy;
-	leftEdge.x = leftEdge.x1 + dx;
-	dy = y1 - rightEdge.y1;
-	dx = dy * rightEdge.dxdy;
-	rightEdge.x = rightEdge.x1 + dx;
 
-	u32 color = 0xffffff;
-	for (s32 y = y1; y < y2; y++)
+	s32 top = (s32)Jogo::ceil(edges[0].y1);
+	s32 bottom = (s32)Jogo::ceil(edges[2].y2);
+
+	for (s32 y = top; y < bottom; y++)
 	{
 		if (y > leftEdge.y2)
 		{
@@ -814,13 +817,6 @@ void Bitmap::FillTriangle(Vertex corners[])
 
 			// replace leftEdge
 			leftEdge = edges[2];
-			leftEdge.x = leftEdge.x1 + (leftEdge.y1 - y) * leftEdge.dxdy;
-			float dy = y - leftEdge.y1;
-			float dx = dy * leftEdge.dxdy;
-			leftEdge.x = leftEdge.x1 + dx;
-			leftEdge.r += dy * grad.drdy + dx * grad.drdx;
-			leftEdge.g += dy * grad.dgdy + dx * grad.dgdx;
-			leftEdge.b += dy * grad.dbdy + dx * grad.dbdx;
 			bThirdEdgeUsed = true;
 
 			if (Jogo::ceil(leftEdge.y1) == Jogo::ceil(leftEdge.y2))
@@ -833,33 +829,46 @@ void Bitmap::FillTriangle(Vertex corners[])
 
 			// replace rightEdge
 			rightEdge = edges[2];
-			float dy = y - rightEdge.y1;
-			float dx = dy * rightEdge.dxdy;
-			rightEdge.x = rightEdge.x1 + dx;
-			rightEdge.r += dy * grad.drdy + dx * grad.drdx;
-			rightEdge.g += dy * grad.dgdy + dx * grad.dgdx;
-			rightEdge.b += dy * grad.dbdy + dx * grad.dbdx;
 			bThirdEdgeUsed = true;
 
 			if (Jogo::ceil(rightEdge.y1) == Jogo::ceil(rightEdge.y2))
 				return;
 		}
-		s32 x1 = (s32)Jogo::ceil(leftEdge.x);
-		s32 x2 = (s32)Jogo::ceil(rightEdge.x);
-		float dx = x1 - leftEdge.x;
-		float r = leftEdge.r + dx * grad.drdx;
-		float g = leftEdge.g + dx * grad.dgdx;
-		float b = leftEdge.b + dx * grad.dbdx;
+		s32 fixdr = (s32)(grad.drdx * 65535.0f);
+		s32 fixdg = (s32)(grad.dgdx * 65535.0f);
+		s32 fixdb = (s32)(grad.dbdx * 65535.0f);
 
-		for (s32 x = x1; x < x2; x++)
+		// scissor clip y
+		if (y >= 0 && y < (s32)Height)
 		{
-			color = RGB((u8)(r * 255.0f), (u8)(g * 255.0f), (u8)(b * 255.0f));
-			SetPixel(x, y, color);
-			r += grad.drdx;
-			g += grad.dgdx;
-			b += grad.dbdx;
-		}
+			// scissor clip x
+			s32 x1 = (s32)Jogo::ceil(leftEdge.x);
+			x1 = max(min(x1, (s32)Width - 1), 0);
+			s32 x2 = (s32)Jogo::ceil(rightEdge.x);
+			x2 = max(min(x2, (s32)Height - 1), 0);
+			float dx = x1 - leftEdge.x;
+			float r = leftEdge.r + dx * grad.drdx;
+			float g = leftEdge.g + dx * grad.dgdx;
+			float b = leftEdge.b + dx * grad.dbdx;
 
+			s32 fixr = (s32)(r * 65535.0f);
+			s32 fixg = (s32)(g * 65535.0f);
+			s32 fixb = (s32)(b * 65535.0f);
+
+			u32* pixel = PixelBGRA + y * Width + x1;
+
+			for (s32 x = x1; x < x2; x++)
+			{
+				//_mm_shufflehi_epi16
+				//_mm_srliepi16(fixrgb, 8);
+				//_mm_packus_epi16(highbytes);
+				*pixel++ = ((fixr & 0xff00) << 8) + (fixg & 0xff00) + ((fixb & 0xff00) >> 8);;
+				fixr += fixdr;
+				fixg += fixdg;
+				fixb += fixdb;
+			}
+
+		}
 		// update left and right edge x
 		leftEdge.x += leftEdge.dxdy;
 		leftEdge.r += grad.drdy + grad.drdx * leftEdge.dxdy;
@@ -871,6 +880,118 @@ void Bitmap::FillTriangle(Vertex corners[])
 		rightEdge.b += grad.dbdy + grad.dbdx * rightEdge.dxdy;
 	}
 }
+
+// ---- triangle rasterizer
+
+#define SUBPIXEL_SHIFT  8
+#define SUBPIXEL_SCALE  (1 << SUBPIXEL_SHIFT)
+
+s64 det2x2(s32 a, s32 b, s32 c, s32 d)
+{
+	s64 r = (s64)a * d - (s64)b * c;
+	return r >> SUBPIXEL_SHIFT;
+}
+
+s64 det2x2_fill_convention(s32 a, s32 b, s32 c, s32 d)
+{
+	s64 r = (s64)a * d - (s64)b * c;         // the determinant
+	if (c > 0 || c == 0 && a <= 0) r--;    // this implements the top-left fill convention
+	return r >> SUBPIXEL_SHIFT;
+}
+
+s32 fixed(f32 x)
+{
+	// -0.5f to place pixel centers at integer coords + 0.5
+	// +0.5f afterwards is rounding factor
+	return (s32)((x - 0.5f) * SUBPIXEL_SCALE + 0.5f);
+}
+
+static s32 fixed_ceil(s32 x)
+{
+	return (x + SUBPIXEL_SCALE - 1) >> SUBPIXEL_SHIFT;
+}
+
+typedef s32 EdgeDist; // switch to s64 if there are overflows
+
+static void point_to_fixed_xform(s32* ox, s32* oy, Bitmap::Vertex* in)	// , gswf_matrix* m)
+{
+	//f32 x = in->x * m->m00 + (in->y * m->m01 + m->trans[0]);
+	//f32 y = in->x * m->m10 + (in->y * m->m11 + m->trans[1]);
+	*ox = fixed(in->x);
+	*oy = fixed(in->y);
+}
+
+void Bitmap::FillTriangle(Vertex* a, Vertex* b, Vertex* c)	//, gswf_matrix* m, int allow_neg_winding)
+{
+	s32 x0, x1, x2;
+	s32 y0, y1, y2;
+	s32 minx, miny, maxx, maxy;
+	s32 dx10, dx21, dx02;
+	s32 dy10, dy21, dy02;
+	EdgeDist e1, e2, e3;
+	s32 t;
+	s32 x, y;
+	s64 det;
+	int incr;
+
+	u32 color = 0xffff;
+
+	// convert coordinates to fixed point
+	point_to_fixed_xform(&x0, &y0, a);	// , m);
+	point_to_fixed_xform(&x1, &y1, b);	// , m);
+	point_to_fixed_xform(&x2, &y2, c);	// , m);
+
+	// check triangle winding order
+	det = det2x2(x1 - x0, x2 - x0, y1 - y0, y2 - y0);
+	if (det > 0)
+		incr = 1;
+	else if (det < 0) {
+		incr = 1;	// allow_neg_winding ? -1 : 1;
+		t = x0; x0 = x1; x1 = t;
+		t = y0; y0 = y1; y1 = t;
+	}
+	else // zero-area triangle
+		return;
+
+	// bounding box / clipping
+	minx = max(fixed_ceil(min3(x0, x1, x2)), (s32)0);
+	miny = max(fixed_ceil(min3(y0, y1, y2)), (s32)0);
+	maxx = min(fixed_ceil(max3(x0, x1, x2)), (s32)Width);	// tgt->w);
+	maxy = min(fixed_ceil(max3(y0, y1, y2)), (s32)Height);	// tgt->h);
+	if (minx >= maxx || miny >= maxy)
+		return;
+
+	// edge vectors
+	dx10 = x1 - x0; dy10 = y1 - y0;
+	dx21 = x2 - x1; dy21 = y2 - y1;
+	dx02 = x0 - x2; dy02 = y0 - y2;
+
+	// edge functions
+	e1 = (EdgeDist)det2x2_fill_convention(dx10, (minx << SUBPIXEL_SHIFT) - x0, dy10, (miny << SUBPIXEL_SHIFT) - y0);
+	e2 = (EdgeDist)det2x2_fill_convention(dx21, (minx << SUBPIXEL_SHIFT) - x1, dy21, (miny << SUBPIXEL_SHIFT) - y1);
+	e3 = (EdgeDist)det2x2_fill_convention(dx02, (minx << SUBPIXEL_SHIFT) - x2, dy02, (miny << SUBPIXEL_SHIFT) - y2);
+
+	// rasterize
+	for (y = miny; y < maxy; y++) {
+		u32* line = PixelBGRA + y * Width;	// tgt->data + y * tgt->w;
+		EdgeDist ei1 = e1, ei2 = e2, ei3 = e3;
+
+		for (x = minx; x < maxx; x++) {
+			if ((ei1 | ei2 | ei3) >= 0) // pixel in triangle
+			{
+				line[x] = color;	// line[x] + incr;
+			}
+			ei1 -= dy10;
+			ei2 -= dy21;
+			ei3 -= dy02;
+		}
+
+		e1 += dx10;
+		e2 += dx21;
+		e3 += dx02;
+	}
+}
+
 
 Bitmap Bitmap::Load(const char* filename, Arena& arena)
 {
