@@ -254,4 +254,80 @@ namespace Jogo
 	{
 		return exp2(y * log2(x));
 	}
+
+	u64 Plane::ClipPoly(u64 numVerts, Vector3* pIn, Vector3* pOut)
+	{
+
+		int nextVert;
+		bool curIn, nextIn;
+		float curDot, nextDot, scale;
+		Vector3* pInVert;
+		Vector3* pOutVert;
+
+		pInVert = pIn;
+		pOutVert = pOut;
+
+		curDot = Vector3::Dot(*pInVert, Normal);
+		curIn = (curDot >= Distance);
+
+		for (u32 i = 0; i < numVerts; i++)
+		{
+			nextVert = (i + 1) % numVerts;
+
+			// if current vert is in, keep it
+			if (curIn)
+				*pOutVert++ = *pInVert;
+
+			nextDot = Vector3::Dot(pIn[nextVert], Normal);
+			nextIn = (nextDot >= Distance);
+
+			// add a clipped vert if one end is inside and the other outside
+			if (curIn != nextIn)
+			{
+				scale = (Distance - curDot) / (nextDot - curDot);
+				pOutVert->x = pInVert->x + (pIn[nextVert].x - pInVert->x) * scale;
+				pOutVert->y = pInVert->y + (pIn[nextVert].y - pInVert->y) * scale;
+				pOutVert->z = pInVert->z + (pIn[nextVert].z - pInVert->z) * scale;
+				pOutVert++;
+			}
+
+			curDot = nextDot;
+			curIn = nextIn;
+			pInVert++;
+		}
+
+		u64 verts = pOutVert - pOut;
+		if (verts < 3)
+			return 0;
+		return verts;
+	}
+
+	// TODO: pass in an outcode for this 
+	u64 Frustum::ClipPoly(u32 numVerts, Vector3* pIn, Vector3* pOut)
+	{
+		u64 verts = numVerts;
+
+		// TODO: use scratch allocation from an arena instead of alloca
+		Vector3* a = (Vector3*)alloca(sizeof(Vector3) * (numVerts + 6));
+
+		verts = planes[0].ClipPoly(verts, pIn, a);
+		if (!verts) return 0;
+		verts = planes[1].ClipPoly(verts, a, pOut);
+		if (!verts) return 0;
+		verts = planes[2].ClipPoly(verts, pOut, a);
+		if (!verts) return 0;
+		verts = planes[3].ClipPoly(verts, a, pOut);
+		if (!verts) return 0;
+		verts = planes[4].ClipPoly(verts, pOut, a);
+		if (!verts) return 0;
+		verts = planes[5].ClipPoly(verts, a, pOut);
+
+		return verts;
+	}
+
+	Frustum Camera::GetFrustum()
+	{
+		return Frustum{};
+	}
+
 };

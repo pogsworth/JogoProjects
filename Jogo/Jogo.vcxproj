@@ -176,6 +176,7 @@
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Jogo.cpp" />
     <ClCompile Include="Math.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="str8.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
@@ -187,6 +188,7 @@
     <ClInclude Include="int_types.h" />
     <ClInclude Include="Jogo.h" />
     <ClInclude Include="JMath.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="str8.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>

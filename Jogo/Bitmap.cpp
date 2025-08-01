@@ -881,7 +881,7 @@ void Bitmap::FillTriangle(Vertex corners[])
 	}
 }
 
-// ---- triangle rasterizer
+// ---- triangle rasterizer, from https://gist.github.com/rygorous/9b793cd21d876da928bf4c7f3e625908
 
 #define SUBPIXEL_SHIFT  8
 #define SUBPIXEL_SCALE  (1 << SUBPIXEL_SHIFT)
