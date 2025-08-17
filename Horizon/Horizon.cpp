@@ -1,5 +1,6 @@
 #include "Jogo.h"
 #include "str8.h"
+#include "gfx.h"
 
 using namespace Jogo;
 
@@ -26,6 +27,9 @@ class Horizon : public Jogo::App
 	Timer fps;
 	double framespersecond = 0;
 	float frameDelta = 0;
+	Matrix4 CubeTransform;
+	Mesh Cube;
+	Camera MainCamera;
 
 	// parameters to convert to and from Screen and Pitch space
 	const s32 HorizonWidth = 500;
@@ -44,6 +48,12 @@ public:
 		F = Bitmap::Create(8, 8, 1, HorizonArena);
 		F.Erase(0xffffff);
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
+		Cube = CreateCube(1.0f);
+		CubeTransform = Matrix4::Identity();
+		*(Matrix4*)&MainCamera = Matrix4::Identity();
+//		MainCamera.RotateX(45*D2R);
+		MainCamera.Translate({ 0.0f, 2.0f, -8.0f });
+		MainCamera.SetProjection(53, Width, Height, 1.0f, 100.f);
 		fps.Start();
 	}
 
@@ -285,6 +295,9 @@ public:
 		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
 		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
+		CubeTransform.RotateY(3 * frameDelta);
+		CubeTransform.RotateX(2 * frameDelta);
+		RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, FrameArena);
 	}
 
 	void DrawSineWave()
@@ -348,6 +361,7 @@ public:
 		theta += dtheta;
 
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
+		FrameArena.Clear();
 	}
 };
 

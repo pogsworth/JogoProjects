@@ -109,15 +109,35 @@ namespace Jogo
 			return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 		}
 
+		float Length()
+		{
+			return sqrt(x * x + y * y + z * z);
+		}
+
+		float Normalize()
+		{
+			float L = Length();
+			if (L > 0.00001f)
+			{
+				x /= L; y /= L; z /= L;
+			}
+			return L;
+		}
+
 		void operator+=(const Vector3& v)
 		{
 			x += v.x; y += v.y; z += v.z;
+		}
+
+		void operator-=(const Vector3& v)
+		{
+			x -= v.x; y -= v.y; z -= v.z;
 		}
 	};
 
 	inline Vector3 operator-(const Vector3& a, const Vector3& b)
 	{
-		return { a.x + b.x, a.y + b.y, a.z + b.z };
+		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}
 
 	inline Vector3 operator+(const Vector3& a, const Vector3& b)
@@ -128,6 +148,11 @@ namespace Jogo
 	inline Vector3 operator-(const Vector3 v)
 	{
 		return { -v.x, -v.y, -v.z };
+	}
+
+	inline Vector3 operator*(const float s, const Vector3 v)
+	{
+		return { s * v.x, s * v.y, s * v.z };
 	}
 
 	struct Vector4
@@ -199,6 +224,16 @@ namespace Jogo
 			float t;
 
 			// transpose the rotation: swap the off diagonal elements
+
+			// hacky version:
+			//for (u32 i = 0; i < 3; i++)
+			//{
+			//	u32 j = (i + 1) % 3;
+			//	t = (&rows[i].x)[j];
+			//	(&rows[i].x)[j] = (&rows[j].x)[i];
+			//	(&rows[j].x)[i] = t;
+			//}
+
 			t = rows[0].y;
 			rows[0].y = rows[1].x;
 			rows[1].x = t;
@@ -211,7 +246,30 @@ namespace Jogo
 			rows[1].z = rows[2].y;
 			rows[2].y = t;
 		}
+
+		void Normalize()
+		{
+			rows[0].Normalize();
+
+			// subtract proj(Y,X) from Y, then normalize
+			float DotXY = Vector3::Dot(rows[0], rows[1]);
+			rows[1] -= DotXY * rows[0];
+			rows[1].Normalize();
+
+			// subtract proj(Z,X) from Z and proj(Z,Y) from Z, then normalize
+			float DotXZ = Vector3::Dot(rows[0], rows[2]);
+			rows[2] -= DotXZ * rows[0];
+			float DotYZ = Vector3::Dot(rows[1], rows[2]);
+			rows[2] -= DotYZ * rows[1];
+
+			rows[2].Normalize();
+		}
 	};
+
+	inline Vector3 operator*(Vector3 v, Matrix3& m)
+	{
+		return v.x * m.rows[0] + v.y * m.rows[1] + v.z * m.rows[2];
+	}
 
 	struct Matrix4 : public Matrix3
 	{
@@ -231,13 +289,29 @@ namespace Jogo
 			translate += v;
 		}
 
+		void Inverse()
+		{
+			Matrix3::Inverse();
+			// now invert the translation
+			translate = -translate.x * rows[0] - translate.y * rows[1] - translate.z * rows[2];
+		}
 	};
+
+	inline Matrix4 operator*(Matrix4& m1, Matrix4& m2)
+	{
+		Matrix4 result;
+		for (u32 i = 0; i < 3; i++)
+		{
+			result.rows[i] = m1.rows[i].x * m2.rows[0] + m1.rows[i].y * m2.rows[1] + m1.rows[i].z * m2.rows[2];
+		}
+		result.translate = m1.translate.x * m2.rows[0] + m1.translate.y * m2.rows[1] + m1.translate.z * m2.rows[2] + m2.translate;
+
+		return result;
+	}
 
 	inline Vector3 operator*(Vector3 v, Matrix4& m)
 	{
-		return{ v.x * m.rows[0].x + v.y * m.rows[1].x + v.z * m.rows[2].x + m.translate.x,
-				v.y * m.rows[0].y + v.y * m.rows[1].y + v.z * m.rows[2].y + m.translate.y,
-				v.z * m.rows[0].z + v.z * m.rows[1].z + v.z * m.rows[2].z + m.translate.z };
+		return v.x * m.rows[0] + v.y * m.rows[1] + v.z * m.rows[2] + m.translate;
 	}
 
 	struct Plane
@@ -245,33 +319,13 @@ namespace Jogo
 		Vector3 Normal;
 		float Distance;
 
-		u64 ClipPoly(u64 numVerts, Vector3* pIn, Vector3* pOut);
-	};
-
-
-	struct Frustum
-	{
-		Plane planes[6];	// front, back, left, right, top, bottom
-
-		u32 clip_code(Vector3 pt) {
-			u32 code = 0;
-
-			for (u32 i = 0; i < 6; i++)
-			{
-				code <<= 1;
-				code |= Vector3::Dot(pt, planes[i].Normal) < planes[i].Distance;
-			}
-			return code;
+		void Normalize()
+		{
+			float L = Normal.Normalize();
+			if (L > 0.00001f)
+				Distance /= L;
 		}
-		u64 ClipPoly(u32 numVerts, Vector3* pIn, Vector3* pOut);
-	};
 
-	struct Camera
-	{
-		Matrix4 View;
-
-		float FOV;
-
-		Frustum GetFrustum();
+		u64 ClipPoly(u64 numVerts, Vector3* pIn, Vector3* pOut);
 	};
 };

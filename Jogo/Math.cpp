@@ -301,33 +301,4 @@ namespace Jogo
 			return 0;
 		return verts;
 	}
-
-	// TODO: pass in an outcode for this 
-	u64 Frustum::ClipPoly(u32 numVerts, Vector3* pIn, Vector3* pOut)
-	{
-		u64 verts = numVerts;
-
-		// TODO: use scratch allocation from an arena instead of alloca
-		Vector3* a = (Vector3*)alloca(sizeof(Vector3) * (numVerts + 6));
-
-		verts = planes[0].ClipPoly(verts, pIn, a);
-		if (!verts) return 0;
-		verts = planes[1].ClipPoly(verts, a, pOut);
-		if (!verts) return 0;
-		verts = planes[2].ClipPoly(verts, pOut, a);
-		if (!verts) return 0;
-		verts = planes[3].ClipPoly(verts, a, pOut);
-		if (!verts) return 0;
-		verts = planes[4].ClipPoly(verts, pOut, a);
-		if (!verts) return 0;
-		verts = planes[5].ClipPoly(verts, a, pOut);
-
-		return verts;
-	}
-
-	Frustum Camera::GetFrustum()
-	{
-		return Frustum{};
-	}
-
 };

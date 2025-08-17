@@ -174,9 +174,9 @@
     <ClCompile Include="Arena.cpp" />
     <ClCompile Include="Bitmap.cpp" />
     <ClCompile Include="Font.cpp" />
+    <ClCompile Include="gfx.cpp" />
     <ClCompile Include="Jogo.cpp" />
     <ClCompile Include="Math.cpp" />
-    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="str8.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
@@ -184,11 +184,11 @@
     <ClInclude Include="Arena.h" />
     <ClInclude Include="Bitmap.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="gfx.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="int_types.h" />
     <ClInclude Include="Jogo.h" />
     <ClInclude Include="JMath.h" />
-    <ClInclude Include="Mesh.h" />
     <ClInclude Include="str8.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>
