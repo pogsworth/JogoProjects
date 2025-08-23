@@ -9,10 +9,15 @@ namespace Jogo
 	{
 		// transform mesh AABB and abort if all out
 		Vector3 origin = min * MVT;
+		float xaxis = max.x - min.x;
+		float yaxis = max.y - min.y;
+		float zaxis = max.z - min.z;
+
+		Matrix3 VecTransform = MVT;
 		Vector3 axes[3] = {
-			{ Vector3{ max.x, 0.0f, 0.0f } *MVT + origin},
-			{ Vector3{ max.y, 0.0f, 0.0f } *MVT + origin},
-			{ Vector3{ max.z, 0.0f, 0.0f } *MVT + origin}
+			{ Vector3{ xaxis, 0.0f, 0.0f } *VecTransform},
+			{ Vector3{ 0.0f, yaxis, 0.0f } *VecTransform},
+			{ Vector3{ 0.0f, 0.0f, zaxis } *VecTransform}
 		};
 
 		MinZ = origin.z;
@@ -62,15 +67,29 @@ namespace Jogo
 	* 
 	*/
 
+	u32 AmbientColor = 0x202020;
+	u32 SunlightColor = 0xf0f080;
+	Vector3 SunDir{ -.577f, .577f, -.577f };
+
+	void LightVertex(RenderVertex& v)
+	{
+		if (v.bIsLit)
+			return;
+		float dot = max(Vector3::Dot(v.ViewNormal, SunDir), 0.5f);
+		Bitmap::FloatRGBA frgba = Bitmap::GetFloatColor(SunlightColor);
+		frgba.r *= dot;
+		frgba.g *= dot;
+		frgba.b *= dot;
+		v.color = Bitmap::GetColorFromFloatRGB(frgba);
+		v.bIsLit = true;
+	}
+
 	// Maybe Camera, that has VT, Frustum, Projection
 	void RenderMesh(Mesh& mesh, Matrix4& ModelToWorld, Camera& camera, Bitmap& Target, Arena& arena)
 	{
 		// build MVT transform
-		Matrix4 View = camera;
-		View.Inverse();
+		Matrix4 View = camera.GetInverse();;
 		Matrix4 MVT = ModelToWorld * View;
-		Matrix3 NormalMVT = MVT;
-		NormalMVT.Normalize();
 
 		Frustum ViewFrustum = camera.GetViewFrustum();
 
@@ -78,6 +97,9 @@ namespace Jogo
 		// early out if the mesh bbox is completely out any of the frustum planes
 		if (ClipAABB(mesh.MinAABB, mesh.MaxAABB, MVT, ViewFrustum, ViewMinZ, mesh.AABBOutCode))
 			return;
+
+		Matrix3 NormalMVT = MVT;
+		NormalMVT.Normalize();
 
 		RenderVertex* RenderVerts = (RenderVertex*)arena.Allocate((2 * mesh.NumVerts + 6) * sizeof(RenderVertex));
 		RenderVertex* VertIter = RenderVerts;
@@ -88,7 +110,7 @@ namespace Jogo
 			VertIter->ScreenPos = camera.Project(VertIter->ViewPos);
 			VertIter->u = mesh.Verts[i].u;
 			VertIter->v = mesh.Verts[i].v;
-			VertIter->bIsList = false;
+			VertIter->bIsLit = false;
 			VertIter->OutCode = mesh.AABBOutCode ? camera.ClipCode(*VertIter, mesh.AABBOutCode) : 0;
 		}
 
@@ -105,7 +127,7 @@ namespace Jogo
 			if (p.OutCode & q.OutCode & r.OutCode)
 				continue;
 
-			// can we use screen verts for backface?
+			// backface?
 			if (ViewMinZ > 0)
 			{
 				if ((r.ScreenPos.x - p.ScreenPos.x) * (q.ScreenPos.y - p.ScreenPos.y) >=
@@ -113,14 +135,28 @@ namespace Jogo
 					continue;
 			}
 
+			// Light the vertices
+			if (!p.bIsLit)
+				LightVertex(p);
+			if (!q.bIsLit)
+				LightVertex(q);
+			if (!r.bIsLit)
+				LightVertex(r);
+
 			u32 OrCode = p.OutCode | q.OutCode | r.OutCode;
 			if (!OrCode)
 			{
-				Target.DrawLine((u32)p.ScreenPos.x, (u32)p.ScreenPos.y, (u32)q.ScreenPos.x, (u32)q.ScreenPos.y, 0);
-				Target.DrawLine((u32)q.ScreenPos.x, (u32)q.ScreenPos.y, (u32)r.ScreenPos.x, (u32)r.ScreenPos.y, 0);
-				Target.DrawLine((u32)r.ScreenPos.x, (u32)r.ScreenPos.y, (u32)p.ScreenPos.x, (u32)p.ScreenPos.y, 0);
+				Bitmap::Vertex tri[3] = {
+					{p.ScreenPos.x, p.ScreenPos.y, p.color},
+					{q.ScreenPos.x, q.ScreenPos.y, q.color},
+					{r.ScreenPos.x, r.ScreenPos.y, r.color},
+				};
+				Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
+				//Target.DrawLine((u32)p.ScreenPos.x, (u32)p.ScreenPos.y, (u32)q.ScreenPos.x, (u32)q.ScreenPos.y, 0);
+				//Target.DrawLine((u32)q.ScreenPos.x, (u32)q.ScreenPos.y, (u32)r.ScreenPos.x, (u32)r.ScreenPos.y, 0);
+				//Target.DrawLine((u32)r.ScreenPos.x, (u32)r.ScreenPos.y, (u32)p.ScreenPos.x, (u32)p.ScreenPos.y, 0);
 			}
-			else
+			//else
 			{
 				// need to clip this triangle
 			}
@@ -174,7 +210,7 @@ namespace Jogo
 		f.planes[0] = Plane{  HCotFOV,	0.0f,	1.0f };
 		f.planes[1] = Plane{ -HCotFOV,	0.0f,	1.0f };
 		f.planes[2] = Plane{  0.0f,    -CotFOV,	1.0f };
-		f.planes[3] = Plane{  0.0f,		CotFOV, 1.0f };
+		f.planes[3] = Plane{  0.0f,	    CotFOV, 1.0f };
 		f.planes[4] = Plane{  0.0f,		0.0f,	ProjectZ,	-NearZ * ProjectZ };
 		f.planes[5] = Plane{  0.0f,		0.0f,	1-ProjectZ,	NearZ * ProjectZ};
 
@@ -188,22 +224,22 @@ namespace Jogo
 	u32 Camera::ClipCode(RenderVertex& v, u32 MeshCode)
 	{
 		u32 code = 0;
-		if (1 & MeshCode)
+		if (32 & MeshCode)
 			code |= v.ScreenPos.x < 0;
 		code <<= 1;
-		if (2 & MeshCode)
+		if (16 & MeshCode)
 			code |= v.ScreenPos.x > TargetWidth;
 		code <<= 1;
-		if (4 & MeshCode)
+		if (8 & MeshCode)
 			code |= v.ScreenPos.y < 0;
 		code <<= 1;
-		if (8 & MeshCode)
+		if (4 & MeshCode)
 			code |= v.ScreenPos.y > TargetHeight;
 		code <<= 1;
-		if (16 & MeshCode)
+		if (2 & MeshCode)
 			code |= v.ViewPos.z < NearZ;
 		code <<= 1;
-		if (32 & MeshCode)
+		if (1 & MeshCode)
 			code |= v.ViewPos.z > FarZ;
 
 		return code;

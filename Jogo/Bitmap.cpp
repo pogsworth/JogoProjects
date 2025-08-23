@@ -615,6 +615,7 @@ void Bitmap::DrawRoundedRect(const Rect& box, s32 radius, u32 thickness, u32 col
 		s32 span = Jogo::min(y - x + 1, y - LittleR.y);
 		if (x <= y)
 		{
+			// TODO: use DrawHLine and DrawVLine for these spans
 			for (u32 t = 0; t < (u32)span; t++)
 			{
 				SetPixel(rx + x, uy - y + t, color);
@@ -756,128 +757,106 @@ Bitmap::Gradient Bitmap::MakeGradient(Vertex corners[])
 	g.dbdx = (db2 * dy1 - db1 * dy2) * OneOverdx;
 	g.dbdy = (db2 * dx1 - db1 * dx2) * OneOverdy;
 
+	g.fixdr = (s32)(g.drdx * 65535.0f);
+	g.fixdg = (s32)(g.dgdx * 65535.0f);
+	g.fixdb = (s32)(g.dbdx * 65535.0f);
+
 	return g;
+}
+
+void Bitmap::TriangleScanLine(s32 y, Edge& Left, Edge& Right, Gradient& Grad)
+{
+	// scissor clip x
+	s32 x1 = (s32)Jogo::ceil(Left.x);
+	x1 = max(min(x1, (s32)Width - 1), 0);
+	s32 x2 = (s32)Jogo::ceil(Right.x);
+	x2 = max(min(x2, (s32)Width - 1), 0);
+	float dx = x1 - Left.x;
+	float r = Left.r + dx * Grad.drdx;
+	float g = Left.g + dx * Grad.dgdx;
+	float b = Left.b + dx * Grad.dbdx;
+
+	s32 fixr = (s32)(r * 65535.0f);
+	s32 fixg = (s32)(g * 65535.0f);
+	s32 fixb = (s32)(b * 65535.0f);
+
+	u32* pixel = PixelBGRA + y * Width + x1;
+
+	for (s32 x = x1; x < x2; x++)
+	{
+		//_mm_shufflehi_epi16
+		//_mm_srliepi16(fixrgb, 8);
+		//_mm_packus_epi16(highbytes);
+		*pixel++ = ((fixr & 0xff00) << 8) + (fixg & 0xff00) + ((fixb & 0xff00) >> 8);;
+		fixr += Grad.fixdr;
+		fixg += Grad.fixdg;
+		fixb += Grad.fixdb;
+	}
 }
 
 void Bitmap::FillTriangle(Vertex corners[])
 {
 	Gradient grad = MakeGradient(corners);
 
-	Edge edges[3];
-	for (int i = 0; i < 3; i++)
-	{
-		edges[i] = MakeEdge(corners[i], corners[(i + 1) % 3], grad);
-	}
-	// sort edges on beginning y value
-	// and first edge is the leftmost
-	if (edges[0].y1 > edges[1].y1)
-	{
-		Edge e = edges[0];
-		edges[0] = edges[1];
-		edges[1] = e;
-	}
-	if (edges[1].y1 > edges[2].y1)
-	{
-		Edge e = edges[1];
-		edges[1] = edges[2];
-		edges[2] = e;
-	}
-	if (edges[0].dx > edges[1].dx)
-	{
-		Edge e = edges[0];
-		edges[0] = edges[1];
-		edges[1] = e;
-	}
+	u32 TopIndex = 0;
+	u32 MidIndex = 1;
+	u32 BotIndex = 2;
 
-	bool bThirdEdgeUsed = false;
-	Edge leftEdge = edges[0];
-	Edge rightEdge = edges[1];
-	if (Jogo::ceil(leftEdge.y1) == Jogo::ceil(leftEdge.y2))
+	if (corners[TopIndex].y > corners[MidIndex].y)
+		swap(TopIndex, MidIndex);
+	if (corners[TopIndex].y > corners[BotIndex].y)
+		swap(TopIndex, BotIndex);
+	if (corners[MidIndex].y > corners[BotIndex].y)
+		swap(MidIndex, BotIndex);
+	
+	Edge TopBot = MakeEdge(corners[TopIndex], corners[BotIndex], grad);
+	Edge TopMid = MakeEdge(corners[TopIndex], corners[MidIndex], grad);
+	Edge MidBot = MakeEdge(corners[MidIndex], corners[BotIndex], grad);
+
+	Edge leftEdge = TopBot;
+	Edge rightEdge = TopMid;
+	bool bMidEdgeLeft = false;
+	if (TopMid.dx * TopBot.dy < TopBot.dx * TopMid.dy)
 	{
-		leftEdge = edges[2];
-		bThirdEdgeUsed = true;
-	}
-	if (Jogo::ceil(rightEdge.y1) == Jogo::ceil(rightEdge.y2))
-	{
-		if (bThirdEdgeUsed)
-			return;
-		rightEdge = edges[2];
-		bThirdEdgeUsed = true;
+		leftEdge = TopMid;
+		rightEdge = TopBot;
+		bMidEdgeLeft = true;
 	}
 
-	s32 top = (s32)Jogo::ceil(edges[0].y1);
-	s32 bottom = (s32)Jogo::ceil(edges[2].y2);
+	s32 top = (s32)Jogo::ceil(TopMid.y1);
+	s32 mid = (s32)Jogo::ceil(TopMid.y2);
 
-	for (s32 y = top; y < bottom; y++)
+	for (s32 y = top; y < mid; y++)
 	{
-		if (y > leftEdge.y2)
-		{
-			if (bThirdEdgeUsed)
-				break;
-
-			// replace leftEdge
-			leftEdge = edges[2];
-			bThirdEdgeUsed = true;
-
-			if (Jogo::ceil(leftEdge.y1) == Jogo::ceil(leftEdge.y2))
-				return;
-		}
-		if (y > rightEdge.y2)
-		{
-			if (bThirdEdgeUsed)
-				break;
-
-			// replace rightEdge
-			rightEdge = edges[2];
-			bThirdEdgeUsed = true;
-
-			if (Jogo::ceil(rightEdge.y1) == Jogo::ceil(rightEdge.y2))
-				return;
-		}
-		s32 fixdr = (s32)(grad.drdx * 65535.0f);
-		s32 fixdg = (s32)(grad.dgdx * 65535.0f);
-		s32 fixdb = (s32)(grad.dbdx * 65535.0f);
-
 		// scissor clip y
 		if (y >= 0 && y < (s32)Height)
 		{
-			// scissor clip x
-			s32 x1 = (s32)Jogo::ceil(leftEdge.x);
-			x1 = max(min(x1, (s32)Width - 1), 0);
-			s32 x2 = (s32)Jogo::ceil(rightEdge.x);
-			x2 = max(min(x2, (s32)Height - 1), 0);
-			float dx = x1 - leftEdge.x;
-			float r = leftEdge.r + dx * grad.drdx;
-			float g = leftEdge.g + dx * grad.dgdx;
-			float b = leftEdge.b + dx * grad.dbdx;
-
-			s32 fixr = (s32)(r * 65535.0f);
-			s32 fixg = (s32)(g * 65535.0f);
-			s32 fixb = (s32)(b * 65535.0f);
-
-			u32* pixel = PixelBGRA + y * Width + x1;
-
-			for (s32 x = x1; x < x2; x++)
-			{
-				//_mm_shufflehi_epi16
-				//_mm_srliepi16(fixrgb, 8);
-				//_mm_packus_epi16(highbytes);
-				*pixel++ = ((fixr & 0xff00) << 8) + (fixg & 0xff00) + ((fixb & 0xff00) >> 8);;
-				fixr += fixdr;
-				fixg += fixdg;
-				fixb += fixdb;
-			}
-
+			TriangleScanLine(y, leftEdge, rightEdge, grad);
 		}
-		// update left and right edge x
-		leftEdge.x += leftEdge.dxdy;
-		leftEdge.r += grad.drdy + grad.drdx * leftEdge.dxdy;
-		leftEdge.g += grad.dgdy + grad.dgdx * leftEdge.dxdy;
-		leftEdge.b += grad.dbdy + grad.dbdx * leftEdge.dxdy;
+		leftEdge.Step(grad);
 		rightEdge.x += rightEdge.dxdy;
-		rightEdge.r += grad.drdy + grad.drdx * rightEdge.dxdy;
-		rightEdge.g += grad.dgdy + grad.dgdx * rightEdge.dxdy;
-		rightEdge.b += grad.dbdy + grad.dbdx * rightEdge.dxdy;
+	}
+
+	if (bMidEdgeLeft)
+	{
+		leftEdge = MidBot;
+	}
+	else
+	{
+		rightEdge = MidBot;
+	}
+	
+	s32 bot = (s32)Jogo::ceil(MidBot.y2);
+
+	for (s32 y = mid; y < bot; y++)
+	{
+		// scissor clip y
+		if (y >= 0 && y < (s32)Height)
+		{
+			TriangleScanLine(y, leftEdge, rightEdge, grad);
+		}
+		leftEdge.Step(grad);
+		rightEdge.x += rightEdge.dxdy;
 	}
 }
 

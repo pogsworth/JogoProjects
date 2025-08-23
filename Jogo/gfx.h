@@ -21,7 +21,7 @@ namespace Jogo
 		u32 color;
 		float u;
 		float v;
-		u8	bIsList;
+		u8	bIsLit;
 		u8	OutCode;
 	};
 

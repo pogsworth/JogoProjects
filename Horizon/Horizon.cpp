@@ -52,8 +52,8 @@ public:
 		CubeTransform = Matrix4::Identity();
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
 //		MainCamera.RotateX(45*D2R);
-		MainCamera.Translate({ 0.0f, 2.0f, -8.0f });
-		MainCamera.SetProjection(53, Width, Height, 1.0f, 100.f);
+		MainCamera.Translate({ 0.0f, 1.0f, -8.0f });
+		MainCamera.SetProjection(53, Width, Height, 1.0f, 10.f);
 		fps.Start();
 	}
 
@@ -295,8 +295,9 @@ public:
 		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
 		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
-		CubeTransform.RotateY(3 * frameDelta);
+		CubeTransform.RotateY(1 * frameDelta);
 		CubeTransform.RotateX(2 * frameDelta);
+		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
 		RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, FrameArena);
 	}
 

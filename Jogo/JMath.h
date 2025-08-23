@@ -38,6 +38,14 @@ namespace Jogo
 		return (x < a ? a : x > b ? b : x);
 	}
 
+	template<typename T>
+	void swap(T& a, T& b)
+	{
+		T t = a;
+		a = b;
+		b = t;
+	}
+
 #ifdef max
 #undef max
 #endif
@@ -294,6 +302,13 @@ namespace Jogo
 			Matrix3::Inverse();
 			// now invert the translation
 			translate = -translate.x * rows[0] - translate.y * rows[1] - translate.z * rows[2];
+		}
+
+		Matrix4 GetInverse()
+		{
+			Matrix4 Inverse = *this;
+			Inverse.Inverse();
+			return Inverse;
 		}
 	};
 

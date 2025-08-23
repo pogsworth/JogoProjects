@@ -68,9 +68,23 @@ struct Bitmap
 	{
 		if (ClipLine(x, y1, x, y2, { 0,0,(s32)Width,(s32)Height }))
 		{
-			for (s32 y = y1; y <= y2; y++)
+			if (PixelSize == 1)
 			{
-				SetPixel(x, y, color);
+				u8* Pixel = PixelA + y1 * Width + x;
+				for (s32 y = y1; y <= y2; y++)
+				{
+					*Pixel = color;
+					Pixel += Width;
+				}
+			}
+			else
+			{
+				u32* Pixel = PixelBGRA + y1 * Width + x;
+				for (s32 y = y1; y <= y2; y++)
+				{
+					*Pixel = color;
+					Pixel += Width;
+				}
 			}
 		}
 	}
@@ -95,39 +109,54 @@ struct Bitmap
 #undef RGB
 #endif
 
-	u32 RGB(u8 r, u8 g, u8 b)
+	static u32 RGB(u8 r, u8 g, u8 b)
 	{
 		return (r << 16) + (g << 8) + b;
 	}
 
-	u8 GetR(u32 rgb)
+	static u32 RGBA(u8 r, u8 g, u8 b, u8 a)
+	{
+		return (a<<24) + (r << 16) + (g << 8) + b;
+	}
+
+	static u8 GetR(u32 rgb)
 	{
 		return (rgb >> 16) & 0xff;
 	}
 
-	u8 GetG(u32 rgb)
+	static u8 GetG(u32 rgb)
 	{
 		return (rgb >> 8) & 0xff;
 	}
 
-	u8 GetB(u32 rgb)
+	static u8 GetB(u32 rgb)
 	{
 		return rgb & 0xff;
 	}
 
-	float GetRfloat(u32 rgb)
+	static u8 GetA(u32 rgba)
+	{
+		return (rgba >> 24) & 0xff;
+	}
+
+	static float GetRfloat(u32 rgb)
 	{
 		return ((rgb >> 16)&0xff) / 255.0f;
 	}
 
-	float GetGfloat(u32 rgb)
+	static float GetGfloat(u32 rgb)
 	{
 		return ((rgb >> 8)&0xff) / 255.0f;
 	}
 
-	float GetBfloat(u32 rgb)
+	static float GetBfloat(u32 rgb)
 	{
 		return (rgb & 0xff) / 255.0f;
+	}
+
+	static float GetAfloat(u32 rgba)
+	{
+		return ((rgba >> 24) & 0xff) / 255.0f;
 	}
 
 	struct FloatRGBA
@@ -137,6 +166,21 @@ struct Bitmap
 		float b;
 		float a;
 	};
+
+	static FloatRGBA GetFloatColor(u32 c)
+	{
+		return FloatRGBA{ GetRfloat(c), GetGfloat(c), GetBfloat(c),1.0f };
+	}
+
+	static u32 GetColorFromFloatRGBA(FloatRGBA frgba)
+	{
+		return RGBA((u8)(frgba.r * 255), (u8)(frgba.g * 255), (u8)(frgba.b * 255), (u8)(frgba.a * 255));
+	}
+
+	static u32 GetColorFromFloatRGB(FloatRGBA frgba)
+	{
+		return RGB((u8)(frgba.r * 255), (u8)(frgba.g * 255), (u8)(frgba.b * 255));
+	}
 
 	struct Vertex
 	{
@@ -153,6 +197,11 @@ struct Bitmap
 		float dgdx;
 		float dbdy;
 		float dbdx;
+
+		s32 fixdr;
+		s32 fixdg;
+		s32 fixdb;
+
 	};
 
 	struct Edge
@@ -168,11 +217,20 @@ struct Bitmap
 		float r;
 		float g;
 		float b;
+
+		void Step(Gradient& grad)
+		{
+			x += dxdy;
+			r += grad.drdy + grad.drdx * dxdy;
+			g += grad.dgdy + grad.dgdx * dxdy;
+			b += grad.dbdy + grad.dbdx * dxdy;
+		}
 	};
 
 	Edge MakeEdge(const Vertex& a, const Vertex& b, Gradient& g);
 	Gradient MakeGradient(Vertex corners[]);
 	void FillTriangle(Vertex corners[]);
+	void TriangleScanLine(s32 y, Edge&, Edge&, Gradient&);
 	void FillTriangle(Vertex* a, Vertex* b, Vertex* c);
 
 	static Bitmap Load(const char* filename, Arena& arena);
