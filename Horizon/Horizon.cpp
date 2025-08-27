@@ -25,6 +25,7 @@ class Horizon : public Jogo::App
 	Arena HorizonArena;
 	Bitmap F;
 	Timer fps;
+	Timer frametime;
 	double framespersecond = 0;
 	float frameDelta = 0;
 	Matrix4 CubeTransform;
@@ -52,8 +53,8 @@ public:
 		CubeTransform = Matrix4::Identity();
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
 //		MainCamera.RotateX(45*D2R);
-		MainCamera.Translate({ 0.0f, 1.0f, -8.0f });
-		MainCamera.SetProjection(53, Width, Height, 1.0f, 10.f);
+		MainCamera.Translate({ 0.0f, 0.0f, -5.0f });
+		MainCamera.SetProjection(53.0f, Width, Height, 1.0f, 50.f);
 		fps.Start();
 	}
 
@@ -64,7 +65,7 @@ public:
 	{
 		frameDelta = DT;
 		double s = fps.GetSecondsSinceLast();
-		framespersecond = s;
+		framespersecond = 1.0f / s;
 
 		if (Input::IsKeyPressed(Input::KEY_RIGHT))
 		{
@@ -295,10 +296,19 @@ public:
 		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
 		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
-		CubeTransform.RotateY(1 * frameDelta);
-		CubeTransform.RotateX(2 * frameDelta);
+		CubeTransform.RotateY(3.0f * frameDelta);
+		CubeTransform.RotateX(2.0f * frameDelta);
 		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
-		RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, FrameArena);
+		//for (u32 i = 0; i < 10; i++)
+		//{
+		//	for (u32 j = 0; j < 10; j++)
+		//	{
+		//		CubeTransform.translate = Vector3{ j*3.0f - 13.5f, i*3.0f - 13.5f, 30.0f };
+		//		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
+				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, FrameArena);
+		//	}
+		//}
+		MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });
 	}
 
 	void DrawSineWave()
@@ -321,6 +331,8 @@ public:
 
 	void Draw() override
 	{
+		frametime.Start();
+
 		BackBuffer.Erase(0xffffff);
 
 		Bitmap::Rect horizonBox = { 250,250,500,500 };
@@ -360,6 +372,8 @@ public:
 		//BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
 		radius += dradius;
 		theta += dtheta;
+		double frametimeseconds = frametime.GetSecondsSinceLast();
+		AtariFont.DrawText(0, 40, str8::format("{:}", FrameArena, (float)frametimeseconds), 0, 0, BackBuffer);
 
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 		FrameArena.Clear();

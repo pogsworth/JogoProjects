@@ -46,6 +46,12 @@ namespace Jogo
 		b = t;
 	}
 
+	template<typename T>
+	T lerp(T& a, T& b, float t)
+	{
+		return a + t * (b - a);
+	}
+
 #ifdef max
 #undef max
 #endif
@@ -117,6 +123,15 @@ namespace Jogo
 			return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 		}
 
+		static Vector3 Lerp(const Vector3& a, const Vector3& b, float t)
+		{
+			return Vector3{
+				a.x + (b.x - a.x) * t,
+				a.y + (b.y - a.y) * t,
+				a.z + (b.z - a.z) * t
+			};
+		}
+
 		float Length()
 		{
 			return sqrt(x * x + y * y + z * z);
@@ -166,6 +181,16 @@ namespace Jogo
 	struct Vector4
 	{
 		float x, y, z, w;
+
+		static Vector4 Lerp(const Vector4& a, const Vector4& b, float t)
+		{
+			return Vector4{
+				a.x + (b.x - a.x) * t,
+				a.y + (b.y - a.y) * t,
+				a.z + (b.z - a.z) * t,
+				a.w + (b.w - a.w) * t
+			};
+		}
 	};
 
 	struct Quat

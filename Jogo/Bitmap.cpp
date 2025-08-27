@@ -825,11 +825,12 @@ void Bitmap::FillTriangle(Vertex corners[])
 
 	s32 top = (s32)Jogo::ceil(TopMid.y1);
 	s32 mid = (s32)Jogo::ceil(TopMid.y2);
+	mid = min(mid, (s32)Height);
 
 	for (s32 y = top; y < mid; y++)
 	{
 		// scissor clip y
-		if (y >= 0 && y < (s32)Height)
+		if (y >= 0)
 		{
 			TriangleScanLine(y, leftEdge, rightEdge, grad);
 		}

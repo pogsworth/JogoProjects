@@ -23,6 +23,18 @@ namespace Jogo
 		float v;
 		u8	bIsLit;
 		u8	OutCode;
+
+		static RenderVertex Lerp(RenderVertex& a, RenderVertex& b, float t)
+		{
+			RenderVertex result;
+			result.color = Bitmap::LerpRGB(a.color, b.color, t);
+			result.ViewPos = Vector3::Lerp(a.ViewPos, b.ViewPos, t);
+			result.ScreenPos = Vector4::Lerp(a.ScreenPos, b.ScreenPos, t);
+			result.u = lerp(a.u, b.u, t);
+			result.v = lerp(a.v, b.v, t);
+
+			return result;
+		}
 	};
 
 	struct MeshMaterial
@@ -51,20 +63,28 @@ namespace Jogo
 
 	Mesh CreateCube(float size);
 
+	// Plane bits returned in the outcodes
+	const u32 LEFT_PLANE	= 1;
+	const u32 RIGHT_PLANE	= 2;
+	const u32 TOP_PLANE		= 4;
+	const u32 BOTTOM_PLANE	= 8;
+	const u32 NEAR_PLANE	= 16;
+	const u32 FAR_PLANE		= 32;
+
 	struct Frustum
 	{
-		Plane planes[6];	// front, back, top, bottom, left, right
+		Plane planes[6];	// left, right, top, bottom, near, far
 
-		u32 ClipCode(Vector3 pt, u32 MeshCode = 0x3f) {
+		u32 ClipCode(Vector3 pt, u32 MeshCode = 0x3f) const {
 			u32 code = 0;
-			u32 planeBit = 0x20;
+			u32 planeBit = LEFT_PLANE;
 
 			for (u32 i = 0; i < 6; i++)
 			{
-				code <<= 1;
 				if (planeBit & MeshCode)
-					code |= Vector3::Dot(pt, planes[i].Normal) + planes[i].Distance < 0;
-				planeBit >>= 1;
+					if (Vector3::Dot(pt, planes[i].Normal) + planes[i].Distance < 0)
+						code |= planeBit;
+				planeBit <<= 1;
 			}
 			return code;
 		}
@@ -100,9 +120,10 @@ namespace Jogo
 			ProjectZ = FarZ / (FarZ - NearZ);
 		}
 
-		Vector4 Project(Vector3& v);
-		Frustum GetViewFrustum();
-		u32 ClipCode(RenderVertex& v, u32 MeshCode = 0x3f);
+		Vector4 Project(Vector3& v) const;
+		Frustum GetViewFrustum() const;
+		u32 ClipCode(RenderVertex& v, u32 MeshCode = 0x3f) const;
+		u32 ClipTriangle(Camera& camera, RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode);
 	};
 
 	void RenderMesh(Mesh& mesh, Matrix4&, Camera&, Bitmap&, Arena&);

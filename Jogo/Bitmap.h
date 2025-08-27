@@ -3,6 +3,7 @@
 #include <intrin.h>
 #include "int_types.h"
 #include "Arena.h"
+#include "JMath.h"
 
 struct Bitmap
 {
@@ -172,14 +173,22 @@ struct Bitmap
 		return FloatRGBA{ GetRfloat(c), GetGfloat(c), GetBfloat(c),1.0f };
 	}
 
-	static u32 GetColorFromFloatRGBA(FloatRGBA frgba)
+	static u32 GetColorFromFloatRGBA(const FloatRGBA& frgba)
 	{
 		return RGBA((u8)(frgba.r * 255), (u8)(frgba.g * 255), (u8)(frgba.b * 255), (u8)(frgba.a * 255));
 	}
 
-	static u32 GetColorFromFloatRGB(FloatRGBA frgba)
+	static u32 GetColorFromFloatRGB(const FloatRGBA& frgba)
 	{
 		return RGB((u8)(frgba.r * 255), (u8)(frgba.g * 255), (u8)(frgba.b * 255));
+	}
+
+	static u32 LerpRGB(u32 a, u32 b, float t)
+	{
+		FloatRGBA p = GetFloatColor(a);
+		FloatRGBA q = GetFloatColor(b);
+		FloatRGBA r{ Jogo::lerp(p.r, q.r, t), Jogo::lerp(p.g, q.g, t), Jogo::lerp(p.b, q.b, t), Jogo::lerp(p.a, q.a, t) };
+		return GetColorFromFloatRGBA(r);
 	}
 
 	struct Vertex
