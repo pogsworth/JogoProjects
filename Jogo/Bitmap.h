@@ -52,15 +52,18 @@ struct Bitmap
 	{
 		if (ClipLine(x1, y, x2, y, { 0,0,(s32)Width,(s32)Height }))
 		{
+			if (x1 > x2)
+				Jogo::swap(x1, x2);
+
 			if (PixelSize == 1)
 			{
 				u8* row = PixelA + y * Width + x1;
-				__stosb(row, (u8)color, (size_t)(x2 - x1));
+				__stosb(row, (u8)color, (size_t)(x2 - x1 + 1));
 			}
 			else
 			{
 				u32* row = PixelBGRA + y * Width + x1;
-				__stosd((unsigned long*)row, color, (size_t)(x2 - x1));
+				__stosd((unsigned long*)row, color, (size_t)(x2 - x1 + 1));
 			}
 		}
 	}
