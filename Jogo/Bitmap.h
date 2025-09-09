@@ -46,6 +46,22 @@ struct Bitmap
 			*(PixelBGRA + y * Width + x) = color;
 	}
 
+	u32 GetPixel(s32 x, s32 y) const
+	{
+		if (PixelSize == 4)
+			return *(PixelBGRA + y * Width + x);
+		return *(PixelA + y * Width + x);
+	}
+
+	u32 GetTexel(float u, float v) const
+	{
+		s32 x = (s32)(u * Width) & (Width-1);
+		s32 y = (s32)(v * Height) & (Height - 1);
+		if (PixelSize == 4)
+			return *(PixelBGRA + y * Width + x);
+		return *(PixelA + y * Width + x);
+	}
+
 	bool ClipLine(s32& x1, s32& y1, s32& x2, s32& y2, Rect clipRect);
 	void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, u32 color);
 	void DrawHLine(s32 y, s32 x1, s32 x2, u32 color)
@@ -194,11 +210,18 @@ struct Bitmap
 		return GetColorFromFloatRGBA(r);
 	}
 
-	struct Vertex
+	struct VertexLit
 	{
 		float x;
 		float y;
 		u32 c;
+	};
+
+	struct VertexTexLit : public Jogo::Vector4
+	{
+		u32 c;
+		float u;
+		float v;
 	};
 
 	struct Gradient
@@ -239,11 +262,12 @@ struct Bitmap
 		}
 	};
 
-	Edge MakeEdge(const Vertex& a, const Vertex& b, Gradient& g);
-	Gradient MakeGradient(Vertex corners[]);
-	void FillTriangle(Vertex corners[]);
+	Edge MakeEdge(const VertexLit& a, const VertexLit& b, Gradient& g);
+	Gradient MakeGradient(VertexLit corners[]);
+	void FillTriangle(VertexLit corners[]);
 	void TriangleScanLine(s32 y, Edge&, Edge&, Gradient&);
-	void FillTriangle(Vertex* a, Vertex* b, Vertex* c);
+	void FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
+	//void FillTexLitTriangle(VertexTexLit);
 
 	static Bitmap Load(const char* filename, Arena& arena);
 	static Bitmap Create(u32 Width, u32 Height, u32 PixelSize, Arena& arena)

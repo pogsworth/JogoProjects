@@ -21,19 +21,26 @@ namespace Jogo
 		u32 color;
 		float u;
 		float v;
+		float uw;
+		float vw;
 		u8	bIsLit;
 		u8	OutCode;
 
-		static RenderVertex Lerp(RenderVertex& a, RenderVertex& b, float t)
+		static RenderVertex Lerp(const RenderVertex& a, const RenderVertex& b, float t)
 		{
 			RenderVertex result;
 			result.color = Bitmap::LerpRGB(a.color, b.color, t);
 			result.ViewPos = Vector3::Lerp(a.ViewPos, b.ViewPos, t);
 			result.ScreenPos = Vector4::Lerp(a.ScreenPos, b.ScreenPos, t);
-			result.u = lerp(a.u, b.u, t);
-			result.v = lerp(a.v, b.v, t);
 
 			return result;
+		}
+
+		Bitmap::VertexTexLit GetTexLitVertex()
+		{
+			Bitmap::VertexTexLit vtl = { ScreenPos, color, uw, vw };
+
+			return vtl;
 		}
 	};
 
@@ -123,8 +130,8 @@ namespace Jogo
 		Vector4 Project(Vector3& v) const;
 		Frustum GetViewFrustum() const;
 		u32 ClipCode(RenderVertex& v, u32 MeshCode = 0x3f) const;
-		u32 ClipTriangle(Camera& camera, RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode);
+		u32 ClipTriangle(const RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode) const;
 	};
 
-	void RenderMesh(Mesh& mesh, Matrix4&, Camera&, Bitmap&, Arena&);
+	void RenderMesh(const Mesh& mesh, const Matrix4&, const Camera&, const Bitmap&, const Bitmap&, Arena&);
 };

@@ -244,11 +244,14 @@ namespace Jogo
 					float MSeconds = (float)(Seconds * 1000.0);
 					int MSecondsLeft = (int)(TargetFrameTimeMS - MSeconds);
 
+					Timer sleeptimer;
+					sleeptimer.Start();
 					if (MSecondsLeft > 0)
 					{
 						Sleep(MSecondsLeft);
 					}
-					float DT = (float)timer.GetSecondsSinceLast();
+					double SleepTime = sleeptimer.GetSecondsSinceLast();
+					float DT = (float)(Seconds + SleepTime);	// MSecondsLeft / 1000.0f + (float)Seconds;
 
 					if (!Pause)
 					{

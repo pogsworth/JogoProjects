@@ -165,10 +165,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="2600\2600.h" />
+    <ClInclude Include="2600\6502\6502.h" />
     <ClInclude Include="2600\tia.h" />
     <ClInclude Include="2600\tia_palette.h" />
     <ClInclude Include="2600\tia_registers.h" />
     <ClInclude Include="2600\vcs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="2600\6502\6502_functional_test.bin" />
+    <None Include="2600\6502\6502_functional_test.lst" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

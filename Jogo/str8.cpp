@@ -51,8 +51,10 @@ namespace Jogo
 		u32 numdigits = 8;
 		if (!leadingzeros)
 		{
-			_BitScanReverse((unsigned long *) & numdigits, number);
-			numdigits = (numdigits + 4) >> 2;
+			if (_BitScanReverse((unsigned long*)&numdigits, number))
+				numdigits = (numdigits + 4) >> 2;
+			else
+				numdigits = 1;
 		}
 
 		u32 n = number;

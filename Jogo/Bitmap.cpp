@@ -693,7 +693,7 @@ void Bitmap::FillRoundedRect(const Rect& box, s32 radius, u32 color)
 	}
 }
 
-Bitmap::Edge Bitmap::MakeEdge(const Vertex& a, const Vertex& b, Gradient& g)
+Bitmap::Edge Bitmap::MakeEdge(const VertexLit& a, const VertexLit& b, Gradient& g)
 {
 	Edge e;
 	if (a.y <= b.y)
@@ -732,7 +732,7 @@ Bitmap::Edge Bitmap::MakeEdge(const Vertex& a, const Vertex& b, Gradient& g)
 	return e;
 }
 
-Bitmap::Gradient Bitmap::MakeGradient(Vertex corners[])
+Bitmap::Gradient Bitmap::MakeGradient(VertexLit corners[])
 {
 	Gradient g;
 
@@ -794,7 +794,7 @@ void Bitmap::TriangleScanLine(s32 y, Edge& Left, Edge& Right, Gradient& Grad)
 	}
 }
 
-void Bitmap::FillTriangle(Vertex corners[])
+void Bitmap::FillTriangle(VertexLit corners[])
 {
 	Gradient grad = MakeGradient(corners);
 
@@ -893,15 +893,15 @@ static s32 fixed_ceil(s32 x)
 
 typedef s32 EdgeDist; // switch to s64 if there are overflows
 
-static void point_to_fixed_xform(s32* ox, s32* oy, Bitmap::Vertex* in)	// , gswf_matrix* m)
+static void point_to_fixed_xform(s32* ox, s32* oy, const Bitmap::VertexTexLit& in)
 {
 	//f32 x = in->x * m->m00 + (in->y * m->m01 + m->trans[0]);
 	//f32 y = in->x * m->m10 + (in->y * m->m11 + m->trans[1]);
-	*ox = fixed(in->x);
-	*oy = fixed(in->y);
+	*ox = fixed(in.x);
+	*oy = fixed(in.y);
 }
 
-void Bitmap::FillTriangle(Vertex* a, Vertex* b, Vertex* c)	//, gswf_matrix* m, int allow_neg_winding)
+void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
 {
 	s32 x0, x1, x2;
 	s32 y0, y1, y2;
@@ -921,6 +921,16 @@ void Bitmap::FillTriangle(Vertex* a, Vertex* b, Vertex* c)	//, gswf_matrix* m, i
 	point_to_fixed_xform(&x1, &y1, b);	// , m);
 	point_to_fixed_xform(&x2, &y2, c);	// , m);
 
+	float u0 = a.u;
+	float u1 = b.u - a.u;
+	float u2 = c.u - a.u;
+	float v0 = a.v;
+	float v1 = b.v - a.v;
+	float v2 = c.v - a.v;
+	float w0 = a.w;
+	float w1 = b.w - a.w;
+	float w2 = c.w - a.w;
+
 	// check triangle winding order
 	det = det2x2(x1 - x0, x2 - x0, y1 - y0, y2 - y0);
 	if (det > 0)
@@ -932,6 +942,8 @@ void Bitmap::FillTriangle(Vertex* a, Vertex* b, Vertex* c)	//, gswf_matrix* m, i
 	}
 	else // zero-area triangle
 		return;
+	
+	float area = 1.0f / det;
 
 	// bounding box / clipping
 	minx = max(fixed_ceil(min3(x0, x1, x2)), (s32)0);
@@ -959,7 +971,16 @@ void Bitmap::FillTriangle(Vertex* a, Vertex* b, Vertex* c)	//, gswf_matrix* m, i
 		for (x = minx; x < maxx; x++) {
 			if ((ei1 | ei2 | ei3) >= 0) // pixel in triangle
 			{
-				line[x] = color;	// line[x] + incr;
+				float s = ei3 * area;
+				float t = ei1 * area;
+				float w = 1.0f / (w0 + s * w1 + t * w2);
+				float u = (u0 + s * u1 + t * u2) * w;
+				float v = (v0 + s * v1 + t * v2) * w;
+				float umod = 10 * u - (int)(10 * u);
+				float vmod = 10 * v - (int)(10 * v);
+				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
+				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
+				line[x] = texel;	// line[x] + incr;
 			}
 			ei1 -= dy10;
 			ei2 -= dy21;

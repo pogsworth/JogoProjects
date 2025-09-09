@@ -85,7 +85,7 @@ namespace Jogo
 	}
 
 	// Maybe Camera, that has VT, Frustum, Projection
-	void RenderMesh(Mesh& mesh, Matrix4& ModelToWorld, Camera& camera, Bitmap& Target, Arena& arena)
+	void RenderMesh(const Mesh& mesh, const Matrix4& ModelToWorld, const Camera& camera, const Bitmap& Target, const Bitmap& Texture, Arena& arena)
 	{
 		// build MVT transform
 		Matrix4 View = camera.GetInverse();;
@@ -95,7 +95,8 @@ namespace Jogo
 
 		float ViewMinZ;
 		// early out if the mesh bbox is completely out any of the frustum planes
-		if (ClipAABB(mesh.MinAABB, mesh.MaxAABB, MVT, ViewFrustum, ViewMinZ, mesh.AABBOutCode))
+		u32 AABBOutCode = 0;
+		if (ClipAABB(mesh.MinAABB, mesh.MaxAABB, MVT, ViewFrustum, ViewMinZ, AABBOutCode))
 			return;
 
 		Matrix3 NormalMVT = (Matrix3)MVT;
@@ -112,8 +113,10 @@ namespace Jogo
 			VertIter->ScreenPos = camera.Project(VertIter->ViewPos);
 			VertIter->u = mesh.Verts[i].u;
 			VertIter->v = mesh.Verts[i].v;
+			VertIter->uw = mesh.Verts[i].u * VertIter->ScreenPos.w;
+			VertIter->vw = mesh.Verts[i].v * VertIter->ScreenPos.w;
 			VertIter->bIsLit = false;
-			VertIter->OutCode = mesh.AABBOutCode ? camera.ClipCode(*VertIter, mesh.AABBOutCode) : 0;
+			VertIter->OutCode = AABBOutCode ? camera.ClipCode(*VertIter, AABBOutCode) : 0;
 		}
 
 		// loop over all triangles (indices)
@@ -145,7 +148,7 @@ namespace Jogo
 			}
 			else
 			{
-				// do backface checkin screen space
+				// do backface check in screen space
 				if ((r.ScreenPos.x - p.ScreenPos.x) * (q.ScreenPos.y - p.ScreenPos.y) >=
 					(r.ScreenPos.y - p.ScreenPos.y) * (q.ScreenPos.x - p.ScreenPos.x))
 					continue;
@@ -168,7 +171,7 @@ namespace Jogo
 			else
 			{
 				u16 ClippedIndices[10];
-				u32 NumVerts = camera.ClipTriangle(camera, RenderVerts, VertIter, ShortIndices, ClippedIndices, OrCode);
+				u32 NumVerts = camera.ClipTriangle(RenderVerts, VertIter, ShortIndices, ClippedIndices, OrCode);
 				if (NumVerts > 2)
 				{
 					// create a triangle fan of the resulting indices
@@ -189,12 +192,19 @@ namespace Jogo
 			RenderVertex& q = RenderVerts[TriIter[1]];
 			RenderVertex& r = RenderVerts[TriIter[2]];
 
-			Bitmap::Vertex tri[3] = {
-				{p.ScreenPos.x, p.ScreenPos.y, p.color},
-				{q.ScreenPos.x, q.ScreenPos.y, q.color},
-				{r.ScreenPos.x, r.ScreenPos.y, r.color},
+			Bitmap::VertexTexLit tri[3] =
+			{
+				{ p.ScreenPos, p.color, p.uw, p.vw },
+				{ q.ScreenPos, q.color, q.uw, q.vw },
+				{ r.ScreenPos, r.color, r.uw, r.vw },
 			};
-			Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
+			Target.FillTriangle(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
+			// Bitmap::VertexLit tri[3] = {
+			//	{p.ScreenPos.x, p.ScreenPos.y, p.color},
+			//	{q.ScreenPos.x, q.ScreenPos.y, q.color},
+			//	{r.ScreenPos.x, r.ScreenPos.y, r.color},
+			//};
+			//Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
 			//Target.DrawLine(p.ScreenPos.x, p.ScreenPos.y, q.ScreenPos.x, q.ScreenPos.y, 0);
 			//Target.DrawLine(q.ScreenPos.x, q.ScreenPos.y, r.ScreenPos.x, r.ScreenPos.y, 0);
 			//Target.DrawLine(r.ScreenPos.x, r.ScreenPos.y, p.ScreenPos.x, p.ScreenPos.y, 0);
@@ -278,8 +288,40 @@ namespace Jogo
 		return code;
 	}
 
+	u32 Inside(const RenderVertex& pos, float edge, u32 c)
+	{
+		switch (c)
+		{
+		case 0:
+			return pos.ScreenPos.x >= edge;
+		case 1:
+			return pos.ScreenPos.x <= edge;
+		case 2:
+			return pos.ScreenPos.y >= edge;
+		case 3:
+			return pos.ScreenPos.y <= edge;
+		}
+		return 0;
+	}
+
+	float ClipT(const RenderVertex& p1, const RenderVertex& p2, float edge, u32 c)
+	{
+		switch (c)
+		{
+		case 0:
+			return  p1.ScreenPos.x / (p1.ScreenPos.x - p2.ScreenPos.x);
+		case 1:
+			return (p1.ScreenPos.x - edge) / (p1.ScreenPos.x - p2.ScreenPos.x);
+		case 2:
+			return p1.ScreenPos.y / (p1.ScreenPos.y - p2.ScreenPos.y);
+		case 3:
+			return (p1.ScreenPos.y - edge) / (p1.ScreenPos.y - p2.ScreenPos.y);
+		}
+		return 0;
+	}
+
 	// return number of verts
-	u32 Camera::ClipTriangle(Camera& camera, RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode)
+	u32 Camera::ClipTriangle(const RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode) const
 	{
 		u32 FromCount = 3;
 		u32 ToCount = 0;
@@ -290,12 +332,12 @@ namespace Jogo
 		u16* ToBase = To;
 		u16* FromIter = FromBase;
 		u16* ToIter = ToBase;
-		// clip against NearZ first
-		// and project and backface check
+
+		// clip against NearZ first and project
 		if (TriOutCode & NEAR_PLANE)
 		{
 			u16 Index1 = FromIter[FromCount-1];
-			RenderVertex* p1 = pIn + Index1;
+			const RenderVertex* p1 = pIn + Index1;
 			for (u32 i = 0; i < FromCount; i++)
 			{
 				if (p1->ViewPos.z >= NearZ)
@@ -304,15 +346,19 @@ namespace Jogo
 					ToCount++;
 				}
 
-				RenderVertex* p2 = pIn + FromIter[i];
+				const RenderVertex* p2 = pIn + FromIter[i];
 
 				if ((p1->OutCode & NEAR_PLANE) != (p2->OutCode & NEAR_PLANE))
 				{
 					float t = (p1->ViewPos.z - NearZ) / (p1->ViewPos.z - p2->ViewPos.z);
 					*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
 					pNewVerts->ViewPos.z = NearZ;
-					pNewVerts->ScreenPos = camera.Project(pNewVerts->ViewPos);
-					pNewVerts->OutCode = camera.ClipCode(*pNewVerts);
+					pNewVerts->ScreenPos = Project(pNewVerts->ViewPos);
+					pNewVerts->u = lerp(p1->u, p2->u, t);
+					pNewVerts->v = lerp(p1->v, p2->v, t);
+					pNewVerts->uw = pNewVerts->u * pNewVerts->ScreenPos.w;
+					pNewVerts->vw = pNewVerts->v * pNewVerts->ScreenPos.w;
+					pNewVerts->OutCode = ClipCode(*pNewVerts);
 					pNewVerts++;
 					*ToIter++ = NewIndex++;
 					ToCount++;
@@ -326,147 +372,67 @@ namespace Jogo
 			ToCount = 0;
 		}
 
-		// then clip against the sides of the viewport
-		if (FromCount > 2 && TriOutCode & LEFT_PLANE)
+		u32 ClipPlanes[] =
 		{
-			FromIter = FromBase;
-			ToIter = ToBase;
-			u16 Index1 = FromIter[FromCount - 1];
-			RenderVertex* p1 = pIn + Index1;
-			for (u32 i = 0; i < FromCount; i++)
-			{
-				if (p1->ScreenPos.x >= 0.0f)
-				{
-					*ToIter++ = Index1;
-					ToCount++;
-				}
+			LEFT_PLANE,
+			RIGHT_PLANE,
+			TOP_PLANE,
+			BOTTOM_PLANE
+		};
 
-				RenderVertex* p2 = pIn + FromIter[i];
-
-				if ((p1->OutCode & LEFT_PLANE) != (p2->OutCode & LEFT_PLANE))
-				{
-					float t = p1->ScreenPos.x / (p1->ScreenPos.x - p2->ScreenPos.x);
-					*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
-					pNewVerts->ScreenPos.x = 0.0f;
-					pNewVerts->OutCode = camera.ClipCode(*pNewVerts);
-					pNewVerts++;
-					*ToIter++ = NewIndex++;
-					ToCount++;
-				}
-
-				p1 = p2;
-				Index1 = FromIter[i];
-			}
-			swap(ToBase, FromBase);
-			FromCount = ToCount;
-			ToCount = 0;
-		}
-
-		if (FromCount > 2 && TriOutCode & RIGHT_PLANE)
+		float ClipEdges[] =
 		{
-			FromIter = FromBase;
-			ToIter = ToBase;
-			u16 Index1 = FromIter[FromCount - 1];
-			RenderVertex* p1 = pIn + Index1;
-			for (u32 i = 0; i < FromCount; i++)
-			{
-				if (p1->ScreenPos.x <= camera.TargetWidth)
-				{
-					*ToIter++ = Index1;
-					ToCount++;
-				}
+			0.0f,
+			(float)TargetWidth,
+			0.0f,
+			(float)TargetHeight
+		};
 
-				RenderVertex* p2 = pIn + FromIter[i];
-
-				if ((p1->OutCode & RIGHT_PLANE) != (p2->OutCode & RIGHT_PLANE))
-				{
-					float t = (p1->ScreenPos.x - camera.TargetWidth) / (p1->ScreenPos.x - p2->ScreenPos.x);
-					*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
-					pNewVerts->ScreenPos.x = (float)camera.TargetWidth;
-					pNewVerts->OutCode = camera.ClipCode(*pNewVerts);
-					pNewVerts++;
-					*ToIter++ = NewIndex++;
-					ToCount++;
-				}
-
-				p1 = p2;
-				Index1 = FromIter[i];
-			}
-			swap(ToBase, FromBase);
-			FromCount = ToCount;
-			ToCount = 0;
-		}
-
-		if (FromCount > 2 && TriOutCode & TOP_PLANE)
+		for (u32 p = 0; p < 4; p++)
 		{
-			FromIter = FromBase;
-			ToIter = ToBase;
-			u16 Index1 = FromIter[FromCount - 1];
-			RenderVertex* p1 = pIn + Index1;
-			for (u32 i = 0; i < FromCount; i++)
+			// then clip against the sides of the viewport
+			if (FromCount > 2 && TriOutCode & ClipPlanes[p])
 			{
-				if (p1->ScreenPos.y >= 0.0f)
+				FromIter = FromBase;
+				ToIter = ToBase;
+				u16 Index1 = FromIter[FromCount - 1];
+				const RenderVertex* p1 = pIn + Index1;
+				for (u32 i = 0; i < FromCount; i++)
 				{
-					*ToIter++ = Index1;
-					ToCount++;
+					if (Inside(*p1, ClipEdges[p], p))
+					{
+						*ToIter++ = Index1;
+						ToCount++;
+					}
+
+					const RenderVertex* p2 = pIn + FromIter[i];
+
+					if ((p1->OutCode & ClipPlanes[p]) != (p2->OutCode & ClipPlanes[p]))
+					{
+						float t = ClipT(*p1, *p2, ClipEdges[p], p);
+						*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
+						pNewVerts->uw = lerp(p1->uw, p2->uw, t);
+						pNewVerts->vw = lerp(p1->vw, p2->vw, t);
+						pNewVerts->u = pNewVerts->uw / pNewVerts->ScreenPos.w;
+						pNewVerts->v = pNewVerts->vw / pNewVerts->ScreenPos.w;
+						if (p < 2)
+							pNewVerts->ScreenPos.x = ClipEdges[p];
+						else
+							pNewVerts->ScreenPos.y = ClipEdges[p];
+						pNewVerts->OutCode = ClipCode(*pNewVerts);
+						pNewVerts++;
+						*ToIter++ = NewIndex++;
+						ToCount++;
+					}
+
+					p1 = p2;
+					Index1 = FromIter[i];
 				}
-
-				RenderVertex* p2 = pIn + FromIter[i];
-
-				if ((p1->OutCode & TOP_PLANE) != (p2->OutCode & TOP_PLANE))
-				{
-					float t = p1->ScreenPos.y / (p1->ScreenPos.y - p2->ScreenPos.y);
-					*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
-					pNewVerts->ScreenPos.y = 0.0f;
-					pNewVerts->OutCode = camera.ClipCode(*pNewVerts);
-					pNewVerts++;
-					*ToIter++ = NewIndex++;
-					ToCount++;
-				}
-
-				p1 = p2;
-				Index1 = FromIter[i];
+				swap(ToBase, FromBase);
+				FromCount = ToCount;
+				ToCount = 0;
 			}
-			swap(ToBase, FromBase);
-			FromCount = ToCount;
-			ToCount = 0;
 		}
-
-		if (FromCount > 2 && TriOutCode & BOTTOM_PLANE)
-		{
-			FromIter = FromBase;
-			ToIter = ToBase;
-			u16 Index1 = FromIter[FromCount - 1];
-			RenderVertex* p1 = pIn + Index1;
-			for (u32 i = 0; i < FromCount; i++)
-			{
-				if (p1->ScreenPos.y <= camera.TargetHeight)
-				{
-					*ToIter++ = Index1;
-					ToCount++;
-				}
-
-				RenderVertex* p2 = pIn + FromIter[i];
-
-				if ((p1->OutCode & BOTTOM_PLANE) != (p2->OutCode & BOTTOM_PLANE))
-				{
-					float t = (p1->ScreenPos.y - camera.TargetHeight) / (p1->ScreenPos.y - p2->ScreenPos.y);
-					*pNewVerts = RenderVertex::Lerp(*p1, *p2, t);
-					pNewVerts->ScreenPos.y = (float)camera.TargetHeight;
-					pNewVerts->OutCode = camera.ClipCode(*pNewVerts);
-					pNewVerts++;
-					*ToIter++ = NewIndex++;
-					ToCount++;
-				}
-
-				p1 = p2;
-				Index1 = FromIter[i];
-			}
-			swap(ToBase, FromBase);
-			FromCount = ToCount;
-			ToCount = 0;
-		}
-
 		for (u32 i = 0; i < FromCount; i++)
 		{
 			OutIndices[i] = FromBase[i];
@@ -478,34 +444,34 @@ namespace Jogo
 	MeshVertex CubeVerts[]
 	{
 		{ {1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
-		{ {1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 1.0f },
+		{ {1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 0.0f },
+		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 1.0f },
 
-		{ {1.0f,	1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
-		{ {1.0f,	-1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
-		{ {1.0f,	1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
+		{ {1.0f,	1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
+		{ {1.0f,	-1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
+		{ {1.0f,	1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
 		{ {1.0f,	-1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
 
 		{ {1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 1.0f },
+		{ {1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 0.0f },
+		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 1.0f },
 
 		{ {1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
-		{ {1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 1.0f },
+		{ {1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 0.0f },
+		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 1.0f },
 
-		{ {-1.0f,	1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
 		{ {-1.0f,	-1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
+		{ {-1.0f,	-1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
 
-		{ {1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
+		{ {1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 0.0f },
+		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 1.0f },
 		{ {1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
+		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 1.0f },
 	};
 
 	u16 CubeIndices[]

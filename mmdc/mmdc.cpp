@@ -216,7 +216,7 @@ struct MMDC : public Jogo::App
 		UI::EndFrame();
 	}
 
-	void KeyDown(u32 key)
+	bool KeyDown(Input::Keys key)
 	{
 		if (key == Input::KEY_ESC)
 		{
@@ -244,6 +244,8 @@ struct MMDC : public Jogo::App
 		{
 			step_frame = true;
 		}
+
+		return true;
 	}
 
 	bool Tick(float dt) override

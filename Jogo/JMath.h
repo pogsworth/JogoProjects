@@ -329,7 +329,7 @@ namespace Jogo
 			translate = -translate.x * rows[0] - translate.y * rows[1] - translate.z * rows[2];
 		}
 
-		Matrix4 GetInverse()
+		Matrix4 GetInverse() const
 		{
 			Matrix4 Inverse = *this;
 			Inverse.Inverse();
@@ -337,7 +337,7 @@ namespace Jogo
 		}
 	};
 
-	inline Matrix4 operator*(Matrix4& m1, Matrix4& m2)
+	inline Matrix4 operator*(const Matrix4& m1, const Matrix4& m2)
 	{
 		Matrix4 result;
 		for (u32 i = 0; i < 3; i++)
@@ -349,7 +349,7 @@ namespace Jogo
 		return result;
 	}
 
-	inline Vector3 operator*(Vector3 v, Matrix4& m)
+	inline Vector3 operator*(const Vector3& v, const Matrix4& m)
 	{
 		return v.x * m.rows[0] + v.y * m.rows[1] + v.z * m.rows[2] + m.translate;
 	}

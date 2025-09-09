@@ -24,6 +24,7 @@ class Horizon : public Jogo::App
 	Font AtariFont;
 	Arena HorizonArena;
 	Bitmap F;
+	Bitmap Texture;
 	Timer fps;
 	Timer frametime;
 	double framespersecond = 0;
@@ -39,7 +40,7 @@ class Horizon : public Jogo::App
 	const float PitchToScreenScale = HorizonHeight / 60.f;
 	float PitchOriginScreenSpaceX = 0.f;
 	float PitchOriginScreenSpaceY = 0.f;
-	float triangleTheta = -20.f * D2R;
+	float triangleTheta = 20.0f * D2R;
 
 public:
 	Horizon() 
@@ -49,11 +50,14 @@ public:
 		F = Bitmap::Create(8, 8, 1, HorizonArena);
 		F.Erase(0xffffff);
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
+		Texture = Bitmap::Load("checker.bmp", HorizonArena);
 		Cube = CreateCube(1.0f);
 		CubeTransform = Matrix4::Identity();
+		CubeTransform.RotateZ(45.0f * D2R);
+		CubeTransform.RotateX(45.0f * D2R);
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
 //		MainCamera.RotateX(45*D2R);
-		MainCamera.Translate({ 0.0f, 0.0f, -5.0f });
+		MainCamera.Translate({ 0.0f, 0.0f, -4.0f });
 		MainCamera.SetProjection(53.0f, Width, Height, 1.0f, 50.f);
 		fps.Start();
 	}
@@ -253,14 +257,14 @@ public:
 		BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
 
 
-		Bitmap::Vertex triangle[] =
+		Bitmap::VertexLit triangle[] =
 		{
 			{180.0f, 180.0f, 0xff0000},
 			{340.0f, 180.0f, 0xff00},
 			{180.0f, 240, 0xff}
 		};
 		
-		triangleTheta += D2R * 0.5f;
+		triangleTheta += D2R * 0.05f;
 		//if (triangleTheta > 20.0f * D2R)
 		//	triangleTheta = -20.0f * D2R;
 		static float xbump = 0.f;
@@ -282,7 +286,7 @@ public:
 //		for (s32 t = 0; t < 100; t++)
 		{
 //			BackBuffer.FillTriangle(triangle);
-			BackBuffer.FillTriangle(triangle, triangle+1, triangle+2);
+			BackBuffer.FillTriangle(triangle);
 		}
 		x1 = (s32)cx;	// PitchOriginScreenSpaceX;
 		y1 = (s32)cy;	// PitchOriginScreenSpaceY;
@@ -296,19 +300,19 @@ public:
 		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
 		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
-		CubeTransform.RotateY(3.0f * frameDelta);
-		CubeTransform.RotateX(2.0f * frameDelta);
-		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
+		CubeTransform.RotateY(0.2f * frameDelta);
+		//CubeTransform.RotateX(2.0f * frameDelta);
+		CubeTransform.Translate({ 0.0f, 0.0f, -0.1f * frameDelta});
 		//for (u32 i = 0; i < 10; i++)
 		//{
 		//	for (u32 j = 0; j < 10; j++)
 		//	{
 		//		CubeTransform.translate = Vector3{ j*3.0f - 13.5f, i*3.0f - 13.5f, 30.0f };
 		//		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
-				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, FrameArena);
+				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena);
 		//	}
 		//}
-		MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });
+		//MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });
 	}
 
 	void DrawSineWave()
@@ -385,6 +389,6 @@ const char* Horizon::Name = "Horizon";
 int main(int argc, char *argv[])
 {
 	Horizon horizon;
-	Run(horizon, 60);
+	Run(horizon, 1000);
 	return 0;
 }

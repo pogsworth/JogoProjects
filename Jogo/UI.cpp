@@ -341,7 +341,7 @@ namespace UI
 
 		// TODO: we need to determine during Focus capture which keystrokes can be passed on
 		// such as: Escape
-		return true;
+		return false;
 	}
 
 	bool UIInputHandler::MouseDown(s32 mousex, s32 mousey, Input::Keys button)
