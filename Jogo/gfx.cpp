@@ -113,8 +113,8 @@ namespace Jogo
 			VertIter->ScreenPos = camera.Project(VertIter->ViewPos);
 			VertIter->u = mesh.Verts[i].u;
 			VertIter->v = mesh.Verts[i].v;
-			VertIter->uw = mesh.Verts[i].u * VertIter->ScreenPos.w;
-			VertIter->vw = mesh.Verts[i].v * VertIter->ScreenPos.w;
+			VertIter->uw = mesh.Verts[i].u;	// *VertIter->ScreenPos.w;
+			VertIter->vw = mesh.Verts[i].v;	// *VertIter->ScreenPos.w;
 			VertIter->bIsLit = false;
 			VertIter->OutCode = AABBOutCode ? camera.ClipCode(*VertIter, AABBOutCode) : 0;
 		}
@@ -198,7 +198,7 @@ namespace Jogo
 				{ q.ScreenPos, q.color, q.uw, q.vw },
 				{ r.ScreenPos, r.color, r.uw, r.vw },
 			};
-			Target.FillTriangle(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
+			Target.FillTriangleTL(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
 			// Bitmap::VertexLit tri[3] = {
 			//	{p.ScreenPos.x, p.ScreenPos.y, p.color},
 			//	{q.ScreenPos.x, q.ScreenPos.y, q.color},
@@ -243,7 +243,7 @@ namespace Jogo
 		result.x = v.x * HCotFOV * W;
 		result.y = v.y * CotFOV * W;
 		result.z = (v.z - NearZ) * ProjectZ * W;
-		result.w = W;
+		result.w = v.z;
 
 		result.x = (result.x + 1) * HalfWidth;
 		result.y = (1 - result.y) * HalfHeight;

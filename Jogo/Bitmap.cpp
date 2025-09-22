@@ -908,18 +908,22 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	s32 minx, miny, maxx, maxy;
 	s32 dx10, dx21, dx02;
 	s32 dy10, dy21, dy02;
-	EdgeDist e1, e2, e3;
+	EdgeDist e0, e1, e2;
 	s32 t;
 	s32 x, y;
 	s64 det;
 	int incr;
 
+	float w0 = 1.0f / a.w;
+	float w1 = 1.0f / b.w;
+	float w2 = 1.0f / c.w;
+
 	u32 color = 0xffff;
 
 	// convert coordinates to fixed point
-	point_to_fixed_xform(&x0, &y0, a);	// , m);
-	point_to_fixed_xform(&x1, &y1, b);	// , m);
-	point_to_fixed_xform(&x2, &y2, c);	// , m);
+	point_to_fixed_xform(&x0, &y0, a);
+	point_to_fixed_xform(&x1, &y1, b);
+	point_to_fixed_xform(&x2, &y2, c);
 
 	float u0 = a.u;
 	float u1 = b.u - a.u;
@@ -927,9 +931,9 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	float v0 = a.v;
 	float v1 = b.v - a.v;
 	float v2 = c.v - a.v;
-	float w0 = a.w;
-	float w1 = b.w - a.w;
-	float w2 = c.w - a.w;
+	//float w0 = a.w;
+	//float w1 = b.w - a.w;
+	//float w2 = c.w - a.w;
 
 	// check triangle winding order
 	det = det2x2(x1 - x0, x2 - x0, y1 - y0, y2 - y0);
@@ -948,8 +952,8 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	// bounding box / clipping
 	minx = max(fixed_ceil(min3(x0, x1, x2)), (s32)0);
 	miny = max(fixed_ceil(min3(y0, y1, y2)), (s32)0);
-	maxx = min(fixed_ceil(max3(x0, x1, x2)), (s32)Width);	// tgt->w);
-	maxy = min(fixed_ceil(max3(y0, y1, y2)), (s32)Height);	// tgt->h);
+	maxx = min(fixed_ceil(max3(x0, x1, x2)), (s32)Width);
+	maxy = min(fixed_ceil(max3(y0, y1, y2)), (s32)Height);
 	if (minx >= maxx || miny >= maxy)
 		return;
 
@@ -959,40 +963,149 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	dx02 = x0 - x2; dy02 = y0 - y2;
 
 	// edge functions
-	e1 = (EdgeDist)det2x2_fill_convention(dx10, (minx << SUBPIXEL_SHIFT) - x0, dy10, (miny << SUBPIXEL_SHIFT) - y0);
-	e2 = (EdgeDist)det2x2_fill_convention(dx21, (minx << SUBPIXEL_SHIFT) - x1, dy21, (miny << SUBPIXEL_SHIFT) - y1);
-	e3 = (EdgeDist)det2x2_fill_convention(dx02, (minx << SUBPIXEL_SHIFT) - x2, dy02, (miny << SUBPIXEL_SHIFT) - y2);
+	e0 = (EdgeDist)det2x2_fill_convention(dx10, (minx << SUBPIXEL_SHIFT) - x0, dy10, (miny << SUBPIXEL_SHIFT) - y0);
+	e1 = (EdgeDist)det2x2_fill_convention(dx21, (minx << SUBPIXEL_SHIFT) - x1, dy21, (miny << SUBPIXEL_SHIFT) - y1);
+	e2 = (EdgeDist)det2x2_fill_convention(dx02, (minx << SUBPIXEL_SHIFT) - x2, dy02, (miny << SUBPIXEL_SHIFT) - y2);
 
 	// rasterize
 	for (y = miny; y < maxy; y++) {
-		u32* line = PixelBGRA + y * Width;	// tgt->data + y * tgt->w;
-		EdgeDist ei1 = e1, ei2 = e2, ei3 = e3;
+		u32* line = PixelBGRA + y * Width;
+		EdgeDist ei0 = e0, ei1 = e1, ei2 = e2;
 
 		for (x = minx; x < maxx; x++) {
-			if ((ei1 | ei2 | ei3) >= 0) // pixel in triangle
+			if ((ei0 | ei1 | ei2) >= 0) // pixel in triangle
 			{
-				float s = ei3 * area;
-				float t = ei1 * area;
-				float w = 1.0f / (w0 + s * w1 + t * w2);
-				float u = (u0 + s * u1 + t * u2) * w;
-				float v = (v0 + s * v1 + t * v2) * w;
-				float umod = 10 * u - (int)(10 * u);
-				float vmod = 10 * v - (int)(10 * v);
+				//float w01 = a.w * b.w;
+				//float w12 = b.w * c.w;
+				//float w20 = c.w * a.w;
+				//float denom = 1.0f / (ei0 * w12 + ei1 * w20 + ei2 * w01);
+				//float s = ei1 * w20 * denom * area;
+				//float t = ei2 * w01 * denom * area;
+				//float w = 1.0f / (w0 + s * w1 + t * w2);
+				float denom = 1.0f / (ei0 * w0 + ei1 * w1 + ei2 * w2);
+				float s = ei1 * w1 * denom;
+				float t = ei2 * w2 * denom;
+				float u = (u0 + s * u1 + t * u2);
+				float v = (v0 + s * v1 + t * v2);
+				float umod = u - (int)(u);
+				float vmod = v - (int)(v);
 				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
 				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
 				line[x] = texel;	// line[x] + incr;
 			}
-			ei1 -= dy10;
-			ei2 -= dy21;
-			ei3 -= dy02;
+			ei0 -= dy10;
+			ei1 -= dy21;
+			ei2 -= dy02;
 		}
 
-		e1 += dx10;
-		e2 += dx21;
-		e3 += dx02;
+		e0 += dx10;
+		e1 += dx21;
+		e2 += dx02;
 	}
 }
 
+void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
+{
+	float x0, x1, x2;
+	float y0, y1, y2;
+	s32 minx, miny, maxx, maxy;
+	float dx10, dx21, dx02;
+	float dy10, dy21, dy02;
+	float e0, e1, e2;
+	float t;
+	s32 x, y;
+	float det;
+	int incr;
+
+	u32 color = 0xffff;
+
+	x0 = a.x; y0 = a.y;
+	x1 = b.x; y1 = b.y;
+	x2 = c.x; y2 = c.y;
+
+	float u0 = a.u;
+	float u1 = b.u - a.u;
+	float u2 = c.u - a.u;
+	float v0 = a.v;
+	float v1 = b.v - a.v;
+	float v2 = c.v - a.v;
+	float w0 = a.w;
+	float w1 = b.w;
+	float w2 = c.w;
+
+	// check triangle winding order
+	det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+	if (det > 0)
+		incr = 1;
+	else if (det < 0) {
+		incr = 1;	// allow_neg_winding ? -1 : 1;
+		t = x0; x0 = x1; x1 = t;
+		t = y0; y0 = y1; y1 = t;
+	}
+	else // zero-area triangle
+		return;
+
+	float area = 1.0f / det;
+
+	// bounding box / clipping
+	minx = max((s32)ceil(min3(x0, x1, x2)), (s32)0);
+	miny = max((s32)ceil(min3(y0, y1, y2)), (s32)0);
+	maxx = min((s32)ceil(max3(x0, x1, x2)), (s32)Width);
+	maxy = min((s32)ceil(max3(y0, y1, y2)), (s32)Height);
+	if (minx >= maxx || miny >= maxy)
+		return;
+
+	// edge vectors
+	dx10 = (x1 - x0); dy10 = (y1 - y0);
+	dx21 = (x2 - x1); dy21 = (y2 - y1);
+	dx02 = (x0 - x2); dy02 = (y0 - y2);
+	//dx10 = area * (x1 - x0); dy10 = area * (y1 - y0);
+	//dx21 = area * (x2 - x1); dy21 = area * (y2 - y1);
+	//dx02 = area * (x0 - x2); dy02 = area * (y0 - y2);
+	//dx10 = w1 * w2 * area * (x1 - x0); dy10 = w1 * w2 * area * (y1 - y0);
+	//dx21 = w0 * w2 * area * (x2 - x1); dy21 = w0 * w2 * area * (y2 - y1);
+	//dx02 = w0 * w1 * area * (x0 - x2); dy02 = w0 * w1 * area * (y0 - y2);
+
+	// edge functions
+	e0 = (dx10 * (miny - y0) - (minx - x0) * dy10);
+	e1 = (dx21 * (miny - y1) - (minx - x1) * dy21);
+	e2 = (dx02 * (miny - y2) - (minx - x2) * dy02);
+
+	// rasterize
+	for (y = miny; y < maxy; y++) {
+		u32* line = PixelBGRA + y * Width;	// tgt->data + y * tgt->w;
+		float ei0 = e0, ei1 = e1, ei2 = e2;
+
+		for (x = minx; x < maxx; x++) {
+			if (ei0 >= 0.0f && ei1 >= 0.0f && ei2 >=0.0f) // pixel in triangle
+			{
+				float w01 = w0 * w1 * ei2;
+				float w02 = w0 * w2 * ei1;
+				float w12 = w1 * w2 * ei0;
+
+				float denom = 1.0f / (w01 + w02 + w12);
+//				float denom = 1.0f / (ei1 + ei2 + ei3);
+				float s = w12 * denom;
+				float t = w02 * denom;
+//				float w = 1.0f / (w0 + ei3 * w1 + ei1 * w2);
+				float u = (u0 + s * u1 + t * u2);
+				float v = (v0 + s * v1 + t * v2);
+				float umod = u - (int)(u);
+				float vmod = v - (int)(v);
+				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
+				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
+				line[x] = texel;	// line[x] + incr;
+			}
+			ei0 -= dy10;
+			ei1 -= dy21;
+			ei2 -= dy02;
+		}
+
+		e0 += dx10;
+		e1 += dx21;
+		e2 += dx02;
+	}
+}
 
 Bitmap Bitmap::Load(const char* filename, Arena& arena)
 {

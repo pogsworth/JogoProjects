@@ -32,6 +32,8 @@ class Horizon : public Jogo::App
 	Matrix4 CubeTransform;
 	Mesh Cube;
 	Camera MainCamera;
+	s32 MouseX;
+	s32 MouseY;
 
 	// parameters to convert to and from Screen and Pitch space
 	const s32 HorizonWidth = 500;
@@ -55,9 +57,10 @@ public:
 		CubeTransform = Matrix4::Identity();
 		CubeTransform.RotateZ(45.0f * D2R);
 		CubeTransform.RotateX(45.0f * D2R);
+		CubeTransform.Translate({ 0.0f, -1.0f, 0.0f });
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
 //		MainCamera.RotateX(45*D2R);
-		MainCamera.Translate({ 0.0f, 0.0f, -4.0f });
+		MainCamera.Translate({ 0.0f, 0.0f, -8.0f });
 		MainCamera.SetProjection(53.0f, Width, Height, 1.0f, 50.f);
 		fps.Start();
 	}
@@ -67,6 +70,8 @@ public:
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
+		Input::GetMousePos(MouseX, MouseY);
+
 		frameDelta = DT;
 		double s = fps.GetSecondsSinceLast();
 		framespersecond = 1.0f / s;
@@ -209,10 +214,10 @@ public:
 		}
 
 		// find the endpoints of the horizon line in screen space
-		s32 x1 = (s32)(PitchOriginScreenSpaceX - r * c);
-		s32 y1 = (s32)(PitchOriginScreenSpaceY - r * s);
-		s32 x2 = (s32)(PitchOriginScreenSpaceX + r * c);
-		s32 y2 = (s32)(PitchOriginScreenSpaceY + r * s);
+		//s32 x1 = (s32)(PitchOriginScreenSpaceX - r * c);
+		//s32 y1 = (s32)(PitchOriginScreenSpaceY - r * s);
+		//s32 x2 = (s32)(PitchOriginScreenSpaceX + r * c);
+		//s32 y2 = (s32)(PitchOriginScreenSpaceY + r * s);
 
 		// for each horizontal line of the display
 		// determine where the line segment intersects the frame
@@ -246,53 +251,167 @@ public:
 		//}
 		// draw the horizon line
 
-		if (BackBuffer.ClipLine(x1, y1, x2, y2, frame))
+		//if (BackBuffer.ClipLine(x1, y1, x2, y2, frame))
+		//{
+		//	BackBuffer.DrawLine(x1, y1, x2, y2, 0);	// 0xffffff);
+
+		//	//s32 pox = PitchOriginScreenSpaceX;
+		//	//s32 poy = PitchOriginScreenSpaceY;
+		//}
+
+		//BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
+
+		MeshVertex worldTriangle[] =
 		{
-			BackBuffer.DrawLine(x1, y1, x2, y2, 0);	// 0xffffff);
-
-			//s32 pox = PitchOriginScreenSpaceX;
-			//s32 poy = PitchOriginScreenSpaceY;
-		}
-
-		BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
-
-
-		Bitmap::VertexLit triangle[] =
-		{
-			{180.0f, 180.0f, 0xff0000},
-			{340.0f, 180.0f, 0xff00},
-			{180.0f, 240, 0xff}
+			{{-2,2,-2},{0,0,-1},0,0},
+			{{0,2,3}, {0,0,-1},1,0},
+			{ { -2,0,0 },{0,0,-1},0,1 },
 		};
-		
-		triangleTheta += D2R * 0.05f;
+
+		Bitmap::VertexTexLit triangle[3];
+		//{
+		//	{100.0f, 100.0f, 0xff0000},
+		//	{400.0f, 100.0f, 0xff00},
+		//	{100.0f, 600, 0xff}
+		//};
+		Matrix4 View = MainCamera.GetInverse();
+		for (u32 i = 0; i < 3; i++)
+		{
+			Vector3 pos = worldTriangle[i].Pos * View;
+			//Vector3 norm = worldTriangle[i].Normal * View;
+			*(Vector4*)&triangle[i] = MainCamera.Project(pos);
+			triangle[i].c = 0xffffff;
+			triangle[i].u = worldTriangle[i].u; // *triangle[i].w;
+			triangle[i].v = worldTriangle[i].v;	// *triangle[i].w;
+		}
+		triangleTheta += D2R * 0.5f;
 		//if (triangleTheta > 20.0f * D2R)
 		//	triangleTheta = -20.0f * D2R;
 		static float xbump = 0.f;
 		xbump += 0.1f;
 		cx = 180.0f;
 		cy = 240.0f;
-		float co = cosine(triangleTheta);
-		float si = sine(triangleTheta);
-		for (int i = 0; i < 3; i++)
-		{
-			float x1 = (triangle[i].x - cx);
-			float y1 = (triangle[i].y - cy);
-			float x = co * x1 - si * y1;
-			float y = si * x1 + co * y1;
-			triangle[i].x = cx + x;
-			triangle[i].y = cy + y;
-		}
-		
+		//float co = cosine(triangleTheta);
+		//float si = sine(triangleTheta);
+		//for (int i = 0; i < 3; i++)
+		//{
+		//	float x1 = (triangle[i].x - cx);
+		//	float y1 = (triangle[i].y - cy);
+		//	float x = co * x1 - si * y1;
+		//	float y = si * x1 + co * y1;
+		//	triangle[i].x = cx + x;
+		//	triangle[i].y = cy + y;
+		//}
+
 //		for (s32 t = 0; t < 100; t++)
 		{
-//			BackBuffer.FillTriangle(triangle);
-			BackBuffer.FillTriangle(triangle);
+			//			BackBuffer.FillTriangle(triangle);
+			if (Input::IsKeyPressed(' '))
+				BackBuffer.FillTriangleTL(triangle[0], triangle[1], triangle[2], Texture);
+			else
+			{
+				//for (u32 i = 0; i < 3; i++)
+				//{
+				//	triangle[i].w = 1.0f / triangle[i].w;
+				//	triangle[i].u = worldTriangle[i].u * triangle[i].w;
+				//	triangle[i].v = worldTriangle[i].v * triangle[i].w;
+				//}
+				BackBuffer.FillTriangle(triangle[0], triangle[1], triangle[2], Texture);
+			}
 		}
-		x1 = (s32)cx;	// PitchOriginScreenSpaceX;
-		y1 = (s32)cy;	// PitchOriginScreenSpaceY;
-		x2 = x1 + (s32)(upx * 30);
-		y2 = y1 + (s32)(upy * 30);
-		BackBuffer.DrawLine(x1, y1, x2, y2, 0xffff);
+		BackBuffer.DrawCircle((s32)triangle[0].x, (s32)triangle[0].y, 5, 0);
+		BackBuffer.DrawCircle((s32)triangle[1].x, (s32)triangle[1].y, 5, 0);
+		BackBuffer.DrawCircle((s32)triangle[2].x, (s32)triangle[2].y, 5, 0);
+
+#define TEST_BARYCENTRIC
+#ifdef TEST_BARYCENTRIC
+		float x0 = triangle[0].x;
+		float x1 = triangle[1].x;
+		float x2 = triangle[2].x;
+		float y0 = triangle[0].y;
+		float y1 = triangle[1].y;
+		float y2 = triangle[2].y;
+
+		float w0w1 = triangle[0].w * triangle[1].w;
+		float w0w2 = triangle[0].w * triangle[2].w;
+		float w1w2 = triangle[1].w * triangle[2].w;
+
+		float minx = Jogo::max(min3(x0, x1, x2), 0.0f);
+		float miny = Jogo::max(min3(y0, y1, y2), 0.0f);
+		float maxx = min(max3(x0, x1, x2), (float)Width);
+		float maxy = min(max3(y0, y1, y2), (float)Height);
+		if (minx < maxx && miny < maxy)
+		{
+			// edge vectors
+			float dx10 = x1 - x0; float dy10 = y1 - y0;
+			float dx21 = x2 - x1; float dy21 = y2 - y1;
+			float dx02 = x0 - x2; float dy02 = y0 - y2;
+
+			float Area = dx02 * dy10 - dy02 * dx10;
+
+			dx10 *= w0w1 / Area;
+			dx21 *= w1w2 / Area;
+			dx02 *= w0w2 / Area;
+			dy10 *= w0w1 / Area;
+			dy21 *= w1w2 / Area;
+			dy02 *= w0w2 / Area;
+
+			// edge functions
+			float e0 = (dx21 * (miny - y1) - (minx - x1) * dy21);
+			float e1 = (dx02 * (miny - y2) - (minx - x2) * dy02);
+			float e2 = (dx10 * (miny - y0) - (minx - x0) * dy10);
+
+			float px = MouseX - triangle[0].x;
+			float py = MouseY - triangle[0].y;
+
+			float u = (e1 - px * dy02 + py * dx02);
+			float v = (e2 - px * dy10 + py * dx10);
+			float w = (e0 - px * dy21 + py * dx21);
+
+			float uvw = 1.0f / ( u + v + w );
+			float uw = v * uvw;
+			float vw = u * uvw;
+
+			AtariFont.DrawText(MouseX - 60, MouseY - 20, str8::format("{:0.3} {:0.3} {:0.3}", FrameArena, uw, vw, 1 - uw - vw), 0, 0xffffffff, BackBuffer);
+		}
+#endif TEST_BARYCENTRIC
+
+//		Bitmap::VertexLit triangle[] =
+//		{
+//			{180.0f, 180.0f, 0xff0000},
+//			{340.0f, 180.0f, 0xff00},
+//			{180.0f, 240, 0xff}
+//		};
+//		
+//		triangleTheta += D2R * 0.05f;
+//		//if (triangleTheta > 20.0f * D2R)
+//		//	triangleTheta = -20.0f * D2R;
+//		static float xbump = 0.f;
+//		xbump += 0.1f;
+//		cx = 180.0f;
+//		cy = 240.0f;
+//		float co = cosine(triangleTheta);
+//		float si = sine(triangleTheta);
+//		for (int i = 0; i < 3; i++)
+//		{
+//			float x1 = (triangle[i].x - cx);
+//			float y1 = (triangle[i].y - cy);
+//			float x = co * x1 - si * y1;
+//			float y = si * x1 + co * y1;
+//			triangle[i].x = cx + x;
+//			triangle[i].y = cy + y;
+//		}
+//		
+////		for (s32 t = 0; t < 100; t++)
+//		{
+////			BackBuffer.FillTriangle(triangle);
+//			BackBuffer.FillTriangle(triangle);
+//		}
+		//x1 = (s32)cx;	// PitchOriginScreenSpaceX;
+		//y1 = (s32)cy;	// PitchOriginScreenSpaceY;
+		//x2 = x1 + (s32)(upx * 30);
+		//y2 = y1 + (s32)(upy * 30);
+		//BackBuffer.DrawLine(x1, y1, x2, y2, 0xffff);
 		//BackBuffer.DrawLine(triangle[0].x, triangle[0].y, triangle[1].x, triangle[1].y, 0);
 		//BackBuffer.DrawLine(triangle[1].x, triangle[1].y, triangle[2].x, triangle[2].y, 0);
 		//BackBuffer.DrawLine(triangle[2].x, triangle[2].y, triangle[0].x, triangle[0].y, 0);
@@ -302,7 +421,6 @@ public:
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
 		CubeTransform.RotateY(0.2f * frameDelta);
 		//CubeTransform.RotateX(2.0f * frameDelta);
-		CubeTransform.Translate({ 0.0f, 0.0f, -0.1f * frameDelta});
 		//for (u32 i = 0; i < 10; i++)
 		//{
 		//	for (u32 j = 0; j < 10; j++)
