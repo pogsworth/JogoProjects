@@ -133,5 +133,5 @@ namespace Jogo
 		u32 ClipTriangle(const RenderVertex* pIn, RenderVertex*& pNewVerts, u16* TriIndices, u16* OutIndices, u32 TriOutCode) const;
 	};
 
-	void RenderMesh(const Mesh& mesh, const Matrix4&, const Camera&, const Bitmap&, const Bitmap&, Arena&);
+	void RenderMesh(const Mesh& mesh, const Matrix4&, const Camera&, const Bitmap&, const Bitmap&, Arena&, bool fillTL = false);
 };

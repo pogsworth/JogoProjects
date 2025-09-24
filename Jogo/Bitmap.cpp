@@ -914,9 +914,9 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	s64 det;
 	int incr;
 
-	float w0 = 1.0f / a.w;
-	float w1 = 1.0f / b.w;
-	float w2 = 1.0f / c.w;
+	float w0 = a.w;
+	float w1 = b.w - a.w;
+	float w2 = c.w - a.w;
 
 	u32 color = 0xffff;
 
@@ -975,21 +975,16 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 		for (x = minx; x < maxx; x++) {
 			if ((ei0 | ei1 | ei2) >= 0) // pixel in triangle
 			{
-				//float w01 = a.w * b.w;
-				//float w12 = b.w * c.w;
-				//float w20 = c.w * a.w;
-				//float denom = 1.0f / (ei0 * w12 + ei1 * w20 + ei2 * w01);
-				//float s = ei1 * w20 * denom * area;
-				//float t = ei2 * w01 * denom * area;
-				//float w = 1.0f / (w0 + s * w1 + t * w2);
-				float denom = 1.0f / (ei0 * w0 + ei1 * w1 + ei2 * w2);
-				float s = ei1 * w1 * denom;
-				float t = ei2 * w2 * denom;
-				float u = (u0 + s * u1 + t * u2);
-				float v = (v0 + s * v1 + t * v2);
+				float denom = area;
+				float s = ei2 * denom;
+				float t = ei0 * denom;
+				float w = 1.0f / (w0 + s * w1 + t * w2);
+				float u = (u0 + s * u1 + t * u2) * w;
+				float v = (v0 + s * v1 + t * v2) * w;
 				float umod = u - (int)(u);
 				float vmod = v - (int)(v);
 				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
+				u32 rgb = ((u32)(255 * umod) << 8) + (u32)(255*vmod);
 				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
 				line[x] = texel;	// line[x] + incr;
 			}
@@ -1023,15 +1018,15 @@ void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const 
 	x1 = b.x; y1 = b.y;
 	x2 = c.x; y2 = c.y;
 
-	float u0 = a.u;
-	float u1 = b.u - a.u;
-	float u2 = c.u - a.u;
-	float v0 = a.v;
-	float v1 = b.v - a.v;
-	float v2 = c.v - a.v;
-	float w0 = a.w;
-	float w1 = b.w;
-	float w2 = c.w;
+	float w0 = 1.0f / a.w;
+	float w1 = 1.0f / b.w;
+	float w2 = 1.0f / c.w;
+	float u0 = a.u * w0;
+	float u1 = b.u * w1;	// -u0;
+	float u2 = c.u * w2;	// -u0;
+	float v0 = a.v * w0;
+	float v1 = b.v * w1;	// -v0;
+	float v2 = c.v * w2;	// -v0;
 
 	// check triangle winding order
 	det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
@@ -1079,22 +1074,125 @@ void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const 
 		for (x = minx; x < maxx; x++) {
 			if (ei0 >= 0.0f && ei1 >= 0.0f && ei2 >=0.0f) // pixel in triangle
 			{
-				float w01 = w0 * w1 * ei2;
-				float w02 = w0 * w2 * ei1;
-				float w12 = w1 * w2 * ei0;
+				float w01 = ei0 / w2;
+				float w02 = ei2 / w1;
+				float w12 = ei1 / w0;
+				//float w01 = w0 * w1 * ei2;
+				//float w02 = w0 * w2 * ei1;
+				//float w12 = w1 * w2 * ei0;
 
 				float denom = 1.0f / (w01 + w02 + w12);
 //				float denom = 1.0f / (ei1 + ei2 + ei3);
-				float s = w12 * denom;
-				float t = w02 * denom;
-//				float w = 1.0f / (w0 + ei3 * w1 + ei1 * w2);
-				float u = (u0 + s * u1 + t * u2);
-				float v = (v0 + s * v1 + t * v2);
+				//float s = w01 * denom;
+				//float t = w02 * denom;
+				float p = w12 * denom;
+				float q = w02 * denom;
+				float r = w01 * denom;
+				float u = (p * u0 + q * u1 + r * u2);
+				float v = (p * v0 + q * v1 + r * v2);
 				float umod = u - (int)(u);
 				float vmod = v - (int)(v);
+				u32 rgb = ((u32)(255 * umod)<<8) + ((u32)(255 * vmod));
 				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
-				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
-				line[x] = texel;	// line[x] + incr;
+				u32 texel = texture.GetTexel(umod, vmod);	// ? 0xff : 0;
+				line[x] = texel;	// rgb << 8;	// line[x] + incr;
+			}
+			ei0 -= dy10;
+			ei1 -= dy21;
+			ei2 -= dy02;
+		}
+
+		e0 += dx10;
+		e1 += dx21;
+		e2 += dx02;
+	}
+}
+
+void Bitmap::FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
+{
+	float x0, x1, x2;
+	float y0, y1, y2;
+	s32 minx, miny, maxx, maxy;
+	float dx10, dx21, dx02;
+	float dy10, dy21, dy02;
+	float e0, e1, e2;
+	float t;
+	s32 x, y;
+	float det;
+	int incr;
+
+	u32 color = 0xffff;
+
+	x0 = a.x; y0 = a.y;
+	x1 = b.x; y1 = b.y;
+	x2 = c.x; y2 = c.y;
+
+	float w0 = 1.0f / a.w;
+	float w1 = 1.0f / b.w;
+	float w2 = 1.0f / c.w;
+	float w01 = w0 * w1;
+	float w21 = w2 * w1;
+	float w02 = w0 * w2;
+	float bigw = 1.0f / max3(w01, w21, w02);
+	w01 *= bigw;
+	w21 *= bigw;
+	w02 *= bigw;
+	float u0 = a.u * w0;
+	float u1 = b.u * w1 - u0;
+	float u2 = c.u * w2 - u0;
+	float v0 = a.v * w0;
+	float v1 = b.v * w1 - v0;
+	float v2 = c.v * w2 - v0;
+
+	// check triangle winding order
+	det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+	if (det > 0)
+		incr = 1;
+	else if (det < 0) {
+		incr = 1;	// allow_neg_winding ? -1 : 1;
+		t = x0; x0 = x1; x1 = t;
+		t = y0; y0 = y1; y1 = t;
+	}
+	else // zero-area triangle
+		return;
+
+	// bounding box / clipping
+	minx = max((s32)ceil(min3(x0, x1, x2)), (s32)0);
+	miny = max((s32)ceil(min3(y0, y1, y2)), (s32)0);
+	maxx = min((s32)ceil(max3(x0, x1, x2)), (s32)Width);
+	maxy = min((s32)ceil(max3(y0, y1, y2)), (s32)Height);
+	if (minx >= maxx || miny >= maxy)
+		return;
+
+	// edge vectors
+	dx10 = w01 * (x1 - x0); dy10 = w01 * (y1 - y0);
+	dx21 = w21 * (x2 - x1); dy21 = w21 * (y2 - y1);
+	dx02 = w02 * (x0 - x2); dy02 = w02 * (y0 - y2);
+
+	// edge functions
+	e0 = (dx10 * (miny - y0) - (minx - x0) * dy10);
+	e1 = (dx21 * (miny - y1) - (minx - x1) * dy21);
+	e2 = (dx02 * (miny - y2) - (minx - x2) * dy02);
+
+	// rasterize
+	for (y = miny; y < maxy; y++) {
+		u32* line = PixelBGRA + y * Width;	// tgt->data + y * tgt->w;
+		float ei0 = e0, ei1 = e1, ei2 = e2;
+
+		for (x = minx; x < maxx; x++) {
+			if (ei0 >= 0.0f && ei1 >= 0.0f && ei2 >= 0.0f) // pixel in triangle
+			{
+				float denom = 1.0f / (ei0 + ei1 + ei2);
+				float q = ei2 * denom;
+				float r = ei0 * denom;
+				float u = (u0 + q * u1 + r * u2);
+				float v = (v0 + q * v1 + r * v2);
+				float umod = u - (int)(u);
+				float vmod = v - (int)(v);
+				u32 rgb = ((u32)(255 * umod) << 8) + ((u32)(255 * vmod));
+				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
+				u32 texel = texture.GetTexel(umod, vmod);	// ? 0xff : 0;
+				line[x] = texel;	// rgb << 8;	// line[x] + incr;
 			}
 			ei0 -= dy10;
 			ei1 -= dy21;

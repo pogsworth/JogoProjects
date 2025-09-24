@@ -281,8 +281,8 @@ public:
 			//Vector3 norm = worldTriangle[i].Normal * View;
 			*(Vector4*)&triangle[i] = MainCamera.Project(pos);
 			triangle[i].c = 0xffffff;
-			triangle[i].u = worldTriangle[i].u; // *triangle[i].w;
-			triangle[i].v = worldTriangle[i].v;	// *triangle[i].w;
+			triangle[i].u = worldTriangle[i].u * triangle[i].w;
+			triangle[i].v = worldTriangle[i].v * triangle[i].w;
 		}
 		triangleTheta += D2R * 0.5f;
 		//if (triangleTheta > 20.0f * D2R)
@@ -306,16 +306,10 @@ public:
 //		for (s32 t = 0; t < 100; t++)
 		{
 			//			BackBuffer.FillTriangle(triangle);
-			if (Input::IsKeyPressed(' '))
-				BackBuffer.FillTriangleTL(triangle[0], triangle[1], triangle[2], Texture);
+			if (!Input::IsKeyPressed(' '))
+				BackBuffer.FillTriangleTexLit(triangle[0], triangle[1], triangle[2], Texture);
 			else
 			{
-				//for (u32 i = 0; i < 3; i++)
-				//{
-				//	triangle[i].w = 1.0f / triangle[i].w;
-				//	triangle[i].u = worldTriangle[i].u * triangle[i].w;
-				//	triangle[i].v = worldTriangle[i].v * triangle[i].w;
-				//}
 				BackBuffer.FillTriangle(triangle[0], triangle[1], triangle[2], Texture);
 			}
 		}
@@ -427,7 +421,7 @@ public:
 		//	{
 		//		CubeTransform.translate = Vector3{ j*3.0f - 13.5f, i*3.0f - 13.5f, 30.0f };
 		//		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
-				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena);
+				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
 		//	}
 		//}
 		//MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });

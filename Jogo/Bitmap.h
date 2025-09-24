@@ -268,6 +268,7 @@ struct Bitmap
 	void TriangleScanLine(s32 y, Edge&, Edge&, Gradient&);
 	void FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
 	void FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
+	void FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
 	//void FillTexLitTriangle(VertexTexLit);
 
 	static Bitmap Load(const char* filename, Arena& arena);
