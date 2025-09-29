@@ -156,6 +156,16 @@ namespace Jogo
 		{
 			x -= v.x; y -= v.y; z -= v.z;
 		}
+
+		void operator*=(f32 s)
+		{
+			x *= s; y *= s; z *= s;
+		}
+
+		void operator*=(const Vector3& s)
+		{
+			x *= s.x; y *= s.y; z *= s.z;
+		}
 	};
 
 	inline Vector3 operator-(const Vector3& a, const Vector3& b)
@@ -168,14 +178,19 @@ namespace Jogo
 		return{ a.x + b.x,a.y + b.y,a.z + b.z };
 	}
 
-	inline Vector3 operator-(const Vector3 v)
+	inline Vector3 operator-(const Vector3& v)
 	{
 		return { -v.x, -v.y, -v.z };
 	}
 
-	inline Vector3 operator*(const float s, const Vector3 v)
+	inline Vector3 operator*(const float s, const Vector3& v)
 	{
 		return { s * v.x, s * v.y, s * v.z };
+	}
+
+	inline Vector3 operator*(const Vector3& a, const Vector3& b)
+	{
+		return { a.x * b.x, a.y * b.y, a.z * b.z };
 	}
 
 	struct Vector4
@@ -252,20 +267,19 @@ namespace Jogo
 			}
 		}
 
+		void Scale(const Vector3& s)
+		{
+			rows[0] = (const Vector3)rows[0] * s;
+			rows[1] = (const Vector3)rows[1] * s;
+			rows[2] = (const Vector3)rows[2] * s;
+		}
+
 		void Inverse()
 		{
 			float t;
 
 			// transpose the rotation: swap the off diagonal elements
-
-			// hacky version:
-			//for (u32 i = 0; i < 3; i++)
-			//{
-			//	u32 j = (i + 1) % 3;
-			//	t = (&rows[i].x)[j];
-			//	(&rows[i].x)[j] = (&rows[j].x)[i];
-			//	(&rows[j].x)[i] = t;
-			//}
+			// TODO: handle scale by inverting the length of each row
 
 			t = rows[0].y;
 			rows[0].y = rows[1].x;
@@ -299,7 +313,7 @@ namespace Jogo
 		}
 	};
 
-	inline Vector3 operator*(Vector3 v, Matrix3& m)
+	inline Vector3 operator*(const Vector3& v, const Matrix3& m)
 	{
 		return v.x * m.rows[0] + v.y * m.rows[1] + v.z * m.rows[2];
 	}

@@ -45,26 +45,26 @@ namespace Jogo
 	}
 
 	/*
-	* 
+	*
 	*	From https://www.cbloom.com/3d/techdocs/pipeline.txt
-	* 
+	*
 	*	The first thing we do is concatenate the Model->World (a parameter) and
 	*	World->View (a global) transforms. Each transform is a 4x4 matrix with
 	*	{0,0,0,1} in the bottom row (that is, a 3x3 matrix and a 3-vector
 	*	translation), all 3d vectors have an implicit {1} in the final spot when
-	*	treated as a 4d vector. 
+	*	treated as a 4d vector.
 	*	1) The result is the Model->View transform (MVT).
 	*
 	*	2) Then we create an orthonormalized version of the MVT using Gram-Schmidt
 	*	reduction.
-	* 
+	*
 	*	3) We then transform all of the source verts in the VB
 	*	(xyz,rgba,uv,normal) into View space, using the MVT, and rotate all the
 	*	normals into view space using the normalized MVT (so that the normals
 	*	stay normalized!), filling out the ViewSpace Position & Normal in the PV
-	*	array. This is just a bunch of matrix-vertex multiplies. 
-	* 
-	* 
+	*	array. This is just a bunch of matrix-vertex multiplies.
+	*
+	*
 	*/
 
 	u32 AmbientColor = 0x202020;
@@ -85,7 +85,7 @@ namespace Jogo
 	}
 
 	// Maybe Camera, that has VT, Frustum, Projection
-	void RenderMesh(const Mesh& mesh, const Matrix4& ModelToWorld, const Camera& camera, const Bitmap& Target, const Bitmap& Texture, Arena& arena, bool fillTL)
+	void RenderMesh(const Mesh& mesh, const Matrix4& ModelToWorld, const Camera& camera, Bitmap& Target, const Bitmap& Texture, Arena& arena, bool fillTL)
 	{
 		// build MVT transform
 		Matrix4 View = camera.GetInverse();;
@@ -113,8 +113,8 @@ namespace Jogo
 			VertIter->ScreenPos = camera.Project(VertIter->ViewPos);
 			VertIter->u = mesh.Verts[i].u;
 			VertIter->v = mesh.Verts[i].v;
-			VertIter->uw = mesh.Verts[i].u*VertIter->ScreenPos.w;
-			VertIter->vw = mesh.Verts[i].v*VertIter->ScreenPos.w;
+			VertIter->uw = mesh.Verts[i].u * VertIter->ScreenPos.w;
+			VertIter->vw = mesh.Verts[i].v * VertIter->ScreenPos.w;
 			VertIter->bIsLit = false;
 			VertIter->OutCode = AABBOutCode ? camera.ClipCode(*VertIter, AABBOutCode) : 0;
 		}
@@ -125,7 +125,7 @@ namespace Jogo
 		u16* ShortIndices = mesh.SmallIndices;
 		u16* VisibleTriIter = VisibleTris;
 
-		for (u32 i = 0; i < mesh.NumTris; i++, ShortIndices+=3)
+		for (u32 i = 0; i < mesh.NumTris; i++, ShortIndices += 3)
 		{
 			RenderVertex& p = RenderVerts[ShortIndices[0]];
 			RenderVertex& q = RenderVerts[ShortIndices[1]];
@@ -151,7 +151,7 @@ namespace Jogo
 				// do backface check in screen space
 				if ((r.ScreenPos.x - p.ScreenPos.x) * (q.ScreenPos.y - p.ScreenPos.y) >=
 					(r.ScreenPos.y - p.ScreenPos.y) * (q.ScreenPos.x - p.ScreenPos.x))
-					continue;
+					continue;       
 			}
 
 			// Light the vertices
@@ -186,7 +186,7 @@ namespace Jogo
 			}
 		}
 
-		for (u16* TriIter = VisibleTris; TriIter < VisibleTriIter; TriIter +=3)
+		for (u16* TriIter = VisibleTris; TriIter < VisibleTriIter; TriIter += 3)
 		{
 			RenderVertex& p = RenderVerts[TriIter[0]];
 			RenderVertex& q = RenderVerts[TriIter[1]];
@@ -199,7 +199,7 @@ namespace Jogo
 				{ r.ScreenPos, r.color, r.uw, r.vw },
 			};
 			if (fillTL)
-				Target.FillTriangleTexLit(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
+				Target.FillTriangleTexLitInt(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
 			else
 				Target.FillTriangle(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
 			// Bitmap::VertexLit tri[3] = {
@@ -208,9 +208,9 @@ namespace Jogo
 			//	{r.ScreenPos.x, r.ScreenPos.y, r.color},
 			//};
 			//Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
-			//Target.DrawLine(p.ScreenPos.x, p.ScreenPos.y, q.ScreenPos.x, q.ScreenPos.y, 0);
-			//Target.DrawLine(q.ScreenPos.x, q.ScreenPos.y, r.ScreenPos.x, r.ScreenPos.y, 0);
-			//Target.DrawLine(r.ScreenPos.x, r.ScreenPos.y, p.ScreenPos.x, p.ScreenPos.y, 0);
+			//Target.DrawLine((s32)p.ScreenPos.x, (s32)p.ScreenPos.y, (s32)q.ScreenPos.x, (s32)q.ScreenPos.y, 0);
+			//Target.DrawLine((s32)q.ScreenPos.x, (s32)q.ScreenPos.y, (s32)r.ScreenPos.x, (s32)r.ScreenPos.y, 0);
+			//Target.DrawLine((s32)r.ScreenPos.x, (s32)r.ScreenPos.y, (s32)p.ScreenPos.x, (s32)p.ScreenPos.y, 0);
 		}
 	}
 
@@ -259,15 +259,15 @@ namespace Jogo
 
 		// build the planes from Projection
 		f.planes[0] = Plane{ -HCotFOV,	0.0f,	1.0f };
-		f.planes[1] = Plane{  HCotFOV,	0.0f,	1.0f };
-		f.planes[2] = Plane{  0.0f,    -CotFOV,	1.0f };
-		f.planes[3] = Plane{  0.0f,	    CotFOV, 1.0f };
-		f.planes[4] = Plane{  0.0f,		0.0f,	ProjectZ,	-NearZ * ProjectZ };
-		f.planes[5] = Plane{  0.0f,		0.0f,	1-ProjectZ,	NearZ * ProjectZ};
+		f.planes[1] = Plane{ HCotFOV,	0.0f,	1.0f };
+		f.planes[2] = Plane{ 0.0f,    -CotFOV,	1.0f };
+		f.planes[3] = Plane{ 0.0f,	    CotFOV, 1.0f };
+		f.planes[4] = Plane{ 0.0f,		0.0f,	ProjectZ,	-NearZ * ProjectZ };
+		f.planes[5] = Plane{ 0.0f,		0.0f,	1 - ProjectZ,	NearZ * ProjectZ };
 
 		for (u32 i = 0; i < 6; i++)
 			f.planes[i].Normalize();
-		
+
 		return f;
 	}
 
@@ -278,7 +278,7 @@ namespace Jogo
 		if (LEFT_PLANE & MeshCode)
 			code |= v.ScreenPos.x < 0 ? LEFT_PLANE : 0;
 		if (RIGHT_PLANE & MeshCode)
-			code |= v.ScreenPos.x > TargetWidth ? RIGHT_PLANE: 0;
+			code |= v.ScreenPos.x > TargetWidth ? RIGHT_PLANE : 0;
 		if (TOP_PLANE & MeshCode)
 			code |= v.ScreenPos.y < 0 ? TOP_PLANE : 0;
 		if (BOTTOM_PLANE & MeshCode)
@@ -339,7 +339,7 @@ namespace Jogo
 		// clip against NearZ first and project
 		if (TriOutCode & NEAR_PLANE)
 		{
-			u16 Index1 = FromIter[FromCount-1];
+			u16 Index1 = FromIter[FromCount - 1];
 			const RenderVertex* p1 = pIn + Index1;
 			for (u32 i = 0; i < FromCount; i++)
 			{
@@ -487,9 +487,64 @@ namespace Jogo
 		20,21,22, 21,23,22
 	};
 
-	Mesh CreateCube(float size)
+	Mesh CreateCube(f32 size)
 	{
 		Mesh m = { 24, CubeVerts, 12, CubeIndices, {-1.0f,-1.0f,-1.0f}, {1.0f,1.0f,1.0f} };
+
+		return m;
+	}
+
+	Mesh CreateSphere(f32 radius, u32 layers, u32 slices, Arena& arena)
+	{
+		u32 lat = max(layers, (u32)2);
+		u32 lon = max(slices, (u32)3);
+
+		u32 NumVerts = (lat+1) * (lon+1);
+		u32 NumTris = (lat - 1) * lon * 2;
+		MeshVertex* SphereVerts = (MeshVertex*)arena.Allocate(NumVerts * sizeof(MeshVertex));
+		u16* SphereIndices = (u16*)arena.Allocate(NumTris * 3 * sizeof(u16));
+		f32 dtheta = 2 * PI / lon;
+		f32 dphi = PI / lat;
+		f32 theta = 0.0;
+		MeshVertex* dest = SphereVerts;
+		u16 Index = 0;
+		u16* destIndices = SphereIndices;
+		for (u32 j = 0; j <= lon; j++, theta += dtheta)
+		{
+			f32 s = sine(theta);
+			f32 c = cosine(theta);
+			f32 phi = 0.0f;
+			for (u32 i = 0; i <= lat; i++, phi += dphi)
+			{
+				f32 cphi = cosine(phi);
+				f32 sphi = sine(phi);
+				dest->Pos = Vector3 { radius * sphi * c, radius * cphi, radius * sphi * s };
+				Vector3 norm = SphereVerts->Pos;
+				norm.Normalize();
+				dest->Normal = norm;
+				dest->u = (f32)j / lon;
+				dest->v = (f32)i / lat;
+				dest++;
+				if (i < lat && j < lon)
+				{
+					if (i > 0)
+					{
+						*destIndices++ = Index;
+						*destIndices++ = Index + lat + 1;
+						*destIndices++ = Index + lat + 2;
+					}
+					if (i < lat - 1)
+					{
+						*destIndices++ = Index;
+						*destIndices++ = Index + lat + 2;
+						*destIndices++ = Index + 1;
+					}
+				}
+				Index++;
+			}
+		}
+
+		Mesh m = { NumVerts, SphereVerts, NumTris, SphereIndices, {-radius, -radius, -radius}, {radius, radius, radius} };
 
 		return m;
 	}

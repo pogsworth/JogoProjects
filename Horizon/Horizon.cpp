@@ -31,6 +31,8 @@ class Horizon : public Jogo::App
 	float frameDelta = 0;
 	Matrix4 CubeTransform;
 	Mesh Cube;
+	Matrix4 SphereTransform;
+	Mesh Sphere;
 	Camera MainCamera;
 	s32 MouseX;
 	s32 MouseY;
@@ -45,7 +47,7 @@ class Horizon : public Jogo::App
 	float triangleTheta = 20.0f * D2R;
 
 public:
-	Horizon() 
+	Horizon()
 	{
 		HorizonArena = Arena::Create(DefaultArenaSize);
 		AtariFont = Font::Load("../Jogo/Atari8.fnt", HorizonArena);
@@ -54,10 +56,14 @@ public:
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
 		Texture = Bitmap::Load("checker.bmp", HorizonArena);
 		Cube = CreateCube(1.0f);
+		Sphere = CreateSphere(1.0f, 16, 16, DefaultArena);
 		CubeTransform = Matrix4::Identity();
 		CubeTransform.RotateZ(45.0f * D2R);
 		CubeTransform.RotateX(45.0f * D2R);
 		CubeTransform.Translate({ 0.0f, -1.0f, 0.0f });
+		SphereTransform = Matrix4::Identity();
+		//SphereTransform.Scale({ 0.5f, 0.5f, 0.5f });
+		SphereTransform.Translate({ 0.0f, 0.0f, -4.0f });
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
 //		MainCamera.RotateX(45*D2R);
 		MainCamera.Translate({ 0.0f, 0.0f, -8.0f });
@@ -326,9 +332,9 @@ public:
 		float y1 = triangle[1].y;
 		float y2 = triangle[2].y;
 
-		float w0w1 = triangle[0].w * triangle[1].w;
-		float w0w2 = triangle[0].w * triangle[2].w;
-		float w1w2 = triangle[1].w * triangle[2].w;
+		float w01 = 1.0f / (triangle[0].w * triangle[1].w);
+		float w02 = 1.9f / (triangle[0].w * triangle[2].w);
+		float w12 = 1.0f / (triangle[1].w * triangle[2].w);
 
 		float minx = Jogo::max(min3(x0, x1, x2), 0.0f);
 		float miny = Jogo::max(min3(y0, y1, y2), 0.0f);
@@ -341,14 +347,12 @@ public:
 			float dx21 = x2 - x1; float dy21 = y2 - y1;
 			float dx02 = x0 - x2; float dy02 = y0 - y2;
 
-			float Area = dx02 * dy10 - dy02 * dx10;
-
-			dx10 *= w0w1 / Area;
-			dx21 *= w1w2 / Area;
-			dx02 *= w0w2 / Area;
-			dy10 *= w0w1 / Area;
-			dy21 *= w1w2 / Area;
-			dy02 *= w0w2 / Area;
+			dx10 *= w01;
+			dx21 *= w12;
+			dx02 *= w02;
+			dy10 *= w01;
+			dy21 *= w12;
+			dy02 *= w02;
 
 			// edge functions
 			float e0 = (dx21 * (miny - y1) - (minx - x1) * dy21);
@@ -358,9 +362,9 @@ public:
 			float px = MouseX - triangle[0].x;
 			float py = MouseY - triangle[0].y;
 
-			float u = (e1 - px * dy02 + py * dx02);
-			float v = (e2 - px * dy10 + py * dx10);
-			float w = (e0 - px * dy21 + py * dx21);
+			float w = (e1 - px * dy02 + py * dx02);
+			float u = (e2 - px * dy10 + py * dx10);
+			float v = (e0 - px * dy21 + py * dx21);
 
 			float uvw = 1.0f / ( u + v + w );
 			float uw = v * uvw;
@@ -414,6 +418,8 @@ public:
 		str8 pitchstr(pitchString, len);
 //		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
 		CubeTransform.RotateY(0.2f * frameDelta);
+		SphereTransform.RotateX(frameDelta);
+		//SphereTransform.RotateX(frameDelta);
 		//CubeTransform.RotateX(2.0f * frameDelta);
 		//for (u32 i = 0; i < 10; i++)
 		//{
@@ -421,7 +427,8 @@ public:
 		//	{
 		//		CubeTransform.translate = Vector3{ j*3.0f - 13.5f, i*3.0f - 13.5f, 30.0f };
 		//		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
-				RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
+//		RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
+		RenderMesh(Sphere, SphereTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
 		//	}
 		//}
 		//MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });

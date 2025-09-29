@@ -901,7 +901,7 @@ static void point_to_fixed_xform(s32* ox, s32* oy, const Bitmap::VertexTexLit& i
 	*oy = fixed(in.y);
 }
 
-void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
+void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture)
 {
 	s32 x0, x1, x2;
 	s32 y0, y1, y2;
@@ -999,7 +999,7 @@ void Bitmap::FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const Ve
 	}
 }
 
-void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
+void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture)
 {
 	float x0, x1, x2;
 	float y0, y1, y2;
@@ -1108,7 +1108,7 @@ void Bitmap::FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const 
 	}
 }
 
-void Bitmap::FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const
+void Bitmap::FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture)
 {
 	float x0, x1, x2;
 	float y0, y1, y2;
@@ -1204,6 +1204,119 @@ void Bitmap::FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, co
 		e2 += dx02;
 	}
 }
+
+void Bitmap::FillTriangleTexLitInt(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture)
+{
+	s32 x0, x1, x2;
+	s32 y0, y1, y2;
+	s32 minx, miny, maxx, maxy;
+	s32 dx10, dx21, dx02;
+	s32 dy10, dy21, dy02;
+	EdgeDist e0, e1, e2;
+	s32 t;
+	s32 x, y;
+	s64 det;
+	int incr;
+
+	// convert coordinates to fixed point
+	x0 = fixed(a.x);	y0 = fixed(a.y);
+	x1 = fixed(b.x);	y1 = fixed(b.y);
+	x2 = fixed(c.x);	y2 = fixed(c.y);
+
+	float w0 = 1.0f / a.w;
+	float w1 = 1.0f / b.w;
+	float w2 = 1.0f / c.w;
+	float w01 = w0 * w1;
+	float w21 = w2 * w1;
+	float w02 = w0 * w2;
+	float bigw = 1.0f / max3(w01, w21, w02);
+	w01 *= bigw;
+	w21 *= bigw;
+	w02 *= bigw;
+	s32 w01fix = (s32)(w01 * SUBPIXEL_SCALE + 0.5f);
+	s32 w21fix = (s32)(w21 * SUBPIXEL_SCALE + 0.5f);
+	s32 w02fix = (s32)(w02 * SUBPIXEL_SCALE + 0.5f);
+
+	float u0 = a.u * w0;
+	float u1 = b.u * w1 - u0;
+	float u2 = c.u * w2 - u0;
+	float v0 = a.v * w0;
+	float v1 = b.v * w1 - v0;
+	float v2 = c.v * w2 - v0;
+
+	// check triangle winding order
+	det = det2x2(x1 - x0, x2 - x0, y1 - y0, y2 - y0);
+	if (det > 0)
+		incr = 1;
+	else if (det < 0) {
+		incr = 1;	// allow_neg_winding ? -1 : 1;
+		t = x0; x0 = x1; x1 = t;
+		t = y0; y0 = y1; y1 = t;
+	}
+	else // zero-area triangle
+		return;
+
+	float area = 1.0f / det;
+
+	// bounding box / clipping
+	minx = max(fixed_ceil(min3(x0, x1, x2)), (s32)0);
+	miny = max(fixed_ceil(min3(y0, y1, y2)), (s32)0);
+	maxx = min(fixed_ceil(max3(x0, x1, x2)), (s32)Width);
+	maxy = min(fixed_ceil(max3(y0, y1, y2)), (s32)Height);
+	if (minx >= maxx || miny >= maxy)
+		return;
+
+	// edge vectors5
+	dx10 = (w01fix * (x1 - x0)) >> SUBPIXEL_SHIFT; dy10 = (w01fix * (y1 - y0)) >> SUBPIXEL_SHIFT;
+	dx21 = (w21fix * (x2 - x1)) >> SUBPIXEL_SHIFT; dy21 = (w21fix * (y2 - y1)) >> SUBPIXEL_SHIFT;
+	dx02 = (w02fix * (x0 - x2)) >> SUBPIXEL_SHIFT; dy02 = (w02fix * (y0 - y2)) >> SUBPIXEL_SHIFT;
+
+	// edge functions
+	e0 = (EdgeDist)det2x2_fill_convention(dx10, (minx << SUBPIXEL_SHIFT) - x0, dy10, (miny << SUBPIXEL_SHIFT) - y0);
+	e1 = (EdgeDist)det2x2_fill_convention(dx21, (minx << SUBPIXEL_SHIFT) - x1, dy21, (miny << SUBPIXEL_SHIFT) - y1);
+	e2 = (EdgeDist)det2x2_fill_convention(dx02, (minx << SUBPIXEL_SHIFT) - x2, dy02, (miny << SUBPIXEL_SHIFT) - y2);
+
+	// rasterize
+	for (y = miny; y < maxy; y++) {
+		u32* line = PixelBGRA + y * Width;
+		EdgeDist ei0 = e0, ei1 = e1, ei2 = e2;
+
+		for (x = minx; x < maxx; x++) {
+			if ((ei0 | ei1 | ei2) >= 0) // pixel in triangle
+			{
+				float denom = 1.0f / (ei0 + ei1 + ei2);
+				float s = ei2 * denom;
+				float t = ei0 * denom;
+				float u = u0 + s * u1 + t * u2;
+				float v = v0 + s * v1 + t * v2;
+				//float umod = u - (int)(u);
+				//float vmod = v - (int)(v);
+				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
+//				u32 rgb = ((u32)(255 * umod) << 8) + (u32)(255 * vmod);
+				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
+				line[x] = texel;	// line[x] + incr;
+			}
+			ei0 -= dy10;
+			ei1 -= dy21;
+			ei2 -= dy02;
+		}
+
+		e0 += dx10;
+		e1 += dx21;
+		e2 += dx02;
+	}
+}
+
+// All permutations of reasonable FillTriangle functions:
+// Lit
+// Textured
+// TexLit
+// ZLit
+// ZTexture
+// ZTexLit
+// pixel shaders?
+// more than one texture
+// texture filtering - bilinear + mip-mapping
 
 Bitmap Bitmap::Load(const char* filename, Arena& arena)
 {

@@ -266,10 +266,10 @@ struct Bitmap
 	Gradient MakeGradient(VertexLit corners[]);
 	void FillTriangle(VertexLit corners[]);
 	void TriangleScanLine(s32 y, Edge&, Edge&, Gradient&);
-	void FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
-	void FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
-	void FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture) const;
-	//void FillTexLitTriangle(VertexTexLit);
+	void FillTriangle(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture);
+	void FillTriangleTL(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture);
+	void FillTriangleTexLit(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture);
+	void FillTriangleTexLitInt(const VertexTexLit& a, const VertexTexLit& b, const VertexTexLit& c, const Bitmap& texture);
 
 	static Bitmap Load(const char* filename, Arena& arena);
 	static Bitmap Create(u32 Width, u32 Height, u32 PixelSize, Arena& arena)
