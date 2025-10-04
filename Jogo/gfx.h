@@ -68,8 +68,12 @@ namespace Jogo
 		u32 AABBOutCode;
 	};
 
-	Mesh CreateCube(f32 size);
-	Mesh CreateSphere(f32 radius, u32 layers, u32 slices, Arena& arena);
+	Mesh CreateCube();
+	Mesh CreateTetra();
+	Mesh CreateOcta();
+	Mesh CreateIcosa();
+	Mesh CreateDodeca();
+	Mesh CreateSphere(u32 layers, u32 slices, Arena& arena);
 
 	// Plane bits returned in the outcodes
 	const u32 LEFT_PLANE	= 1;

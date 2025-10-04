@@ -444,57 +444,450 @@ namespace Jogo
 		return FromCount;
 	}
 
-	MeshVertex CubeVerts[]
+	Mesh CreateCube()
 	{
-		{ {1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 1.0f },
-		{ {1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 1.0f },
+		const int NumCubeCorners = 8;
+		const int NumCubeFaces = 6;
+		const int NumCubeTris = 2 * NumCubeFaces;
+		const int NumCubeVerts = 3 * NumCubeTris;
+		static MeshVertex CubeVerts[]
+		{
+			{ {1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f },
+			{ {-1.0f,	1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 0.0f, 1.0f },
+			{ {1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 0.0f },
+			{ {-1.0f,	-1.0f,	1.0f},	{0.0f, 0.0f, 1.0f}, 1.0f, 1.0f },
 
-		{ {1.0f,	1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
-		{ {1.0f,	-1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
-		{ {1.0f,	1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
-		{ {1.0f,	-1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
+			{ {1.0f,	1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
+			{ {1.0f,	-1.0f,	1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
+			{ {1.0f,	1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
+			{ {1.0f,	-1.0f,	-1.0f},	{1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
 
-		{ {1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 1.0f },
-		{ {1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 1.0f },
+			{ {1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 0.0f },
+			{ {-1.0f,	1.0f,	1.0f},	{0.0f, 1.0f, 0.0f}, 0.0f, 1.0f },
+			{ {1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 0.0f },
+			{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 1.0f, 0.0f}, 1.0f, 1.0f },
 
-		{ {1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 1.0f },
-		{ {1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 1.0f },
+			{ {1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 0.0f },
+			{ {-1.0f,	1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 0.0f, 1.0f },
+			{ {1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 0.0f },
+			{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, 0.0f, -1.0f}, 1.0f, 1.0f },
 
-		{ {-1.0f,	1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
+			{ {-1.0f,	1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 0.0f },
+			{ {-1.0f,	-1.0f,	1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 0.0f },
+			{ {-1.0f,	1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 1.0f, 1.0f },
+			{ {-1.0f,	-1.0f,	-1.0f},	{-1.0f, 0.0f, 0.0f}, 0.0f, 1.0f },
 
-		{ {1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 1.0f },
-		{ {1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
-		{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 1.0f },
-	};
+			{ {1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 0.0f },
+			{ {-1.0f,	-1.0f,	1.0f},	{0.0f, -1.0f, 0.0f}, 1.0f, 1.0f },
+			{ {1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 0.0f },
+			{ {-1.0f,	-1.0f,	-1.0f},	{0.0f, -1.0f, 0.0f}, 0.0f, 1.0f },
+		};
 
-	u16 CubeIndices[]
-	{
-		0,1,2, 2,1,3,
-		4,5,6, 6,5,7,
-		9,8,10, 9,10,11,
-		13,12,14, 13,14,15,
-		16,18,17, 17,18,19,
-		20,21,22, 21,23,22
-	};
+		static u16 CubeIndices[]
+		{
+			0,1,2, 2,1,3,
+			4,5,6, 6,5,7,
+			9,8,10, 9,10,11,
+			13,12,14, 13,14,15,
+			16,18,17, 17,18,19,
+			20,21,22, 21,23,22
+		};
 
-	Mesh CreateCube(f32 size)
-	{
-		Mesh m = { 24, CubeVerts, 12, CubeIndices, {-1.0f,-1.0f,-1.0f}, {1.0f,1.0f,1.0f} };
+		Mesh m = { NumCubeVerts, CubeVerts, NumCubeTris, CubeIndices, {-1.0f,-1.0f,-1.0f}, {1.0f,1.0f,1.0f} };
 
 		return m;
 	}
 
-	Mesh CreateSphere(f32 radius, u32 layers, u32 slices, Arena& arena)
+	Mesh CreateTetra()
+	{
+		const int NumTetraCorners = 4;
+		const int NumTetraTris = 4;
+		const int NumTetraVerts = 3 * NumTetraTris;
+
+		static MeshVertex TetraVerts[NumTetraVerts] = {
+			{ { -1.f,-1.f,-1.f }, {}, 0.0f, 0.0f },
+			{ { -1.f, 1.f, 1.f }, {}, 1.0f, 0.0f },
+			{ {  1.f, 1.f,-1.f }, {}, 0.0f, 1.0f },
+
+			{ {  1.f,-1.f, 1.f }, {}, 0.0f, 0.0f },
+			{ {  1.f, 1.f,-1.f }, {}, 1.0f, 0.0f },
+			{ { -1.f, 1.f, 1.f }, {}, 0.0f, 1.0f },
+
+			{ {  1.f, 1.f,-1.f }, {}, 0.0f, 0.0f },
+			{ {  1.f,-1.f, 1.f }, {}, 1.0f, 0.0f },
+			{ { -1.f,-1.f,-1.f }, {}, 0.0f, 1.0f },
+
+			{ { -1.f, 1.f, 1.f }, {}, 0.0f, 0.0f },
+			{ { -1.f,-1.f,-1.f }, {}, 1.0f, 0.0f },
+			{ {  1.f,-1.f, 1.f }, {}, 0.0f, 1.0f },
+		};
+
+		static u16 TetraTris[3 * NumTetraTris] = {
+			0,1,2,
+			3,4,5,
+			6,7,8,
+			9,10,11
+		};
+
+		// fill in the normals:
+		for (u32 i = 0; i < NumTetraTris; i++)
+		{
+			Vector3 a = TetraVerts[i * 3 + 1].Pos - TetraVerts[i * 3].Pos;
+			Vector3 b = TetraVerts[i * 3 + 2].Pos - TetraVerts[i * 3].Pos;
+			Vector3 n = Vector3::Cross(a, b);
+			n.Normalize();
+
+			for (u32 j = 0; j < 3; j++)
+			{
+				TetraVerts[i * 3 + j].Normal = n;
+			}
+		}
+
+		Mesh m = { NumTetraVerts, TetraVerts, NumTetraTris, TetraTris, {-1.0f,-1.0f,-1.0f}, {1.0f, 1.0f, 1.0f} };
+		return m;
+	}
+
+	Mesh CreateOcta()
+	{
+		const int NumOctaCorners = 6;
+		const int NumOctaTris = 8;
+		const int NumOctaVerts = 3 * NumOctaTris;
+
+		static MeshVertex OctaVerts[NumOctaVerts] = {
+			{ { 0.f, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, 0.f}, {}, 1.0f, 0.0f },
+			{ { 0.f, 0.f, 1.f}, {}, 0.0f, 1.0f },
+			{ { 0.f, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 0.f, 0.f, 1.f}, {}, 1.0f, 0.0f },
+			{ { 1.f, 0.f, 0.f}, {}, 0.0f, 1.0f },
+			{ { 0.f, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 1.f, 0.f, 0.f}, {}, 1.0f, 0.0f },
+			{ { 0.f, 0.f,-1.f}, {}, 0.0f, 1.0f },
+			{ { 0.f, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 0.f, 0.f,-1.f}, {}, 1.0f, 0.0f },
+			{ {-1.f, 0.f, 0.f}, {}, 0.0f, 1.0f },
+
+			{ { 0.f,-1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 0.f, 0.f, 1.f}, {}, 0.0f, 1.0f },
+			{ {-1.f, 0.f, 0.f}, {}, 1.0f, 0.0f },
+			{ { 0.f,-1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 1.f, 0.f, 0.f}, {}, 0.0f, 1.0f },
+			{ { 0.f, 0.f, 1.f}, {}, 1.0f, 0.0f },
+			{ { 0.f,-1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ { 0.f, 0.f,-1.f}, {}, 0.0f, 1.0f },
+			{ { 1.f, 0.f, 0.f}, {}, 1.0f, 0.0f },
+			{ { 0.f,-1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, 0.f}, {}, 0.0f, 1.0f },
+			{ { 0.f, 0.f,-1.f}, {}, 1.0f, 0.0f },
+		};
+
+		static u16 OctaTris[3 * NumOctaTris] = {
+			0,1,2,		3,4,5,
+			6,7,8,		9,10,11,
+			12,13,14,	15,16,17,
+			18,19,20,	21,22,23
+		};
+
+
+		// fill in the normals:
+		for (u32 i = 0; i < NumOctaTris; i++)
+		{
+			Vector3 a = OctaVerts[i * 3 + 1].Pos - OctaVerts[i * 3].Pos;
+			Vector3 b = OctaVerts[i * 3 + 2].Pos - OctaVerts[i * 3].Pos;
+			Vector3 n = Vector3::Cross(a, b);
+			n.Normalize();
+
+			for (u32 j = 0; j < 3; j++)
+			{
+				OctaVerts[i * 3 + j].Normal = n;
+			}
+		}
+
+		Mesh m = { NumOctaVerts, OctaVerts, NumOctaTris, OctaTris, {-1.0f,-1.0f,-1.0f}, {1.0f, 1.0f, 1.0f} };
+		return m;
+	}
+
+	Mesh CreateIcosa()
+	{
+		const int NumIcosaCorners = 12;
+		const int NumIcosaTris = 20;
+		const int NumIcosaVerts = 3 * NumIcosaTris;
+		const float G = 1.618034f;		//golden mean
+
+		static MeshVertex IcosaVerts[NumIcosaVerts] = {
+			{ {   G, 1.f, 0.f }, {}, 0.0f, 0.0f },
+			{ { 0.f,   G,-1.f }, {}, 1.0f, 0.0f },
+			{ { 0.f,   G, 1.f }, {}, 0.0f, 1.0f },
+
+			{ {   G, 1.f, 0.f }, {}, 0.0f, 0.0f },
+			{ { 0.f,   G, 1.f }, {}, 1.0f, 0.0f },
+			{ { 1.f, 0.f,   G }, {}, 0.0f, 1.0f },
+
+			{ {   G, 1.f, 0.f }, {}, 0.0f, 0.0f },
+			{ { 1.f, 0.f,   G }, {}, 1.0f, 0.0f },
+			{ {   G,-1.f, 0.f }, {}, 0.0f, 1.0f },
+
+			{ {G, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {G, -1.f, 0.f}, {}, 1.0f, 0.0f },
+			{ {1.f, 0.f, -G}, {}, 0.0f, 1.0f },
+
+			{ {G, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {1.f, 0.f, -G}, {}, 0.0f, 1.0f },
+			{ { 0.f,   G,-1.f }, {}, 1.0f, 0.0f },
+
+			{ {-G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {0.f, -G, -1.f}, {}, 1.0f, 0.0f },
+			{ {0.f, -G, 1.f}, {}, 0.0f, 1.0f },
+
+			{ {-G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {0.f, -G, 1.f}, {}, 1.0f, 0.0f },
+			{ {-1.f, 0.f, G}, {}, 0.0f, 1.0f },
+
+			{ {-G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, G}, {}, 1.0f, 0.0f },
+			{ {-G, 1.f, 0.f}, {}, 0.0f, 1.0f },
+
+			{ {-G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {-G, 1.f, 0.f}, {}, 1.0f, 0.0f },
+			{ {-1.f, 0.f, -G}, {}, 0.0f, 1.0f },
+
+			{ {-G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, -G}, {}, 1.0f, 0.0f },
+			{ {0.f, -G, -1.f}, {}, 0.0f, 1.0f },
+
+			{ {0.f, -G, -1.f}, {}, 0.0f, 0.0f },
+			{ {1.f, 0.f, -G}, {}, 1.0f, 0.0f },
+			{ {G, -1.f, 0.f}, {}, 0.0f, 1.0f },
+
+			{ {1.f, 0.f, -G}, {}, 0.0f, 0.0f },
+			{ {0.f, -G, -1.f}, {}, 1.0f, 0.0f },
+			{ {-1.f, 0.f, -G}, {}, 0.0f, 1.0f },
+
+			{ {-1.f, 0.f, -G}, {}, 0.0f, 0.0f },
+			{ {0.f, G, -1.f}, {}, 1.0f, 0.0f },
+			{ {1.f, 0.f, -G}, {}, 0.0f, 1.0f },
+
+			{ {0.f, G, -1.f}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, -G}, {}, 1.0f, 0.0f },
+			{ {-G, 1.f, 0.f}, {}, 0.0f, 1.0f },
+
+			{ {-G, 1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {0.f, G, 1.f}, {}, 1.0f, 0.0f },
+			{ {0.f, G, -1.f}, {}, 0.0f, 1.0f },
+
+			{ {0.f, G, 1.f}, {}, 0.0f, 0.0f },
+			{ {-G, 1.f, 0.f}, {}, 1.0f, 0.0f },
+			{ {-1.f, 0.f, G}, {}, 0.0f, 1.0f },
+
+			{ {-1.f, 0.f, G}, {}, 0.0f, 0.0f },
+			{ {1.f, 0.f, G}, {}, 1.0f, 0.0f },
+			{ {0.f, G, 1.f}, {}, 0.0f, 1.0f },
+
+			{ {1.f, 0.f, G}, {}, 0.0f, 0.0f },
+			{ {-1.f, 0.f, G}, {}, 1.0f, 0.0f },
+			{ {0.f, -G, 1.f}, {}, 0.0f, 1.0f },
+
+			{ {G, -1.f, 0.f}, {}, 0.0f, 0.0f },
+			{ {1.f, 0.f, G}, {}, 1.0f, 0.0f },
+			{ {0.f, -G, 1.f}, {}, 0.0f, 1.0f },
+
+			{ {0.f, -G, 1.f}, {}, 0.0f, 0.0f },
+			{ {0.f, -G, -1.f}, {}, 1.0f, 0.0f },
+			{ {G, -1.f, 0.f}, {}, 0.0f, 1.0f },
+		};
+
+		static u16 IcosaTris[3 * NumIcosaTris] = {
+			0,1,2,
+			3,4,5,	
+			6,7,8,	
+			9,10,11,	
+			12,13,14,
+			15,16,17,	
+			18,19,20,	
+			21,22,23,	
+			24,25,26,
+			27,28,29,
+			30,31,32,
+			33,34,35,
+			36,37,38,
+			39,40,41,
+			42,43,44,
+			45,46,47,
+			48,49,50,
+			51,52,53,
+			54,55,56,
+			57,58,59
+		};
+
+		// fill in the normals:
+		for (u32 i = 0; i < NumIcosaTris; i++)
+		{
+			Vector3 a = IcosaVerts[i * 3 + 1].Pos - IcosaVerts[i * 3].Pos;
+			Vector3 b = IcosaVerts[i * 3 + 2].Pos - IcosaVerts[i * 3].Pos;
+			Vector3 n = Vector3::Cross(a, b);
+			n.Normalize();
+
+			for (u32 j = 0; j < 3; j++)
+			{
+				IcosaVerts[i * 3 + j].Normal = n;
+			}
+		}
+
+		Mesh m = { NumIcosaVerts, IcosaVerts, NumIcosaTris, IcosaTris, {-G,-G,-G}, {G, G, G} };
+		return m;
+	}
+
+	Mesh CreateDodeca()
+	{
+		const int NumDodecaFaces = 12;
+		const int NumDodecaTris = 3 * NumDodecaFaces;
+		const int NumDodecaVerts = 3 * NumDodecaTris;
+		const float G = 1.618034f;		//golden mean
+		const float GG = G - 1;
+/*
+0		Vec3(-1.f, -1.f, -1.f),
+1		Vec3(1.f, -1.f, -1.f),
+2		Vec3(-1.f, 1.f, -1.f),
+3		Vec3(1.f, 1.f, -1.f),
+4		Vec3(-1.f, -1.f, 1.f),
+5		Vec3(1.f, -1.f, 1.f),
+6		Vec3(-1.f, 1.f, 1.f),
+7		Vec3(1.f, 1.f, 1.f),
+8		Vec3(G, GG, 0.f),
+9		Vec3(-G, GG, 0.f),
+10		Vec3(-G, -GG, 0.f),
+11		Vec3(G, -GG, 0.f),
+12		Vec3(0, G, GG),
+13		Vec3(0, G, -GG),
+14		Vec3(0, -G, -GG),
+15		Vec3(0, -G, GG),
+16		Vec3(GG, 0.f, G),
+17		Vec3(-GG, 0.f, G),
+18		Vec3(-GG, 0.f, -G),
+19		Vec3(GG, 0.f, -G)
+
+8, 3, 13, 12, 7,
+9, 6, 12, 13, 2,
+12, 6, 17, 16, 7,
+13, 3, 19, 18, 2,
+19, 3, 8, 11, 1,
+18, 0, 10, 9, 2,
+16, 5, 11, 8, 7,
+17, 6, 9, 10, 4,
+11, 5, 15, 14, 1,
+10, 0, 14, 15, 4,
+14, 0, 18, 19, 1,
+15, 5, 16, 17, 4
+*/
+
+		static MeshVertex DodecaVerts[NumDodecaVerts] = {
+			{{G, GG, 0.f}, {}, 0.5f, 1.00f},
+			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{0, G, -GG}, {}, 1.0f, 0.0f},
+			{{0, G, GG}, {}, 0.0f, 0.0f},
+			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+
+			{{-G, GG, 0.f}, {}, 0.5f, 1.00f},
+			{{-1.f, 1.f, 1.f}, {}, 1.0f, 1.0f},
+			{{0, G, GG}, {}, 1.0f, 0.0f},
+			{{0, G, -GG}, {}, 0.0f, 0.0f},
+			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{0, G, GG}, {}, 0.5f, 1.00f},
+			{{-1.f, 1.f, 1.f}, {}, 1.0f, 1.0f},
+			{{-GG, 0.f, G}, {}, 1.0f, 0.0f},
+			{{GG, 0.f, G}, {}, 0.0f, 0.0f},
+			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+
+			{{0, G, -GG}, {}, 0.5f, 1.00f},
+			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{GG, 0.f, -G}, {}, 1.0f, 0.0f},
+			{{-GG, 0.f, -G}, {}, 0.0f, 0.0f},
+			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{GG, 0.f, -G}, {}, 0.5f, 1.00f},
+			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{G, GG, 0.f}, {}, 1.0f, 0.0f},
+			{{G, -GG, 0.f}, {}, 0.0f, 0.0f},
+			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{-GG, 0.f, -G}, {}, 0.5f, 1.00f},
+			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{-G, -GG, 0.f}, {}, 1.0f, 0.0f},
+			{{-G, GG, 0.f}, {}, 0.0f, 0.0f},
+			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{GG, 0.f, G}, {}, 0.5f, 1.00f},
+			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
+			{{G, -GG, 0.f}, {}, 1.0f, 0.0f},
+			{{G, GG, 0.f}, {}, 0.0f, 0.0f},
+			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+
+			{{-GG, 0.f, G}, {}, 0.5f, 1.00f},
+			{{-1.f, 1.f, 1.f}, {}, 1.0f,1.0f},
+			{{-G, GG, 0.f}, {}, 1.0f, 0.0f},
+			{{-G, -GG, 0.f}, {}, 0.0f, 0.0f},
+			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+
+			{{G, -GG, 0.f}, {}, 0.5f, 1.00f},
+			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
+			{{0, -G, GG}, {}, 1.0f, 0.0f},
+			{{0, -G, -GG}, {}, 0.0f, 0.0f},
+			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{-G, -GG, 0.f}, {}, 0.5f, 1.00f},
+			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{0, -G, -GG}, {}, 1.0f, 0.0f},
+			{{0, -G, GG}, {}, 0.0f, 0.0f},
+			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+
+			{{0, -G, -GG}, {}, 0.5f, 1.00f},
+			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
+			{{-GG, 0.f, -G}, {}, 1.0f, 0.0f},
+			{{GG, 0.f, -G}, {}, 0.0f, 0.0f},
+			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+
+			{{0, -G, GG}, {}, 0.5f, 1.00f},
+			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
+			{{GG, 0.f, G}, {}, 1.0f, 0.0f},
+			{{-GG, 0.f, G}, {}, 0.0f, 0.0f},
+			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+		};
+
+		static u16 DodecaTris[3 * NumDodecaTris] = {
+			0,1,2, 0,2,3, 0,3,4,
+			5,6,7, 5,7,8, 5,8,9,
+			10,11,12, 10,12,13, 10,13,14,
+			15,16,17, 15,17,18, 15,18,19,
+			20,21,22, 20,22,23, 20,23,24,
+			25,26,27, 25,27,28, 25,28,29,
+			30,31,32, 30,32,33, 30,33,34,
+			35,36,37, 35,37,38, 35,38,39,
+			40,41,42, 40,42,43, 40,43,44,
+			45,46,47, 45,47,48, 45,48,49,
+			50,51,52, 50,52,53, 50,53,54,
+			55,56,57, 55,57,58, 55,58,59
+		};
+
+		// fill in the normals:
+		for (u32 i = 0; i < NumDodecaFaces; i++)
+		{
+			Vector3 a = DodecaVerts[i * 5 + 1].Pos - DodecaVerts[i * 5].Pos;
+			Vector3 b = DodecaVerts[i * 5 + 2].Pos - DodecaVerts[i * 5].Pos;
+			Vector3 n = Vector3::Cross(a, b);
+			n.Normalize();
+
+			for (u32 j = 0; j < 5; j++)
+			{
+				DodecaVerts[i * 5 + j].Normal = n;
+			}
+		}
+
+		Mesh m = { NumDodecaVerts, DodecaVerts, NumDodecaTris, DodecaTris, {-G,-G,-G}, {G, G, G} };
+		return m;
+	}
+
+	Mesh CreateSphere(u32 layers, u32 slices, Arena& arena)
 	{
 		u32 lat = max(layers, (u32)2);
 		u32 lon = max(slices, (u32)3);
@@ -518,7 +911,7 @@ namespace Jogo
 			{
 				f32 cphi = cosine(phi);
 				f32 sphi = sine(phi);
-				dest->Pos = Vector3 { radius * sphi * c, radius * cphi, radius * sphi * s };
+				dest->Pos = Vector3 { sphi * c, cphi, sphi * s };
 				Vector3 norm = SphereVerts->Pos;
 				norm.Normalize();
 				dest->Normal = norm;
@@ -544,7 +937,7 @@ namespace Jogo
 			}
 		}
 
-		Mesh m = { NumVerts, SphereVerts, NumTris, SphereIndices, {-radius, -radius, -radius}, {radius, radius, radius} };
+		Mesh m = { NumVerts, SphereVerts, NumTris, SphereIndices, {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} };
 
 		return m;
 	}
