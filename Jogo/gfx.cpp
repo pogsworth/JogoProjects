@@ -199,18 +199,23 @@ namespace Jogo
 				{ r.ScreenPos, r.color, r.uw, r.vw },
 			};
 			if (fillTL)
+			{
 				Target.FillTriangleTexLitInt(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
+			}
 			else
-				Target.FillTriangle(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
-			// Bitmap::VertexLit tri[3] = {
-			//	{p.ScreenPos.x, p.ScreenPos.y, p.color},
-			//	{q.ScreenPos.x, q.ScreenPos.y, q.color},
-			//	{r.ScreenPos.x, r.ScreenPos.y, r.color},
-			//};
-			//Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
-			//Target.DrawLine((s32)p.ScreenPos.x, (s32)p.ScreenPos.y, (s32)q.ScreenPos.x, (s32)q.ScreenPos.y, 0);
-			//Target.DrawLine((s32)q.ScreenPos.x, (s32)q.ScreenPos.y, (s32)r.ScreenPos.x, (s32)r.ScreenPos.y, 0);
-			//Target.DrawLine((s32)r.ScreenPos.x, (s32)r.ScreenPos.y, (s32)p.ScreenPos.x, (s32)p.ScreenPos.y, 0);
+			{
+				//else
+				//	Target.FillTriangle(p.GetTexLitVertex(), q.GetTexLitVertex(), r.GetTexLitVertex(), Texture);
+				// Bitmap::VertexLit tri[3] = {
+				//	{p.ScreenPos.x, p.ScreenPos.y, p.color},
+				//	{q.ScreenPos.x, q.ScreenPos.y, q.color},
+				//	{r.ScreenPos.x, r.ScreenPos.y, r.color},
+				//};
+				//Target.FillTriangle(tri);	// tri, tri + 1, tri + 2);
+				Target.DrawLine((s32)p.ScreenPos.x, (s32)p.ScreenPos.y, (s32)q.ScreenPos.x, (s32)q.ScreenPos.y, 0);
+				Target.DrawLine((s32)q.ScreenPos.x, (s32)q.ScreenPos.y, (s32)r.ScreenPos.x, (s32)r.ScreenPos.y, 0);
+				Target.DrawLine((s32)r.ScreenPos.x, (s32)r.ScreenPos.y, (s32)p.ScreenPos.x, (s32)p.ScreenPos.y, 0);
+			}
 		}
 	}
 
@@ -614,6 +619,12 @@ namespace Jogo
 		const int NumIcosaVerts = 3 * NumIcosaTris;
 		const float G = 1.618034f;		//golden mean
 
+		/*
+		** These coordinates are at the corners of 3
+		** rectangles, dimensions of 2 *golden ration long
+		** and 2 wide, along the 3 main coordinate axes
+		*/
+
 		static MeshVertex IcosaVerts[NumIcosaVerts] = {
 			{ {   G, 1.f, 0.f }, {}, 0.0f, 0.0f },
 			{ { 0.f,   G,-1.f }, {}, 1.0f, 0.0f },
@@ -744,114 +755,87 @@ namespace Jogo
 		const int NumDodecaVerts = 3 * NumDodecaTris;
 		const float G = 1.618034f;		//golden mean
 		const float GG = G - 1;
-/*
-0		Vec3(-1.f, -1.f, -1.f),
-1		Vec3(1.f, -1.f, -1.f),
-2		Vec3(-1.f, 1.f, -1.f),
-3		Vec3(1.f, 1.f, -1.f),
-4		Vec3(-1.f, -1.f, 1.f),
-5		Vec3(1.f, -1.f, 1.f),
-6		Vec3(-1.f, 1.f, 1.f),
-7		Vec3(1.f, 1.f, 1.f),
-8		Vec3(G, GG, 0.f),
-9		Vec3(-G, GG, 0.f),
-10		Vec3(-G, -GG, 0.f),
-11		Vec3(G, -GG, 0.f),
-12		Vec3(0, G, GG),
-13		Vec3(0, G, -GG),
-14		Vec3(0, -G, -GG),
-15		Vec3(0, -G, GG),
-16		Vec3(GG, 0.f, G),
-17		Vec3(-GG, 0.f, G),
-18		Vec3(-GG, 0.f, -G),
-19		Vec3(GG, 0.f, -G)
-
-8, 3, 13, 12, 7,
-9, 6, 12, 13, 2,
-12, 6, 17, 16, 7,
-13, 3, 19, 18, 2,
-19, 3, 8, 11, 1,
-18, 0, 10, 9, 2,
-16, 5, 11, 8, 7,
-17, 6, 9, 10, 4,
-11, 5, 15, 14, 1,
-10, 0, 14, 15, 4,
-14, 0, 18, 19, 1,
-15, 5, 16, 17, 4
-*/
+		
+		/*
+		**	This solid has 20 vertices and 12 pentagonal faces
+		**	Use unit cube vertices +/-1, +/-1, +/-1
+		**	Also use 3 orthogonal rectangular extents 
+		**  2 * golden ratio long and 2 * (golden ratio -1) wide
+		**  each of these rectangles extends along the main coordinate axes
+		*/
 
 		static MeshVertex DodecaVerts[NumDodecaVerts] = {
-			{{G, GG, 0.f}, {}, 0.5f, 1.00f},
-			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{0, G, -GG}, {}, 1.0f, 0.0f},
-			{{0, G, GG}, {}, 0.0f, 0.0f},
-			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{   G,  GG, 0.f}},
+			{{ 1.f, 1.f,-1.f}},
+			{{   0,   G, -GG}},
+			{{   0,   G,  GG}},
+			{{ 1.f, 1.f, 1.f}},
 
-			{{-G, GG, 0.f}, {}, 0.5f, 1.00f},
-			{{-1.f, 1.f, 1.f}, {}, 1.0f, 1.0f},
-			{{0, G, GG}, {}, 1.0f, 0.0f},
-			{{0, G, -GG}, {}, 0.0f, 0.0f},
-			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{  -G,  GG, 0.f}},
+			{{-1.f, 1.f, 1.f}},
+			{{   0,   G,  GG}}, 
+			{{   0,   G, -GG}},
+			{{-1.f, 1.f,-1.f}},
 
-			{{0, G, GG}, {}, 0.5f, 1.00f},
-			{{-1.f, 1.f, 1.f}, {}, 1.0f, 1.0f},
-			{{-GG, 0.f, G}, {}, 1.0f, 0.0f},
-			{{GG, 0.f, G}, {}, 0.0f, 0.0f},
-			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{   0,   G,  GG}},
+			{{-1.f, 1.f, 1.f}},
+			{{ -GG, 0.f,   G}},
+			{{  GG, 0.f,   G}},
+			{{ 1.f, 1.f, 1.f}},
 
-			{{0, G, -GG}, {}, 0.5f, 1.00f},
-			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{GG, 0.f, -G}, {}, 1.0f, 0.0f},
-			{{-GG, 0.f, -G}, {}, 0.0f, 0.0f},
-			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{   0,   G, -GG}},
+			{{ 1.f, 1.f,-1.f}},
+			{{  GG, 0.f,  -G}},
+			{{ -GG, 0.f,  -G}},
+			{{-1.f, 1.f,-1.f}},
 
-			{{GG, 0.f, -G}, {}, 0.5f, 1.00f},
-			{{1.f, 1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{G, GG, 0.f}, {}, 1.0f, 0.0f},
-			{{G, -GG, 0.f}, {}, 0.0f, 0.0f},
-			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{  GG, 0.f,  -G}},
+			{{ 1.f, 1.f,-1.f}},
+			{{   G,  GG, 0.f}},
+			{{   G, -GG, 0.f}},
+			{{ 1.f,-1.f,-1.f}},
 
-			{{-GG, 0.f, -G}, {}, 0.5f, 1.00f},
-			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{-G, -GG, 0.f}, {}, 1.0f, 0.0f},
-			{{-G, GG, 0.f}, {}, 0.0f, 0.0f},
-			{{-1.f, 1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{ -GG, 0.f,  -G}},
+			{{-1.f,-1.f,-1.f}},
+			{{  -G, -GG, 0.f}},
+			{{  -G,  GG, 0.f}},
+			{{-1.f, 1.f,-1.f}},
 
-			{{GG, 0.f, G}, {}, 0.5f, 1.00f},
-			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
-			{{G, -GG, 0.f}, {}, 1.0f, 0.0f},
-			{{G, GG, 0.f}, {}, 0.0f, 0.0f},
-			{{1.f, 1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{  GG, 0.f,   G}},
+			{{ 1.f,-1.f, 1.f}},
+			{{   G, -GG, 0.f}},
+			{{   G,  GG, 0.f}},
+			{{ 1.f, 1.f, 1.f}},
 
-			{{-GG, 0.f, G}, {}, 0.5f, 1.00f},
-			{{-1.f, 1.f, 1.f}, {}, 1.0f,1.0f},
-			{{-G, GG, 0.f}, {}, 1.0f, 0.0f},
-			{{-G, -GG, 0.f}, {}, 0.0f, 0.0f},
-			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{ -GG, 0.f,   G}},
+			{{-1.f, 1.f, 1.f}},
+			{{  -G,  GG, 0.f}},
+			{{  -G, -GG, 0.f}},
+			{{-1.f,-1.f, 1.f}},
 
-			{{G, -GG, 0.f}, {}, 0.5f, 1.00f},
-			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
-			{{0, -G, GG}, {}, 1.0f, 0.0f},
-			{{0, -G, -GG}, {}, 0.0f, 0.0f},
-			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{   G, -GG, 0.f}},
+			{{ 1.f,-1.f, 1.f}},
+			{{   0,  -G,  GG}},
+			{{   0,  -G, -GG}},
+			{{ 1.f,-1.f,-1.f}},
 
-			{{-G, -GG, 0.f}, {}, 0.5f, 1.00f},
-			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{0, -G, -GG}, {}, 1.0f, 0.0f},
-			{{0, -G, GG}, {}, 0.0f, 0.0f},
-			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{  -G, -GG, 0.f}},
+			{{-1.f,-1.f,-1.f}},
+			{{   0,  -G, -GG}},
+			{{   0,  -G,  GG}},
+			{{-1.f,-1.f, 1.f}},
 
-			{{0, -G, -GG}, {}, 0.5f, 1.00f},
-			{{-1.f, -1.f, -1.f}, {}, 1.0f, 1.0f},
-			{{-GG, 0.f, -G}, {}, 1.0f, 0.0f},
-			{{GG, 0.f, -G}, {}, 0.0f, 0.0f},
-			{{1.f, -1.f, -1.f}, {}, 0.0f, 1.0f},
+			{{   0,  -G, -GG}},
+			{{-1.f,-1.f,-1.f}},
+			{{ -GG, 0.f,  -G}},
+			{{  GG, 0.f,  -G}},
+			{{ 1.f,-1.f,-1.f}},
 
-			{{0, -G, GG}, {}, 0.5f, 1.00f},
-			{{1.f, -1.f, 1.f}, {}, 1.0f, 1.0f},
-			{{GG, 0.f, G}, {}, 1.0f, 0.0f},
-			{{-GG, 0.f, G}, {}, 0.0f, 0.0f},
-			{{-1.f, -1.f, 1.f}, {}, 0.0f, 1.0f},
+			{{   0,  -G,  GG}},
+			{{ 1.f,-1.f, 1.f}},
+			{{  GG, 0.f,   G}},
+			{{ -GG, 0.f,   G}},
+			{{-1.f,-1.f, 1.f}},
 		};
 
 		static u16 DodecaTris[3 * NumDodecaTris] = {
@@ -869,7 +853,15 @@ namespace Jogo
 			55,56,57, 55,57,58, 55,58,59
 		};
 
-		// fill in the normals:
+		f32 TextureCoordinates[] =
+		{
+			0.5f, 0.95f,
+			1.0f, 0.59f,
+			0.81f, 0.0f,
+			0.19f, 0.0f,
+			0.0f, 0.59f
+		};
+		// fill in the normals and texture coordinates
 		for (u32 i = 0; i < NumDodecaFaces; i++)
 		{
 			Vector3 a = DodecaVerts[i * 5 + 1].Pos - DodecaVerts[i * 5].Pos;
@@ -880,6 +872,8 @@ namespace Jogo
 			for (u32 j = 0; j < 5; j++)
 			{
 				DodecaVerts[i * 5 + j].Normal = n;
+				DodecaVerts[i * 5 + j].u = TextureCoordinates[j * 2];
+				DodecaVerts[i * 5 + j].v = TextureCoordinates[j * 2 + 1];
 			}
 		}
 

@@ -29,14 +29,8 @@ class Horizon : public Jogo::App
 	Timer frametime;
 	double framespersecond = 0;
 	float frameDelta = 0;
-	Mesh Cube;
-	Mesh Tetra;
-	Mesh Icosa;
-	Mesh Dodeca;
-	Matrix4 CubeTransform;
-	Matrix4 TetraTransform;
-	Matrix4 SphereTransform;
-	Mesh Sphere;
+	Mesh Solids[6];
+	Matrix4 SolidTransforms[6];
 	Camera MainCamera;
 	s32 MouseX;
 	s32 MouseY;
@@ -59,22 +53,18 @@ public:
 		F.Erase(0xffffff);
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
 		Texture = Bitmap::Load("checker.bmp", HorizonArena);
-		Cube = CreateCube();
-		Tetra = CreateOcta();
-		Icosa = CreateIcosa();
-		Dodeca= CreateDodeca();
-		Sphere = CreateSphere(16, 16, DefaultArena);
-		CubeTransform = Matrix4::Identity();
-		CubeTransform.RotateZ(45.0f * D2R);
-		CubeTransform.RotateX(45.0f * D2R);
-		CubeTransform.Translate({ 0.0f, -1.0f, 0.0f });
-		TetraTransform = Matrix4::Identity();
-		TetraTransform.Translate({ 0.0f, 0.0f, 2.0f });
-		SphereTransform = Matrix4::Identity();
-		//SphereTransform.Scale({ 0.5f, 0.5f, 0.5f });
-		SphereTransform.Translate({ 0.0f, 0.0f, -4.0f });
+		Solids[0] = CreateCube();
+		Solids[1] = CreateTetra();
+		Solids[2] = CreateOcta();
+		Solids[3] = CreateIcosa();
+		Solids[4] = CreateDodeca();
+		Solids[5] = CreateSphere(16, 16, DefaultArena);
+		for (u32 i = 0; i < 6; i++)
+		{
+			SolidTransforms[i] = Matrix4::Identity();
+			SolidTransforms[i].Translate({ (i % 3) * 4.0f - 4.0f, (i / 3) * -4.0f + 4.0f, 6.0f });
+		}
 		*(Matrix4*)&MainCamera = Matrix4::Identity();
-//		MainCamera.RotateX(45*D2R);
 		MainCamera.Translate({ 0.0f, 0.0f, -8.0f });
 		MainCamera.SetProjection(53.0f, Width, Height, 1.0f, 50.f);
 		fps.Start();
@@ -319,20 +309,20 @@ public:
 		//}
 
 //		for (s32 t = 0; t < 100; t++)
-		{
-			//			BackBuffer.FillTriangle(triangle);
-			if (!Input::IsKeyPressed(' '))
-				BackBuffer.FillTriangleTexLit(triangle[0], triangle[1], triangle[2], Texture);
-			else
-			{
-				BackBuffer.FillTriangle(triangle[0], triangle[1], triangle[2], Texture);
-			}
-		}
-		BackBuffer.DrawCircle((s32)triangle[0].x, (s32)triangle[0].y, 5, 0);
-		BackBuffer.DrawCircle((s32)triangle[1].x, (s32)triangle[1].y, 5, 0);
-		BackBuffer.DrawCircle((s32)triangle[2].x, (s32)triangle[2].y, 5, 0);
+		//{
+		//	//			BackBuffer.FillTriangle(triangle);
+		//	if (!Input::IsKeyPressed(' '))
+		//		BackBuffer.FillTriangleTexLit(triangle[0], triangle[1], triangle[2], Texture);
+		//	else
+		//	{
+		//		BackBuffer.FillTriangle(triangle[0], triangle[1], triangle[2], Texture);
+		//	}
+		//}
+		//BackBuffer.DrawCircle((s32)triangle[0].x, (s32)triangle[0].y, 5, 0);
+		//BackBuffer.DrawCircle((s32)triangle[1].x, (s32)triangle[1].y, 5, 0);
+		//BackBuffer.DrawCircle((s32)triangle[2].x, (s32)triangle[2].y, 5, 0);
 
-#define TEST_BARYCENTRIC
+//#define TEST_BARYCENTRIC
 #ifdef TEST_BARYCENTRIC
 		float x0 = triangle[0].x;
 		float x1 = triangle[1].x;
@@ -425,25 +415,11 @@ public:
 		char pitchString[32];
 		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
 		str8 pitchstr(pitchString, len);
-//		DefaultFont.DrawText(0, 0, pitchString, 0, BackBuffer);
-		CubeTransform.RotateY(0.2f * frameDelta);
-		//TetraTransform.RotateX(2 * frameDelta);
-		TetraTransform.RotateY(frameDelta);
-		SphereTransform.RotateX(frameDelta);
-		//SphereTransform.RotateX(frameDelta);
-		//CubeTransform.RotateX(2.0f * frameDelta);
-		//for (u32 i = 0; i < 10; i++)
-		//{
-		//	for (u32 j = 0; j < 10; j++)
-		//	{
-		//		CubeTransform.translate = Vector3{ j*3.0f - 13.5f, i*3.0f - 13.5f, 30.0f };
-		//		//CubeTransform.Translate({ 0.0f, 1.0f * frameDelta, 0.0f });
-//		RenderMesh(Cube, CubeTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
-		RenderMesh(Dodeca, TetraTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
-		//RenderMesh(Sphere, SphereTransform, MainCamera, BackBuffer, Texture, FrameArena, Input::IsKeyPressed(' '));
-		//	}
-		//}
-		//MainCamera.Translate({ 0.0f, 0.0f, 0.1f * frameDelta });
+		for (u32 i = 0; i < 6; i++)
+		{
+			RenderMesh(Solids[i], SolidTransforms[i], MainCamera, BackBuffer, Texture, FrameArena, !Input::IsKeyPressed(' '));
+			SolidTransforms[i].RotateY(frameDelta);
+		}
 	}
 
 	void DrawSineWave()
