@@ -117,6 +117,11 @@ namespace Jogo
 			return true;
 		}
 
+		bool operator!=(const str8& b)
+		{
+			return (!operator==(b));
+		}
+
 		bool operator<(const str8& b)
 		{
 			if (chars == b.chars)
@@ -153,7 +158,9 @@ namespace Jogo
 		s32 atoi() const;
 		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
 		u32 hextoi();
+		static void ftoi(f32 n, u32& mantissa, s32& exponent, u32& digits);
 		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = DEFAULT_PREC);
+		static u32 f2a(f32 number, char* string);
 		float atof();
 		static u32 parseSpec(const str8& spec);
 

@@ -108,6 +108,10 @@ namespace Jogo
 		1e50, 1e51, 1e52, 1e53, 1e54
 	};
 
+	u64 tenpowersint[] = {
+		1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000, 10000000000, 100000000000
+	};
+
 	double str8::tenpow(s32 power)
 	{
 		if (power > -47 && power < 55)
@@ -121,28 +125,21 @@ namespace Jogo
 		s32 i;
 	};
 
-	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
-	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision)
+	void str8::ftoi(f32 n, u32& mantissa, s32& exponent, u32& digits)
 	{
-		char result[32];
 		const float log10of2 = 0.30103f;
-		IntFloat intf{ number };
+		IntFloat intf{ n };
 
-		s32 neg = intf.i >> 31;
 		intf.i &= 0x7fffffff;
 
 		s32 exp = ((intf.i >> 23) & 0xff);
 		if (exp == 0xff)	// infinity
 		{
-			if (intf.i & 0x7fffff)
-			{	// nan
-				char* s = string;
-				*s++ = 'n'; *s++ = 'a'; *s++ = 'n'; *s = 0;
-				return 3;
-			}
-			char* s = string;
-			*s++ = 'i'; *s++ = 'n'; *s++ = 'f'; *s = 0;
-			return 3;
+			mantissa = 0;
+			digits = 0;
+			// return special values for:	nan			inf
+			exponent = intf.i & 0x7fffff ? 0xffff0000 : 0xff000000;
+			return;
 		}
 
 		if (exp == 0)
@@ -150,9 +147,10 @@ namespace Jogo
 			// check for zero/denormal
 			if ((intf.i & 0x7fffffff) == 0)
 			{
-				string[0] = '0';
-				string[1] = 0;
-				return 1;
+				mantissa = 0;
+				exponent = 0;
+				digits = 1;
+				return;
 			}
 			u32 highbit = 1 << 22;
 			while (!(intf.i & highbit) && highbit)
@@ -163,92 +161,146 @@ namespace Jogo
 		}
 
 		// get power of ten estimate of the float
-		s32 exp10 = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
+		exponent = Jogo::float2inttrunc(Jogo::floor((exp - 127) * log10of2));
 
-		// save at most 8 significant digits from the float
-		s32 digits = Jogo::double2intround(intf.f * tenpow(8 - exp10));
-		if (digits >= 1e9)
-			exp10++;
+		// save at most 9 significant digits from the float
+		mantissa = Jogo::double2intround(intf.f * tenpow(8 - exponent));
+		digits = 9;
+		if (mantissa >= 1e9)
+		{
+			exponent++;
+			digits++;
+		}
+	}
+
+	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
+	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision)
+	{
+		char result[64];
+
+		u32 mantissa;
+		s32 exponent;
+		u32 digits;
+		ftoi(number, mantissa, exponent, digits);
+
+		if (exponent == 0xffff0000)
+		{
+			*(u32*)string = 'nan';
+			return 3;
+		}
+		if (exponent == 0xff000000)
+		{
+			*(u32*)string = 'fni';
+			return 3;
+		}
+		if (mantissa == 0)
+		{
+			// TODO: handle the precision number of zeroes past decimal?
+			*string = '0';
+			return 1;
+		}
 
 		// round at requested precision
-		precision += exp10;
-		u32 numdigits = digits >= 1e9 ? 10 : 9;
-		if (precision < numdigits)
+		s32 roundplace = precision + exponent + 1;
+		if (0 <= roundplace && roundplace < 10)
 		{
-			s32 rounder = ((s32)tenpow(numdigits - precision));
-			s32 even = 1 - ((digits / rounder) & 1);
-			s32 rounded = digits + (rounder / 2 - even);
-			if (digits < 1e9 && rounded >= 1e9)
-				exp10++;
-			if (digits >= 1e10 && rounded >= 1e11)
-				exp10++;
-			digits = rounded / rounder;
+			u64 rounder = tenpowersint[digits - roundplace];
+			mantissa += (u32)(rounder / 2);
+			if (mantissa > tenpowersint[digits])
+			{
+				exponent++;
+				digits++;
+			}
+			mantissa = (u32)(mantissa / rounder);
+			digits = roundplace;
 		}
-
-		// remove trailing zeroes up to requested precision
-//		while (digits && digits % 10 == 0)
-//			digits /= 10;
 
 		// output the string of digits
-		char decimaldigits[21];
-		u32 ilen = itoa(digits, decimaldigits, 20);
+		char decimaldigits[64];
+		u32 ilen = itoa(mantissa, decimaldigits, 20);
 		char* src = decimaldigits;
 		char* dst = result;
-		if (neg)
+		if (*(s32*)&number & 0x80000000)
 			*dst++ = '-';
-		if (exp10 < 0 && exp10 > -5)
+
+		// format the digits according to precision
+		if (exponent >= 0)
 		{
+			u32 idigits = exponent + 1;
+			u32 dig = min(idigits, digits);
+			u32 d = 0;
+			for (; d < dig; d++)
+				*dst++ = *src++;
+			for (; d < idigits; d++)
+				*dst++ = '0';
+			if (precision > 0)
+			{
+				*dst++ = '.';
+				u32 f = 0;
+				if (idigits < digits)
+				{
+					u32 fdigits = min(digits - idigits, precision);
+					for (; f < fdigits; f++)
+						*dst++ = *src++;
+				}
+				for (; f < precision; f++)
+					*dst++ = '0';
+			}
+		}
+		else
+		{
+			// print out the pattern 0.000ffff where f are digits of the fraction
+			u32 zeroes = min(-exponent-1, (s32)precision);
 			*dst++ = '0';
 			*dst++ = '.';
-			s32 e = -exp10;
-			while (--e)
+			for (u32 f = 0; f < zeroes; f++)
 				*dst++ = '0';
-		}
-		*dst++ = *src++;
-		ilen--;
-		if ((exp10 >= (s32)precision || exp10 < -4) && digits >= 10)
-			*dst++ = '.';
-
-		s32 e = 0;
-		while (ilen && e <= (s32)precision)
-		{
-			if (e == exp10)
-				*dst++ = '.';
-			*dst++ = *src++;
-			e++;
-			ilen--;
-		}
-
-		// add back necessary trailing zeroes
-		if (exp10 > e && exp10 < (s32)precision)
-		{
-			s32 p = exp10 - e;
-			while (p--)
-				*dst++ = '0';
-		}
-		else if (e - exp10 < (s32)precision)
-		{
-			s32 p = precision - e;
-			while (p--)
-				*dst++ = '0';
-		}
-
-		// print signed exponent
-		if (exp10 >= (s32)precision || exp10 < -4)
-		{
-			*dst++ = 'e';
-			*dst++ = exp10 < 0 ? '-' : '+';;
-			s32 e = exp10 > 0 ? exp10 : -exp10;
-
-			u32 ilen = itoa(e, decimaldigits, 20);
-			src = decimaldigits;
-			if (e < 10)
-				*dst++ = '0';
-			while (ilen--)
+			u32 fdigits = precision - zeroes;
+			for (u32 f = 0; f < fdigits; f++)
 				*dst++ = *src++;
 		}
-		*dst = 0;
+
+		// print signed exponent - only do this if requested
+		//if (exponent >= (s32)precision || exponent < -4)
+		//{
+		//	*dst++ = 'e';
+		//	*dst++ = exponent < 0 ? '-' : '+';;
+		//	s32 e = exponent > 0 ? exponent : -exponent;
+
+		//	u32 ilen = itoa(e, decimaldigits, 20);
+		//	src = decimaldigits;
+		//	if (e < 10)
+		//		*dst++ = '0';
+		//	while (ilen--)
+		//		*dst++ = *src++;
+		//}
 		return (u32)copystring(result, string, dst - result, maxstring);
+	}
+
+	u32 str8::f2a(f32 number, char* string)
+	{
+		u32 len = 0;
+		s32 numint = (s32)number;
+		if (numint == 0x80000000)
+		{
+			*(u32*)string = 'fni';
+			return 3;
+		}
+
+		len = itoa(numint, string, 10);
+		string[len] = 0;
+		
+		s32 fraclen = 10 - len;
+		fraclen += numint < 0 ? 1 : 0;
+		s32 frac = ((s32)((abs(number) - abs(numint)) * tenpowersint[fraclen])+500)/1000;
+		if (frac == 0)
+			return len;
+
+		string[len++] = '.';
+
+		len += itoa(frac, string + len, 10);
+		string[len] = 0;
+		return len;
 	}
 
 	float str8::atof()
