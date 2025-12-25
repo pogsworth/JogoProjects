@@ -1292,9 +1292,9 @@ void Bitmap::FillTriangleTexLitInt(const VertexTexLit& a, const VertexTexLit& b,
 				//float umod = u - (int)(u);
 				//float vmod = v - (int)(v);
 				//u32 rgb = ((u32)(umod * 16711680) & 16711680) + ((u32)(vmod * 65280));// &65280);// GetColorFromFloatRGB({ umod,vmod,0.0f,1.0f });
-//				u32 rgb = ((u32)(255 * umod) << 8) + (u32)(255 * vmod);
-				u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
-				line[x] = texel;	// line[x] + incr;
+				u32 rgb = ((u32)(255 * u) << 8) + (u32)(255 * v);
+				//u32 texel = texture.GetTexel(u, v);	// ? 0xff : 0;
+				line[x] = rgb<<8;	// texel;	// line[x] + incr;
 			}
 			ei0 -= dy10;
 			ei1 -= dy21;

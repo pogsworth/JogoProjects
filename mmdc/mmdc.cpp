@@ -144,29 +144,29 @@ struct MMDC : public Jogo::App
 		Arena& sa = FrameArena;
 		UI::BeginFrame({ REGISTERS_X, REGISTERS_Y, REGISTERS_W, REGISTERS_H });
 
-		UI::Label(str8::format("   A: {:02X}", sa, vcs2600.cpu.a));
-		UI::Label(str8::format("   X: {:02X}", sa, vcs2600.cpu.x));
-		UI::Label(str8::format("   Y: {:02X}", sa, vcs2600.cpu.y));
-		UI::Label(str8::format("   S: {:02X}", sa, vcs2600.cpu.s));
-		UI::Label(str8::format("PC: {:04X}", sa, vcs2600.cpu.pc));
-		UI::Label(str8::format("FLAGS: {:02X}", sa, vcs2600.cpu.status));
-		UI::Label(str8::format("OpCode: {:02X}", sa, vcs2600.cpu.opcode));
-		UI::Label(str8::format("Clock: {:04X}", sa, vcs2600.cpu.cycles&0xffff));
-		UI::Label(str8::format("Frame: {}", sa, vcs2600.frameCounter));
+		UI::Label(str8::format(sa, "   A: {:02X}", vcs2600.cpu.a));
+		UI::Label(str8::format(sa, "   X: {:02X}", vcs2600.cpu.x));
+		UI::Label(str8::format(sa, "   Y: {:02X}", vcs2600.cpu.y));
+		UI::Label(str8::format(sa, "   S: {:02X}", vcs2600.cpu.s));
+		UI::Label(str8::format(sa, "PC: {:04X}", vcs2600.cpu.pc));
+		UI::Label(str8::format(sa, "FLAGS: {:02X}", vcs2600.cpu.status));
+		UI::Label(str8::format(sa, "OpCode: {:02X}", vcs2600.cpu.opcode));
+		UI::Label(str8::format(sa, "Clock: {:04X}", vcs2600.cpu.cycles&0xffff));
+		UI::Label(str8::format(sa, "Frame: {}", vcs2600.frameCounter));
 
 		UI::EndFrame();
 
 		UI::BeginFrame({ TIA_X, TIA_Y, TIA_W, TIA_H });
 		for (int i = 0; i < TIA_COUNT / 2; i++)
 		{
-			UI::Label(str8::format("{:02X} {:6}: {:02X}", sa, i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
+			UI::Label(str8::format(sa, "{:02X} {:6}: {:02X}", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
 		}
 		UI::EndFrame();
 
 		UI::BeginFrame({ TIA_X+TIA_W+16, TIA_Y, TIA_W, TIA_H });
 		for (int i = TIA_COUNT/2; i < TIA_COUNT; i++)
 		{
-			UI::Label(str8::format("{:02X} {:6}: {:02X}", sa, i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
+			UI::Label(str8::format(sa, "{:02X} {:6}: {:02X}", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
 		}
 		UI::EndFrame();
 	}
@@ -179,17 +179,17 @@ struct MMDC : public Jogo::App
 		UI::BeginFrame({ RAM_X, RAM_Y, RAM_W, RAM_H });
 		for (int i = 0; i < RAM_ROWS; i++)
 		{
-			str8 mem = str8::format("{:03X}: ", sa, i * 16 + 128);
+			str8 mem = str8::format(sa, "{:03X}: ", i * 16 + 128);
 			for (int j = 0; j < 8; j++)
 			{
-				str8 m = str8::format("{:02X} ", sa, vcs2600.ram[j + i * 16]);
+				str8 m = str8::format(sa, "{:02X} ", vcs2600.ram[j + i * 16]);
 				mem.len += m.len;
 			}
-			str8 space = str8::format(" ", sa);
+			str8 space = str8::format(sa, " ");
 			mem.len += space.len;
 			for (int j = 0; j < 8; j++)
 			{
-				str8 m = str8::format("{:02X} ", sa, vcs2600.ram[j + 8 + i * 16]);
+				str8 m = str8::format(sa, "{:02X} ", vcs2600.ram[j + 8 + i * 16]);
 				mem.len += m.len;
 			}
 			UI::Label(mem);
@@ -207,10 +207,10 @@ struct MMDC : public Jogo::App
 		UI::BeginFrame({ SOURCE_X, SOURCE_Y, SOURCE_W, SOURCE_H });
 		for (int i = 0; i < SOURCE_ROWS; i++)
 		{
-			str8 s = str8::format("{:04X} ", FrameArena, vcs2600.cpu.pc + length);
+			str8 s = str8::format(FrameArena, "{:04X} ", vcs2600.cpu.pc + length);
 //			int address = sprintf_s(dis, sizeof(dis), "%04X ", vcs2600.cpu.pc + length);
 			length += vcs2600.cpu.disassemble(vcs2600.cpu.pc + length, dis, sizeof(dis));
-			str8 diss = str8::format("{}{}", FrameArena, s, dis);
+			str8 diss = str8::format(FrameArena, "{}{}", s, dis);
 			UI::Label(diss);
 		}
 		UI::EndFrame();

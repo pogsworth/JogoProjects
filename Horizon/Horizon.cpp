@@ -369,7 +369,7 @@ public:
 			float uw = v * uvw;
 			float vw = u * uvw;
 
-			AtariFont.DrawText(MouseX - 60, MouseY - 20, str8::format("{:0.3} {:0.3} {:0.3}", FrameArena, uw, vw, 1 - uw - vw), 0, 0xffffffff, BackBuffer);
+			AtariFont.DrawText(MouseX - 60, MouseY - 20, str8::format(FrameArena, "{:0.3} {:0.3} {:0.3}", uw, vw, 1 - uw - vw), 0, 0xffffffff, BackBuffer);
 		}
 #endif TEST_BARYCENTRIC
 
@@ -452,8 +452,8 @@ public:
 		//char scrollString[32];
 		//str8::itoa(scroll, scrollString);
 		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
-		AtariFont.DrawText(0, 20, str8::format("{:}", FrameArena, frameDelta), 0, 0, BackBuffer);
-		AtariFont.DrawText(0, 0, str8::format("{:}", FrameArena, (float)framespersecond), 0, 0, BackBuffer);
+		AtariFont.DrawText(0, 20, str8::format(FrameArena, "{:}", frameDelta), 0, 0, BackBuffer);
+		AtariFont.DrawText(0, 0, str8::format(FrameArena, "{:}", (float)framespersecond), 0, 0, BackBuffer);
 		//		AtariFont.DrawText(0, 0, "Hello", 0, 0, BackBuffer);
 
 		static int counter = 1234567;
@@ -484,7 +484,7 @@ public:
 		radius += dradius;
 		theta += dtheta;
 		double frametimeseconds = frametime.GetSecondsSinceLast();
-		AtariFont.DrawText(0, 40, str8::format("{:}", FrameArena, (float)frametimeseconds), 0, 0, BackBuffer);
+		AtariFont.DrawText(0, 40, str8::format(FrameArena, "{:}", (float)frametimeseconds), 0, 0, BackBuffer);
 
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 		FrameArena.Clear();

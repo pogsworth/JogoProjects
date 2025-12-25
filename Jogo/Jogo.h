@@ -47,6 +47,12 @@ namespace Jogo
 
 	// debug
 	void DebugOut(const str8& message);
+	void Print(const str8& message);
+	template <typename... Args>
+	void Printf(Arena& arena, const str8& fmt, const Args&... args)
+	{
+		Print(str8::format(arena, fmt, args...));
+	}
 
 	struct Timer
 	{

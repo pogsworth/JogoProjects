@@ -164,10 +164,115 @@ public:
 };
 const char* Curves::Name = "Curves";
 
-void TestFloatFormat()
-{
+#if 1
+#include <iostream>
+#include <string>
+#include <vector>
 
+void TestFloatFormat(Arena& arena)
+{
+	struct TestCase {
+		float value;
+		std::string format; // e.g., "%.2f", "%g", "%.5e"
+		str8 fmt;
+		std::string description;
+	};
+
+	std::vector<TestCase> tests;
+
+	// helper to add tests easily
+	auto add = [&](float v, const char* fmt, const str8& fmt8, const char* desc) {
+		tests.push_back({ v, fmt, fmt8, desc });
+		};
+
+	// 1. BASICS
+	add(0.0f, "%.6f", "{}", "Positive Zero");
+	add(-0.0f, "%.6f", "{}", "Negative Zero");
+	add(123.456f, "%.6f", "{}", "Basic Float");
+	add(-123.456f, "%.6f", "{}", "Basic Negative");
+
+	// 2. ROUNDING CLIFFS (Carry Propagation)
+	// These test if your function correctly ripples the carry to the left.
+	add(0.999999f, "%.3f", "{:.3}", "Carry Propagate near 1.0");
+	add(19.999f, "%.2f", "{:.2}", "Carry Propagate to Integer");
+	add(9.999f, "%.2f", "{:.2}", "Rounding 9.999 to 2 places (should be 10.00)");
+
+	// 3. MIDPOINT ROUNDING (Ties)
+	// Behavior here depends on C++ std lib implementation (usually ties to even).
+	add(1.5f, "%.0f", "{:.0}", "Round 1.5 to int"); // Usually 2
+	add(2.5f, "%.0f", "{:.0}", "Round 2.5 to int"); // Usually 2 (if ties-to-even) or 3
+	add(0.125f, "%.2f", "{:.2}", "Round 0.125 to 2 places");
+
+	// 4. PRECISION EXTREMES
+	add(3.14159f, "%.0f", "{:.0}", "Zero Precision");
+	add(3.14159f, "%.20f", "{:.20}", "High Precision(Garbage digits check)");
+
+	// 5. EXTREME MAGNITUDES
+	add(FLT_MAX, "%.2f", "{:.2}", "Max Float");
+	add(-FLT_MAX, "%.2f", "{:.2}", "Min Float (Negative Max)");
+	add(FLT_MIN, "%.50f", "{:.50}", "Normalized Min (Tiny)");
+
+	// 6. SUBNORMALS (Denormals)
+	// These are values smaller than FLT_MIN. 
+	// They are tricky because float representation changes here.
+	float subnormal = std::numeric_limits<float>::denorm_min();
+	add(subnormal, "%.50f", "{:.50}", "Denormal Min");
+	add(subnormal * 10.0f, "%.50e", "{:.50e}", "Denormal Scientific");
+
+	// 7. FORMAT SPECIFIERS
+	// %e tests (Scientific)
+	add(1000.0f, "%.2e", "{:.2e}", "Scientific 1000");
+	add(0.00123f, "%.2e", "{:.2e}", "Scientific small");
+
+	// %g tests (Compact)
+	// %g uses %f or %e depending on value size
+	add(0.00001f, "%g", "{:.6g}", "%g Switch to Scientific (Small)");
+	add(1000000.0f, "%g", "{:.6g}", "%g Switch to Scientific (Large)");
+	add(0.1f, "%g", "{:.6g}", "%g Keep as Float");
+
+	// 8. SPECIAL VALUES
+	add(std::numeric_limits<float>::infinity(), "%f", "{}", "Positive Infinity");
+	add(-std::numeric_limits<float>::infinity(), "%f", "{}", "Negative Infinity");
+	add(std::numeric_limits<float>::quiet_NaN(), "%f", "{}", "NaN");
+
+	// EXECUTION LOOP
+	int passed = 0;
+	int failed = 0;
+	//char my_buf[256];
+	char std_buf[256];
+
+	std::cout << "Starting Test Suite...\n" << std::endl;
+	printf("%-30s | %-10s | %-20s | %-20s | %s\n", "Description", "Input", "My ftoa", "Standard", "Result");
+	printf("------------------------------------------------------------------------------------------------------\n");
+
+	for (const auto& t : tests) {
+		// 1. Run Standard Sprintf
+		// We construct the full format string (e.g., "%.2f") inside the harnesss
+		u32 len = sprintf_s(std_buf, sizeof(std_buf), t.format.c_str(), t.value);
+
+		// 2. Run Your ftoa
+		// NOTE: Adjust arguments to match your signature
+		str8 my_str = str8::format(arena, t.fmt, t.value);
+
+		// 3. Compare
+		str8 std_str(std_buf, len);
+		//std::string my_str = my_buf;
+		//std::string std_str = std_buf;
+
+		bool ok = (my_str == std_str);
+		if (ok) passed++; else failed++;
+
+		// Print only failures or special interest
+		if (!ok) {
+			Print(str8::format(arena, "{:<30} | {:10.4e} | {:<20} | {:<20} | [FAIL]\n",
+				t.description.c_str(), t.value, my_str, std_str));
+		}
+	}
+
+	std::cout << "\n------------------------------------------------------------------------------------------------------\n";
+	std::cout << "Tests Completed: " << passed << " Passed, " << failed << " Failed." << std::endl;
 }
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -180,6 +285,8 @@ int main(int argc, char* argv[])
 
 	char ftoa_result[32];
 	char printfg[36];
+
+	Arena& fa = curves.FrameArena;
 
 	bool bTestRange = false;
 	if (bTestRange)
@@ -261,37 +368,39 @@ int main(int argc, char* argv[])
 			IntFloat intf;
 			intf.i = f;
 
-			u32 len = str8::ftoa(intf.f, ftoa_result, 32, p);
-			str8 resultstr(ftoa_result, len);
+			str8 resultstr = str8::format(curves.FrameArena, "{:.7g}", intf.f);
 			float result = resultstr.atof();
 			if (result != intf.f)
 			{
-				printf("%g:%g, %g\n", intf.f, result, result - intf.f);
+//				printf("%g:%g, %g\n", intf.f, result, result - intf.f);
 				count++;
 			}
+			if (!(f % 1000000))
+				printf(".");
 		}
 		printf("Total errors: %d\n", count);
+		curves.FrameArena.Clear();
 	}
 
 	bool bTestIntegers = false;
 	if (bTestIntegers)
 	{
+		u32 count = 0;
 		for (s32 i = -2147483647; i < 2147480000; i += 2047)
 		{
 			float number = (float)i;
-			u32 len = str8::ftoa(number, ftoa_result, 32, p);
-			str8 resultstr(ftoa_result, len);
+			str8 resultstr = str8::format(curves.FrameArena, "{:.7g}", number);
 			float result = resultstr.atof();
-			sprintf_s(printfg, sizeof(printfg), "%.*g", p, number);
+			u32 len = sprintf_s(printfg, sizeof(printfg), "%.*g", p, number);
 
-//			if (strcmp(ftoa_result, printfg))
+			if (resultstr != str8(printfg, len))
 			{
-				char dtoa_result[80] = { 32 };
-				//				Jogo::dtoa(number, dtoa_result, (p - 1) | 0x80000000);
-
 				printf("%s - %.*g - %g %.*g \n", ftoa_result, p, result, number, p, number);
+				count++;
 			}
+			curves.FrameArena.Clear();
 		}
+		printf("TestIntegers: %d out of %d\n", count, 2147480000 / 2047 * 2);
 	}
 
 	bool bTestPowers = false;
@@ -313,15 +422,14 @@ int main(int argc, char* argv[])
 			float f = 1234.567f;
 			//double powten = Jogo::intpow(10.0, i);
 			f = (float)(f * powten);
-			u32 len = str8::ftoa(f, ftoa_result, 32, p);
-			str8 resultstr(ftoa_result, len);
+			str8 resultstr = str8::format(curves.FrameArena, "{:.7g}", f);
 			float result = resultstr.atof();
 
-			sprintf_s(printfg, sizeof(printfg), "%.*g", p, f);
-//			if (strcmp(ftoa_result, printfg))
-//			{
-//				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
-//			}
+			u32 len = sprintf_s(printfg, sizeof(printfg), "%.*g", p, f);
+			if (resultstr != str8(printfg, len))
+			{
+				printf("%s - %.*g - %g %.*g\n", ftoa_result, p, result, f, p, f);
+			}
 		}
 	}
 	bool bTestExhaustiveHex = false;
@@ -349,31 +457,31 @@ int main(int argc, char* argv[])
 	{
 		u32 count = 0;
 		IntFloat intf;
-		for (u32 i = 0; i < 100000000; i++)
+		u32 failcount = 0;
+		u32 limit = 10000000;
+		for (u32 i = 0; i < limit; i++)
 		{
 			intf.i = rand.GetNext();
 			intf.i &= 0x7effffff;
-			char jogoout[32];
-			str8::ftoa(intf.f, jogoout, 32);
+			str8 fta = str8::format(curves.FrameArena, "{:.6g}", intf.f);
 			char sprintfout[32];
-			sprintf_s(sprintfout, sizeof(sprintfout), "%g", intf.f);
+			str8 spf(sprintfout, sprintf_s(sprintfout, sizeof(sprintfout), "%g", intf.f));
 
-			//if (strcmp(jogoout, sprintfout))
-			//{
-			//	printf("%08x %s %s\n", intf.i, jogoout, sprintfout);
-			//	count++;
-			//}
+			if (fta != spf)
+			{
+//				Printf(curves.FrameArena, "{} != {}", fta, spf);
+				failcount++;
+//				Printf(curves.FrameArena, " -- {:.8g}\n", intf.f);
+			}
+			curves.FrameArena.Clear();
 		}
+		Printf(curves.FrameArena, "Random Float Fails: {} out of {}\n", failcount, limit);
 	}
-	str8 s = str8::format("{    } {{}}", curves.FrameArena, 65, 100);
+	str8 s = str8::format(fa, "{    } {{}}", 65, 100);
 
-	s = str8::format("This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", curves.FrameArena, 57, 22.0f / 7.0f);
-	printf("%*s\n", (int)s.len, s.chars);
-
-	s = str8::format("number: {0:1X}", curves.FrameArena, -55);
-	printf("%*s\n", (int)s.len, s.chars);
-	s = str8::format("number: {0:2x}", curves.FrameArena, 15);
-	printf("%*s\n", (int)s.len, s.chars);
+	Print(str8::format(fa, "This is a test.  I am {    } years old and my name is {{}}.  22/7 = {}\n", 57, 22.0f / 7.0f));
+	Print(str8::format(fa, "number: {0:1X}", -55));
+	Print(str8::format(fa, "number: {0:2x}", 15));
 
 	bool bTestLog = false;
 	if (bTestLog)
@@ -381,8 +489,7 @@ int main(int argc, char* argv[])
 		for (s32 i = 0; i < 32; i++)
 		{
 			float l2 = Jogo::log2((float)(1 << i));
-			s = str8::format("log of {} is {}", curves.FrameArena, 1 << i, l2);
-			printf("%*s\n", (int)s.len, s.chars);
+			Print(str8::format(fa, "log of {} is {}", 1 << i, l2));
 		}
 	}
 	bool bTestHundredRandom = false;
@@ -392,39 +499,121 @@ int main(int argc, char* argv[])
 		for (u32 i = 0; i < 100; i++)
 		{
 			float x = R.GetNext() / 65536.0f;
-			s = str8::format("{:5.5}", curves.FrameArena, x);
-			printf("%*s\n", (int)s.len, s.chars);
-			s = str8::format("{:10.4}", curves.FrameArena, x);
-			printf("%*s\n", (int)s.len, s.chars);
+			Print(str8::format(fa, "{:5.5}", x));
+			Print(str8::format(fa, "{:10.4}", x));
 			printf("%4.g\n", x);
 		}
 	}
-	bool bTestPrecision = true;
+	IntFloat intf;
+	intf.i = 0x7f800000;
+	str8::ftoa(intf.f, ftoa_result, 20);
+	bool bTestPrecision = false;
 	if (bTestPrecision)
 	{
 		float a = 99998765.0f;
-		s = str8::format("{:.1}", curves.FrameArena, a);
-		printf("%*s\n", (int)s.len, s.chars);
+		Printf(fa, "{:.1}", a);
 		printf("%.1f\n", a);
-		s = str8::format("{:.2}", curves.FrameArena, a);
-		printf("%*s\n", (int)s.len, s.chars);
+		Printf(fa, "{:.2}", a);
 		printf("%.2f\n", a);
-		s = str8::format("{:.3}", curves.FrameArena, a);
-		printf("%*s\n", (int)s.len, s.chars);
+		Printf(fa, "{:.3}", a);
 		printf("%.3f\n", a);
-		s = str8::format("{:.4}", curves.FrameArena, a);
-		printf("%*s\n", (int)s.len, s.chars);
+		Printf(fa, "{:.4}", a);
 		printf("%.4f\n", a);
 
 		float n = 0.0003f;
 		for (int i = 0; i < 20; i++)
 		{
-			//str8 t = str8::format("{{:.{}}}", curves.FrameArena, i);
- 			s = str8::format("{:.2}", curves.FrameArena, n);
-			printf("%*s\n", (int)s.len, s.chars);
-			printf("%.2f\n", n);
+			printf("printf: %.2f\n", n);
+			Printf(fa, "format: {:.2}\n\n", n);
 			n *= 10;
 		}
+
+		IntFloat x;
+		x.i = 0x5f800000;
+		printf("%f\n",x.f);
+		char result[64];
+		char result2[64];
+		str8::f2a(x.f, result);
+		printf("%s\n", result);
+		u32 l = str8::ftoa(x.f, result, 64);
+		result[l] = 0;
+		printf("%s\n", result);
+
+		str8::f2a(3.14159265358f, result);
+		str8::f2a(-3.14159265358f, result);
+		str8::f2a(16777216.0f, result);
+		str8::f2a(-16777216.0f, result);
+		str8::f2a(-3.14f, result);
+		str8::f2a(12345.67890f, result);
+		str8::f2a(-12345.67890f, result);
+		str8::f2a(268435457.0f, result);
+		str8::f2a(2147483520.99999f, result);
+		str8::f2a(9999.999f, result);
+		str8::f2a(32.45678f, result);
+		for (int i = 1; i < 100; i+=5)
+		{
+			float j = (float)i;
+			u32 l = str8::f2a(j, result);
+			u32 ll = sprintf_s(result2, 64, "%.0f", j);
+			str8 r1 = str8(result).substr(0, l);
+			str8 r2 = str8(result2).substr(0, ll);
+			if (r1 != r2)
+			{
+				printf("%s != %s\n", result, result2);
+			}
+ 		}
 	}
+	for (float f = 1.23456e-7f; f < 1234560.0f; f *= 10.0f)
+	{
+		char result[64];
+		char result2[64];
+		u32 l = str8::ftoa(f, result, 64);
+		u32 ll = sprintf_s(result2, 64, "%f", f);
+		str8 r1 = str8(result).substr(0, l);
+		str8 r2 = str8(result2).substr(0, ll);
+		if (r1 != r2)
+		{
+			Print(str8::format(fa, "{} != {}\n", r1, r2));
+		}
+	}
+	{
+		float f = 5.6e-7f;
+		char result[64];
+		char result2[64];
+		u32 l = str8::ftoa(f, result, 64);
+ 		u32 ll = sprintf_s(result2, 64, "%f", f);
+		str8 r1 = str8(result).substr(0, l);
+		str8 r2 = str8(result2).substr(0, ll);
+		if (r1 != r2)
+		{
+			Printf(fa, "{} != {}\n", r1, r2);
+		}
+	}
+	Printf(fa, "{:.4}\n", 3.1415926f);
+	Printf(fa, "{:8.6e}\n", 0.0f);
+	printf("%8.6e\n", 0.0f);
+
+	float x=9.59595959e-10f;
+	for (int i = -10; i < 10; i++)
+	{
+		printf("%20.0f, %20.0e, %20.0g\n", x, x, x);
+
+ 		Printf(fa, "{:20.0f}, {:20.0e}, {:20.0g}\n",x,x,x);
+		x *= 10;
+	}
+
+	TestFloatFormat(fa);
+
+	printf("%.50f\n", FLT_MIN);
+	Printf(fa, "{:.50}\n\n", FLT_MIN);
+
+	float subnormal = std::numeric_limits<float>::denorm_min();
+	printf("%.50e\n", subnormal);
+	Printf(fa, "{:.50e}\n\n", subnormal);
+
+	subnormal *= 10.0f;
+	printf("%.50e\n", subnormal);
+	Printf(fa, "{:.50e}\n\n", subnormal);
+
 	return 0;
 }

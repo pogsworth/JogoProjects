@@ -36,7 +36,7 @@ namespace Jogo
 		s32 neg = 1;
 		if (*s == '-') neg = -1, s++;
 		s32 value = 0;
-		while ((s-chars < (ptrdiff_t)len) && isdigit(*s))
+		while ((s - chars < (ptrdiff_t)len) && isdigit(*s))
 		{
 			// TODO: check for overflow and return large num to represent infinity
 			value = value * 10 + *s - '0';
@@ -81,7 +81,7 @@ namespace Jogo
 		u32 output = 0;
 		const char* p = chars;
 		u32 places = 0;
-		while (p-chars < (ptrdiff_t)len && places < 8)
+		while (p - chars < (ptrdiff_t)len && places < 8)
 		{
 			output *= 16;
 			u32 hexdigit = *p - '0';
@@ -166,7 +166,7 @@ namespace Jogo
 		// save at most 9 significant digits from the float
 		mantissa = Jogo::double2intround(intf.f * tenpow(8 - exponent));
 		digits = 9;
-		if (mantissa >= 1e9)
+		if (mantissa >= tenpowersint[9])
 		{
 			exponent++;
 			digits++;
@@ -174,7 +174,7 @@ namespace Jogo
 	}
 
 	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
-	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision)
+	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision, u32 format)
 	{
 		char result[64];
 
@@ -182,98 +182,166 @@ namespace Jogo
 		s32 exponent;
 		u32 digits;
 		ftoi(number, mantissa, exponent, digits);
+		char* d = string;
+
+		if (format != 'f' && format != 'e' && format != 'g')
+			format = 'f';
 
 		if (exponent == 0xffff0000)
 		{
-			*(u32*)string = 'nan';
+			*(u32*)d = 'nan';
 			return 3;
 		}
+		if (*(s32*)&number & 0x80000000)
+			*d++ = '-';
 		if (exponent == 0xff000000)
 		{
-			*(u32*)string = 'fni';
-			return 3;
+			*(u32*)d = 'fni';
+			d += 3;
+			return (u32)(d - string);
 		}
-		if (mantissa == 0)
+		if (mantissa == 0 && format == 'g')
 		{
-			// TODO: handle the precision number of zeroes past decimal?
-			*string = '0';
-			return 1;
+			*d++ = '0';
+			return (u32)(d - string);
 		}
 
+		s32 roundplace = precision;
+
+		if (format != 'g')
+			roundplace++;
+
+		if (format == 'f')
+		{
+			roundplace += exponent;
+		}
+
+		u32 outdigits = roundplace < 0 ? 0 : roundplace;
+
+		u32 exponent_bumped = 0;
 		// round at requested precision
-		s32 roundplace = precision + exponent + 1;
-		if (0 <= roundplace && roundplace < 10)
+		if (0 <= roundplace && roundplace < 10 && mantissa != 0)
 		{
 			u64 rounder = tenpowersint[digits - roundplace];
-			mantissa += (u32)(rounder / 2);
-			if (mantissa > tenpowersint[digits])
+			// test for halfway, then tie goes to even
+			u64 halfrounder = rounder / 2;
+			if (mantissa % rounder != halfrounder || (mantissa / rounder & 1))
 			{
-				exponent++;
-				digits++;
+				mantissa += halfrounder;
+				if (mantissa > tenpowersint[digits])
+				{
+					exponent++;
+					outdigits++;
+					exponent_bumped = 1;
+				}
 			}
 			mantissa = (u32)(mantissa / rounder);
-			digits = roundplace;
+			digits = outdigits;
 		}
 
 		// output the string of digits
 		char decimaldigits[64];
 		u32 ilen = itoa(mantissa, decimaldigits, 20);
+		// special extend zeroes when value is zero
+		if (mantissa == 0)
+		{
+			for (u32 d = 1; d < outdigits; d++)
+				decimaldigits[d] = '0';
+		}
 		char* src = decimaldigits;
 		char* dst = result;
 		if (*(s32*)&number & 0x80000000)
 			*dst++ = '-';
 
-		// format the digits according to precision
-		if (exponent >= 0)
+		bool eat_trailing_zeroes = format == 'g';
+		if (format == 'g' && ((exponent >= (s32)outdigits || exponent < -4) || (exponent && (exponent == precision))))
 		{
-			u32 idigits = exponent + 1;
-			u32 dig = min(idigits, digits);
-			u32 d = 0;
-			for (; d < dig; d++)
+			format = 'e';
+		}
+		bool print_exponent = format == 'e';
+
+		if (format == 'e')
+		{
+			// print out the pattern f.ffffff0000e+dd
+			*dst++ = *src++;
+			*dst++ = '.';
+			u32 fdigits = min(digits - 1, outdigits - 1);
+			fdigits = min(fdigits, precision);
+			for (u32 f = 0; f < fdigits; f++)
 				*dst++ = *src++;
-			for (; d < idigits; d++)
+			for (s32 f = 0; f < (s32)(precision - fdigits); f++)
 				*dst++ = '0';
-			if (precision > 0)
+		}
+		else
+		{
+			if (exponent >= 0)
 			{
+				// print out the pattern ffff.ffff0000
+				u32 idigits = exponent + 1;
+				u32 dig = min(idigits, digits);
+				u32 d = 0;
+				for (; d < dig; d++)
+					*dst++ = *src++;
+				for (; d < idigits; d++)
+					*dst++ = '0';
 				*dst++ = '.';
 				u32 f = 0;
 				if (idigits < digits)
 				{
-					u32 fdigits = min(digits - idigits, precision);
+					u32 fdigits = min(digits - idigits, outdigits);
 					for (; f < fdigits; f++)
 						*dst++ = *src++;
 				}
-				for (; f < precision; f++)
+				if (!eat_trailing_zeroes)
+					for (; f < outdigits - idigits; f++)
+						*dst++ = '0';
+			}
+			else
+			{
+				// print out the pattern 0.000ffff000 where f are digits of the fraction
+
+				// if we're in g, bump the number of prefixed zeroes by -exponent + 1
+				if (format == 'g')
+					precision -= exponent + 1 - exponent_bumped;
+				u32 zeroes = max((s32)(precision - outdigits), (s32)0);
+				*dst++ = '0';
+				*dst++ = '.';
+				for (u32 f = 0; f < zeroes; f++)
 					*dst++ = '0';
+				s32 fdigits = min(digits,outdigits);
+				for (s32 f = 0; f < fdigits; f++)
+					*dst++ = *src++;
+				if (!eat_trailing_zeroes)
+				{
+					for (s32 f = 0; f < (s32)(precision - zeroes - fdigits); f++)
+						*dst++ = '0';
+				}
 			}
 		}
-		else
+
+		if (eat_trailing_zeroes)
 		{
-			// print out the pattern 0.000ffff where f are digits of the fraction
-			u32 zeroes = min(-exponent-1, (s32)precision);
-			*dst++ = '0';
-			*dst++ = '.';
-			for (u32 f = 0; f < zeroes; f++)
+			while (dst[-1] == '0')
+				dst--;
+		}
+		if (dst[-1] == '.')
+			dst--;
+
+		// print exponent
+		if (print_exponent)
+		{
+			*dst++ = 'e';
+			*dst++ = exponent < 0 ? '-' : '+';;
+			s32 e = exponent > 0 ? exponent : -exponent;
+
+			ilen = itoa(e, decimaldigits, 20);
+			src = decimaldigits;
+			if (e < 10)
 				*dst++ = '0';
-			u32 fdigits = precision - zeroes;
-			for (u32 f = 0; f < fdigits; f++)
+			while (ilen--)
 				*dst++ = *src++;
 		}
 
-		// print signed exponent - only do this if requested
-		//if (exponent >= (s32)precision || exponent < -4)
-		//{
-		//	*dst++ = 'e';
-		//	*dst++ = exponent < 0 ? '-' : '+';;
-		//	s32 e = exponent > 0 ? exponent : -exponent;
-
-		//	u32 ilen = itoa(e, decimaldigits, 20);
-		//	src = decimaldigits;
-		//	if (e < 10)
-		//		*dst++ = '0';
-		//	while (ilen--)
-		//		*dst++ = *src++;
-		//}
 		return (u32)copystring(result, string, dst - result, maxstring);
 	}
 
@@ -427,6 +495,14 @@ namespace Jogo
 				bits |= SPEC_HEX;
 			else if (spec.substr(pos).find('X') != (u32)-1)
 				bits |= SPEC_HEX | SPEC_HEX_UPPER;
+			else if (spec[pos] == 'e')
+			{
+				bits |= SPEC_EXP_SCI_NOTATION << SPEC_EXP_SHIFT;
+			}
+			else if (spec[pos] == 'g')
+			{
+				bits |= SPEC_EXP_SHORTEST << SPEC_EXP_SHIFT;
+			}
 		}
 
 		return bits;
@@ -481,4 +557,65 @@ namespace Jogo
 		return result;
 	}
 
+	u32 str8::toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
+	{
+		u32 bits = parseSpec(spec);
+		u32 precision = DEFAULT_PREC;
+		if (bits & SPEC_PREC)
+		{
+			precision = (bits >> SPEC_PREC_SHIFT) & SPEC_PREC_MASK;
+		}
+		u32 floatformat = 'f';
+		u32 expformat = (bits >> SPEC_EXP_SHIFT) & SPEC_EXP_MASK;
+		if (expformat == SPEC_EXP_SCI_NOTATION)
+			floatformat = 'e';
+		if (expformat == SPEC_EXP_SHORTEST)
+			floatformat = 'g';
+
+		char number[256];
+		u32 flen = ftoa(fnumber, number, 256, precision, floatformat);
+
+
+		u32 width = 0;
+		s32 left = 0;
+		s32 right = 0;
+		if (bits & SPEC_WIDTH)
+		{
+			width = (bits >> SPEC_WIDTH_SHIFT) & SPEC_WIDTH_MASK;
+		}
+		if (bits & SPEC_LEFT)
+		{
+			left = 0;
+			right = width - flen;
+		}
+		else if (bits & SPEC_CTR)
+		{
+			width -= flen;
+			left = width / 2;
+			right = width - left;
+		}
+		else
+		{
+			left = width - flen;
+			right = 0;
+		}
+		if (left < 0)
+			left = 0;
+		if (right < 0)
+			right = 0;
+
+		for (s32 i = 0; i < left; i++)
+		{
+			stringspace[i] = ' ';
+		}
+
+		copystring(number, stringspace + left, flen, maxlen - left);
+
+		for (s32 i = 0; i < right; i++)
+		{
+			stringspace[flen+left+i] = ' ';
+		}
+
+		return flen + left + right;
+	}
 };

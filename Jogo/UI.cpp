@@ -886,8 +886,8 @@ namespace UI
 
 	void PrintDebug(Arena scratch)
 	{
-		DefaultFont.DrawText(5, 250, Jogo::str8::format("Hot: {:}", scratch, HotID), 0, BackColor, Target);
-		DefaultFont.DrawText(5, 270, Jogo::str8::format("Act: {:}", scratch, ActiveID), 0, BackColor, Target);
-		DefaultFont.DrawText(5, 290, Jogo::str8::format("Foc: {:}", scratch, FocusID), 0, BackColor, Target);
+		DefaultFont.DrawText(5, 250, Jogo::str8::format(scratch, "Hot: {:}", HotID), 0, BackColor, Target);
+		DefaultFont.DrawText(5, 270, Jogo::str8::format(scratch, "Act: {:}", ActiveID), 0, BackColor, Target);
+		DefaultFont.DrawText(5, 290, Jogo::str8::format(scratch, "Foc: {:}", FocusID), 0, BackColor, Target);
 	}
 }

@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "2600.h"
 #include <stdio.h>
 #include <io.h>
@@ -134,17 +135,16 @@ void VCS2600::Init6502()
 		memcpy(rom + 2048, rom, 2048);
 	fclose(fp);
 
-	//DisassembleRom();
+	DisassembleRom();
 	cpu.reset(0xf000);
 	frameCounter = 0;
 	lastWSYNC = 0;
 }
 
-/*
 void VCS2600::DisassembleRom()
 {
 	FILE* fp;
-	fopen_s(&fp, "c:\\code\\2600emu\\combat_timings.asm", "w");
+	fopen_s(&fp, "combat_timings.asm", "w");
 	int len = 0;
 	char dis[256];
 	for (ushort pc = 0xf000; pc < 0xf5c5; pc += len)
@@ -164,7 +164,7 @@ void VCS2600::DisassembleRom()
 	}
 	fclose(fp);
 }
-*/
+
 
 void VCS2600::step()
 {
@@ -406,8 +406,8 @@ byte* tiaMemoryMapper(int address)
 
 byte VCS2600::rom[4096];
 byte VCS2600::ram[128];
-RIOT VCS2600::riot;
-TIA VCS2600::tia;
+RIOT VCS2600::riot = {};
+TIA VCS2600::tia = {};
 CPU6502 VCS2600::cpu(tiaMemoryMapper);
 int VCS2600::frameCounter;
 int VCS2600::lastWSYNC;

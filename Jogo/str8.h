@@ -159,7 +159,8 @@ namespace Jogo
 		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
 		u32 hextoi();
 		static void ftoi(f32 n, u32& mantissa, s32& exponent, u32& digits);
-		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = DEFAULT_PREC);
+		static u32 ftoa(f32 number, char* string, u32 maxstring, u32 precision = DEFAULT_PREC, u32 format = 'f');
+		static u32 ftoa_old(f32 number, char* string, u32 maxstring, u32 precision = DEFAULT_PREC, u32 format = 'f');
 		static u32 f2a(f32 number, char* string);
 		float atof();
 		static u32 parseSpec(const str8& spec);
@@ -176,24 +177,18 @@ namespace Jogo
 		static const u32 SPEC_WIDTH_MASK = 255;	// allow width up to 255
 		static const u32 SPEC_PREC_SHIFT = 16; // start at bit 16 = 65536
 		static const u32 SPEC_PREC_MASK = 255; // allow precision up to 255 digits
+		static const u32 SPEC_EXP_SHIFT = 24;
+		static const u32 SPEC_EXP_MASK = 3;
+		static const u32 SPEC_EXP_DEFAULT = 0x0;		// float %f format
+		static const u32 SPEC_EXP_SCI_NOTATION = 0x1;	// float %e format
+		static const u32 SPEC_EXP_SHORTEST = 0x3;		// float %g format
 
 		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
 		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen)
 		{
 			return toString((s32)number, spec, stringspace, maxlen);
 		}
-
-		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen)
-		{
-			u32 bits = parseSpec(spec);
-			u32 precision = DEFAULT_PREC;
-			if (bits & SPEC_PREC)
-			{
-				precision = (bits >> SPEC_PREC_SHIFT) & SPEC_PREC_MASK;
-			}
-			return ftoa(fnumber, stringspace, maxlen, precision);
-		}
-
+		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen);
 		static u32 toString(const char* string, const str8& spec, char* stringspace, size_t maxlen)
 		{
 			u32 bits = parseSpec(spec);
@@ -358,7 +353,7 @@ namespace Jogo
 		};
 
 		template <typename... Args>
-		static str8 format(const str8& fmt, Arena& arena, const Args&... args)
+		static str8 format(Arena& arena, const str8& fmt, const Args&... args)
 		{
 			str8 newstr;
 			char* newchars = (char*)arena.Allocate(0);

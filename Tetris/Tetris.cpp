@@ -556,7 +556,7 @@ public:
 		static u32 listofnumbers[10] = { 3,1,4,5,9,2,6,8,7,0 };
 		for (u32 i = 0; i < 10; i++)
 		{
-			listofnumbers[i] = UI::EditBox(Jogo::str8::format("{:02}", FrameArena, listofnumbers[i])).atoi();
+			listofnumbers[i] = UI::EditBox(Jogo::str8::format(FrameArena, "{:02}", listofnumbers[i])).atoi();
 		}
 		str8::copystring(newstring.chars, buffer, newstring.len, sizeof(buffer));
 		buffer[newstring.len] = 0;

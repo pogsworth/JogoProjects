@@ -312,12 +312,6 @@ namespace Jogo
 			DIB_RGB_COLORS, SRCCOPY);
 	}
 
-	void DrawString(int x, int y, const char* string)
-	{
-		RECT r = { x,y,0,0 };
-		DrawText(hdc, string, -1, &r, DT_NOCLIP);
-	}
-
 	void DebugOut(const str8& message)
 	{
 		char* localstring = (char*)_alloca(message.len+1);
@@ -327,6 +321,15 @@ namespace Jogo
 		OutputDebugString(localstring);
 	}
 
+	void Print(const str8& message)
+	{
+		HANDLE stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (stdout != INVALID_HANDLE_VALUE)
+		{
+			DWORD numbytes;
+			WriteFile(stdout, message.chars, (DWORD)message.len, &numbytes, NULL);
+		}
+	}
 };
 
 namespace Input
