@@ -388,6 +388,20 @@ namespace Jogo
 		s32 neg = 1;
 		if (*c == '-') neg = -1, c++;
 
+		IntFloat intf;
+		// catch 'inf' and 'nan'
+		u32 threechars = (*(u32*)c)&0xffffff;
+		if (threechars == 'fni')
+		{
+			intf.i = 0x7f800000;
+			return intf.f;
+		}
+		if (threechars == 'nan')
+		{
+			intf.i = 0x7fffffff;
+			return intf.f;
+		}
+
 		s32 integer = 0;
 		s32 intlen = 0;
 
@@ -425,7 +439,7 @@ namespace Jogo
 		}
 
 		double pow10 = tenpow(exp - fraclen);
-		return (float)(integer * pow10);
+		return (float)(neg * integer * pow10);
 	}
 
 	// return bits indicating what fields are in the spec
@@ -627,4 +641,41 @@ namespace Jogo
 
 		return flen + left + right;
 	}
+
+	str8 str8::lower(const str8& in, Arena& arena)
+	{
+		str8 low;
+		if (in.len)
+		{
+			char* newchars = (char*)arena.Allocate(in.len);
+			for (u32 i = 0; i < in.len; i++)
+			{
+				char c = in.chars[i];
+				if (isupper(c))
+					c += 'a' - 'A';
+				newchars[i] = c;
+			}
+			low.chars = newchars;
+		}
+		return low;
+	}
+
+	str8 str8::upper(const str8& in, Arena& arena)
+	{
+		str8 up;
+		if (in.len)
+		{
+			char* newchars = (char*)arena.Allocate(in.len);
+			for (u32 i = 0; i < in.len; i++)
+			{
+				char c = in.chars[i];
+				if (islower(c))
+					c -= 'a' - 'A';
+				newchars[i] = c;
+			}
+			up.chars = newchars;
+		}
+		return up;
+	}
+
 };

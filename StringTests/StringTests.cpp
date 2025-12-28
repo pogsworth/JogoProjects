@@ -201,25 +201,29 @@ int main(int argc, char* argv[])
 		s32 i;
 	};
 
-	bool bTestExhaustive = false;
+	bool bTestExhaustive = true;
 	if (bTestExhaustive)
 	{
 		//exhaustively check round trip of all floats that are not nan or inf
 		u32 count = 0;
-		for (s32 f = 0; f < 0x3f800000; f++)
+		for (u32 f = 0x7f800000; f < 0xffffffff; f++)
 		{
 			IntFloat intf;
 			intf.i = f;
 
-			str8 resultstr = str8::format(scratch, "{:.7g}", intf.f);
+			str8 resultstr = str8::format(scratch, "{:.9g}", intf.f);
 			float result = resultstr.atof();
 			if (result != intf.f)
 			{
 				//				printf("%g:%g, %g\n", intf.f, result, result - intf.f);
-				count++;
+				if ((intf.i & 0x7f800000) != 0x7f800000)
+					count++;
 			}
 			if (!(f % 1000000))
-				printf(".");
+			{
+				Printf(scratch, "{} of {}\n", count, f);
+				scratch.Clear();
+			}
 		}
 		printf("Total errors: %d\n", count);
 		scratch.Clear();

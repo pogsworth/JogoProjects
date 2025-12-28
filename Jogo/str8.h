@@ -152,6 +152,21 @@ namespace Jogo
 			return n >= '0' && n <= '9';
 		}
 
+		static bool isalpha(char a)
+		{
+			return (a >= 'A' && a <= 'Z') || (a >= 'a' && a <= 'z');
+		}
+
+		static bool isupper(char a)
+		{
+			return a >= 'A' && a <= 'Z';
+		}
+
+		static bool islower(char a)
+		{
+			return a >= 'a' && a <= 'z';
+		}
+
 		static const u32 DEFAULT_PREC = 6;
 		static double tenpow(s32 power);
 		static u32 itoa(s32 number, char* string, u32 maxstring);
@@ -366,5 +381,8 @@ namespace Jogo
 			arena.Allocate(newstr.len);	// bump arena by size of string
 			return newstr;
 		}
+
+		str8 lower(const str8& in, Arena& arena);
+		str8 upper(const str8& in, Arena& arena);
 	};
 };
