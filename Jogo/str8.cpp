@@ -227,7 +227,7 @@ namespace Jogo
 			u64 halfrounder = rounder / 2;
 			if (mantissa % rounder != halfrounder || (mantissa / rounder & 1))
 			{
-				mantissa += halfrounder;
+				mantissa += (u32)halfrounder;
 				if (mantissa > tenpowersint[digits])
 				{
 					exponent++;
@@ -254,11 +254,22 @@ namespace Jogo
 			*dst++ = '-';
 
 		bool eat_trailing_zeroes = format == 'g';
-		if (format == 'g' && ((exponent >= (s32)outdigits || exponent < -4) || (exponent && (exponent == precision))))
+		if (format == 'g')
 		{
-			format = 'e';
+			if ((exponent >= (s32)outdigits || exponent < -4) || (exponent && (exponent == precision)))
+			{
+				// if the exonent is big enough or small enough, use sci notation
+				// pretend the format is 'e' to prcoess the exponent the same
+				format = 'e';
+			}
+			else
+			{
+				// process the 'g' format like 'f' here
+				// bump the number of prefixed zeroes by -exponent - 1
+				precision += exponent_bumped - exponent - 1;
+			}
 		}
-		bool print_exponent = format == 'e';
+
 
 		if (format == 'e')
 		{
@@ -299,13 +310,11 @@ namespace Jogo
 			else
 			{
 				// print out the pattern 0.000ffff000 where f are digits of the fraction
-
-				// if we're in g, bump the number of prefixed zeroes by -exponent + 1
-				if (format == 'g')
-					precision -= exponent + 1 - exponent_bumped;
-				u32 zeroes = max((s32)(precision - outdigits), (s32)0);
 				*dst++ = '0';
 				*dst++ = '.';
+
+				u32 zeroes = max((s32)(precision - outdigits), (s32)0);
+
 				for (u32 f = 0; f < zeroes; f++)
 					*dst++ = '0';
 				s32 fdigits = min(digits,outdigits);
@@ -328,7 +337,7 @@ namespace Jogo
 			dst--;
 
 		// print exponent
-		if (print_exponent)
+		if (format == 'e')
 		{
 			*dst++ = 'e';
 			*dst++ = exponent < 0 ? '-' : '+';;
