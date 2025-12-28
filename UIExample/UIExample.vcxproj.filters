@@ -7,7 +7,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Horizon.cpp">
+    <ClCompile Include="UIExample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

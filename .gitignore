@@ -1,4 +1,5 @@
 *.user
+*.asm
 *.bin
 Debug/
 Release/
