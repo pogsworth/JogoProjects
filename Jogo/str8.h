@@ -169,7 +169,7 @@ namespace Jogo
 
 		static const u32 DEFAULT_PREC = 6;
 		static double tenpow(s32 power);
-		static u32 itoa(s32 number, char* string, u32 maxstring);
+		static u32 itoa(u32 number, char* string, u32 maxstring, bool isSigned = true);
 		s32 atoi() const;
 		static u32 itohex(u32 number, char* string, u32 maxstring, bool leadingzeros = true, bool upper = true);
 		u32 hextoi();
@@ -198,10 +198,10 @@ namespace Jogo
 		static const u32 SPEC_EXP_SCI_NOTATION = 0x1;	// float %e format
 		static const u32 SPEC_EXP_SHORTEST = 0x3;		// float %g format
 
-		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen);
-		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen)
+		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen, bool isSigned = false);
+		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
 		{
-			return toString((s32)number, spec, stringspace, maxlen);
+			return toString((u32)number, spec, stringspace, maxlen, true);
 		}
 		static u32 toString(f32 fnumber, const str8& spec, char* stringspace, u32 maxlen);
 		static u32 toString(const char* string, const str8& spec, char* stringspace, size_t maxlen)

@@ -146,8 +146,6 @@ public:
 		{
 			listofnumbers[i] = UI::EditBox(Jogo::str8::format(FrameArena, "{:02}", listofnumbers[i])).atoi();
 		}
-		str8::copystring(newstring.chars, buffer, newstring.len, sizeof(buffer));
-		buffer[newstring.len] = 0;
 		DefaultFont.DrawText(0, 200, Clicked, 0, 0, BackBuffer);
 
 		static u32 choice = -1;

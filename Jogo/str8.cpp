@@ -3,10 +3,10 @@
 
 namespace Jogo
 {
-	u32 str8::itoa(s32 number, char* string, u32 maxstring)
+	u32 str8::itoa(u32 number, char* string, u32 maxstring, bool isSigned)
 	{
 		char result[32];
-		u32 n = abs(number);
+		u32 n = number;
 		char* p = result;
 		do
 		{
@@ -14,7 +14,7 @@ namespace Jogo
 			n /= 10;
 		} while (n);
 
-		if (number < 0)
+		if (isSigned && (s32)number < 0)
 		{
 			*p++ = '-';
 		}
@@ -176,7 +176,7 @@ namespace Jogo
 	// inspired by stbsp__real_to_str in stb_sprintf at https://github.com/nothings/stb
 	u32 str8::ftoa(f32 number, char* string, u32 maxstring, u32 precision, u32 format)
 	{
-		char result[64];
+		char result[256];
 
 		u32 mantissa;
 		s32 exponent;
@@ -240,8 +240,8 @@ namespace Jogo
 		}
 
 		// output the string of digits
-		char decimaldigits[64];
-		u32 ilen = itoa(mantissa, decimaldigits, 20);
+		char decimaldigits[256];
+		u32 ilen = itoa(mantissa, decimaldigits, 20, false);
 		// special extend zeroes when value is zero
 		if (mantissa == 0)
 		{
@@ -343,7 +343,7 @@ namespace Jogo
 			*dst++ = exponent < 0 ? '-' : '+';;
 			s32 e = exponent > 0 ? exponent : -exponent;
 
-			ilen = itoa(e, decimaldigits, 20);
+			ilen = itoa((u32)e, decimaldigits, 20);
 			src = decimaldigits;
 			if (e < 10)
 				*dst++ = '0';
@@ -364,7 +364,7 @@ namespace Jogo
 			return 3;
 		}
 
-		len = itoa(numint, string, 10);
+		len = itoa((u32)numint, string, 10);
 		string[len] = 0;
 		
 		s32 fraclen = 10 - len;
@@ -404,23 +404,33 @@ namespace Jogo
 
 		s32 integer = 0;
 		s32 intlen = 0;
+		s32 nonzerolen = 0;
 
 		while (c-b < l && isdigit(*c))
 		{
 			char d = *c++ - '0';
-			integer = integer * 10 + d;
-			intlen++;
+			if (nonzerolen < 9)
+			{
+				integer = integer * 10 + d;
+				if (integer)
+					nonzerolen++;
+			}
+			if (integer)
+				intlen++;
 		}
 
 		s32 fraclen = 0;
 		if (*c == '.')
 		{
 			c++;
-			while (c-b < l && isdigit(*c))
+			while (c-b < l && isdigit(*c) && nonzerolen < 9)
 			{
 				char d = *c++ - '0';
 				integer = integer * 10 + d;
-				fraclen++;
+				if (integer)
+					nonzerolen++;
+				else
+					fraclen++;
 			}
 		}
 
@@ -438,7 +448,7 @@ namespace Jogo
 			exp *= expsign;
 		}
 
-		double pow10 = tenpow(exp - fraclen);
+		double pow10 = tenpow(exp + intlen - nonzerolen - fraclen);
 		return (float)(neg * integer * pow10);
 	}
 
@@ -531,10 +541,10 @@ namespace Jogo
 		return bits;
 	}
 
-	u32 str8::toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
+	u32 str8::toString(u32 number, const str8& spec, char* stringspace, u32 maxlen, bool isSigned)
 	{
 		u32 bits = parseSpec(spec);
-		bool neg = number < 0 && !(bits & SPEC_HEX) && number != 1 << 31;
+		bool neg = isSigned && (s32)number < 0 && !(bits & SPEC_HEX);
 		char intchars[64];
 		u32 len = 0;
 		if (bits & SPEC_HEX)
@@ -542,7 +552,7 @@ namespace Jogo
 			len = itohex(number, intchars, 63, false, (bits & SPEC_HEX_UPPER) != 0);
 		}
 		else
-			len = itoa(Jogo::abs(number), intchars, 63);
+			len = itoa(number, intchars, 63, isSigned);
 
 		u32 result = len;
 		u32 width = 0;

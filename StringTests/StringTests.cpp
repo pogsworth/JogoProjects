@@ -201,17 +201,21 @@ int main(int argc, char* argv[])
 		s32 i;
 	};
 
-	bool bTestExhaustive = true;
+	bool bTestExhaustive = false;
 	if (bTestExhaustive)
 	{
-		//exhaustively check round trip of all floats that are not nan or inf
+		// Warning: enabling this test takes more than 10 min. in release
+		// exhaustively check round trip of all floats from float -> string -> float
 		u32 count = 0;
-		for (u32 f = 0x7f800000; f < 0xffffffff; f++)
+		for (u32 f = 0; f < 0xffffffff; f++)
 		{
 			IntFloat intf;
 			intf.i = f;
 
-			str8 resultstr = str8::format(scratch, "{:.9g}", intf.f);
+			// to test %f you need at least 56 digits precision
+			// test %e with 8 digits
+			// test %g with 9 digits
+			str8 resultstr = str8::format(scratch, "{:.56f}", intf.f);
 			float result = resultstr.atof();
 			if (result != intf.f)
 			{
@@ -222,13 +226,12 @@ int main(int argc, char* argv[])
 			if (!(f % 1000000))
 			{
 				Printf(scratch, "{} of {}\n", count, f);
-				scratch.Clear();
 			}
+			scratch.Clear();
 		}
 		printf("Total errors: %d\n", count);
-		scratch.Clear();
 	}
-
+	 
 	bool bTestIntegers = false;
 	if (bTestIntegers)
 	{
@@ -312,7 +315,7 @@ int main(int argc, char* argv[])
 			intf.i &= 0x7effffff;
 			str8 fta = str8::format(scratch, "{:.6g}", intf.f);
 			char sprintfout[32];
-			str8 spf(sprintfout, sprintf_s(sprintfout, sizeof(sprintfout), "%g", intf.f));
+			str8 spf(sprintfout, sprintf_s(sprintfout, sizeof(sprintfout), "%.6g", intf.f));
 
 			if (fta != spf)
 			{
