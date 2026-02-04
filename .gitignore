@@ -1,3 +1,6 @@
+build/
+*.sln
+*.vcxproj
 *.user
 *.asm
 *.bin
