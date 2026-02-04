@@ -10,16 +10,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(Jogo)
 
-target_include_directories(JogoProjects PUBLIC Jogo)
-
 file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
-foreach(child ${children})
-	if(child STREQUAL "Jogo" or child STREQUAL "build" or child STREQUAL ".git" or child STREQUAL "mmdc")
-		continue()
-	endif()
+set(SKIP_LIST "MyCommonLib" "build" ".git" "Jogo")
 
-	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child}}
+foreach(child ${children})
+    list(FIND SKIP_LIST "${child}" IS_SKIPPED)
+
+    if(NOT IS_SKIPPED EQUAL -1)
+        continue()
+    endif()
+
+	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
 		file(GLOB_RECURSE CHILD_SOURCES "${child}/*.cpp" "${child}/*.h")
 		
 		if(CHILD_SOURCES)
