@@ -1,7 +1,0 @@
-*.obj
-*.pch
-*.lib
-*.exe
-Debug/
-Release/
-.vs/
