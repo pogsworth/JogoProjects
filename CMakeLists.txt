@@ -2,10 +2,10 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds are not allowed. Please create a build folder (e.g., cmake -B build) and run from there.")
 endif()
 
-cmake_minimum_required(VERSION 4.2.1)
+cmake_minimum_required(VERSION 3.31)
 project(JogoProjects LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(Jogo)
