@@ -8,26 +8,11 @@ project(JogoProjects LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_definitions(WORKSPACE_ROOT="${CMAKE_SOURCE_DIR}/")
+
 add_subdirectory(Jogo)
-
-file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
-
-set(SKIP_LIST "MyCommonLib" "build" ".git" "Jogo")
-
-foreach(child ${children})
-    list(FIND SKIP_LIST "${child}" IS_SKIPPED)
-
-    if(NOT IS_SKIPPED EQUAL -1)
-        continue()
-    endif()
-
-	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
-		file(GLOB_RECURSE CHILD_SOURCES "${child}/*.cpp" "${child}/*.h")
-		
-		if(CHILD_SOURCES)
-			add_executable(${child} ${CHILD_SOURCES})
-			target_link_libraries(${child} PRIVATE Jogo)
-			message(STATUS "Found executable: ${child}")
-		endif()
-	endif()
-endforeach()
+add_subdirectory(Horizon)
+add_subdirectory(JuliaSet)
+add_subdirectory(MMDC)
+add_subdirectory(Tetris)
+add_subdirectory(UIExample)

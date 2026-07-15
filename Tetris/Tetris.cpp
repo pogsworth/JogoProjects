@@ -474,32 +474,13 @@ public:
 		ClearBuffer(white);
 
 		// TODO: move to testing function
-		BackBuffer.PasteBitmap(deltaX*4, deltaY*4, TestBitmap, 0xff0000);
+		s32 backgX = (Width - TestBitmap.Width) / 2;
+		s32 backgY = (Height - TestBitmap.Height) / 2;
+		BackBuffer.PasteBitmap(backgX, backgY, TestBitmap, 0xff0000);
 		BackBuffer.FillRect({ PlayFieldLeft, PlayFieldTop, PlayFieldWidth * BlockSize, PlayFieldHeight * BlockSize }, 0);
-		const char* HelloWorld = "Hello World!";
-		u32 cursor = 250;
-//		DefaultFont.DrawText(deltaX, deltaY, HelloWorld, 0xff0000, BackBuffer);
-		s32 x1 = mouseX;
-		s32 y1 = mouseY;
-		s32 x2 = mouseY + deltaX;
-		s32 y2 = mouseY + deltaY;
-		bool clipped = BackBuffer.ClipLine(x1, y1, x2, y2, { 0,0, (s32)BackBuffer.Width, (s32)BackBuffer.Height });
-		const str8 Clipped = "Clipped!";
-		const str8 NotClipped = "";
-		const str8 Message = !clipped ? Clipped : NotClipped;
-		DefaultFont.DrawText(0, 0, Message, 0, 0, BackBuffer);
 
-		// TODO: move to debug section
-		char X[16] = {};
-		char Y[16] = {};
-		str8::itoa(mouseX + deltaX, X, sizeof(X));
-		str8::itoa(mouseY + deltaY, Y, sizeof(Y));
-
-		DefaultFont.DrawText(0, 16, X, 0, 0, BackBuffer);
-		DefaultFont.DrawText(0, 32, Y, 0, 0, BackBuffer);
  		DefaultFont.DrawText(0, 48, LastChar, 0, 0, BackBuffer);
 
-//		BackBuffer.DrawLine(mouseX, mouseY, mouseX + deltaX, mouseY + deltaY, 0x00ff00);
 		DrawPlayField();
 		DrawPlayfieldBorder();
 
@@ -539,7 +520,14 @@ public:
 	}
 
 	// TODO: handle resizing BackBuffer here
-	void Resize(int width, int height) override {}
+	void Resize(int width, int height) override
+	{
+		App::Resize(width, height);
+		PlayFieldTop = (Height - PlayFieldHeight * BlockSize) / 2;
+		PlayFieldBottom = PlayFieldTop + PlayFieldHeight * BlockSize;
+		PlayFieldLeft = (Width - PlayFieldWidth * BlockSize) / 2;
+		
+	}
 };
 const char* TetrisGame::Name = "Tetris";
 

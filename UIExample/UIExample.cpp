@@ -123,7 +123,8 @@ public:
 		u32 white = 0xffffffff;
 		ClearBuffer(white);
 
-		UI::BeginFrame({ 100,0,Width,Height });
+		UI::BeginFrame();
+		UI::PushContainer({ 100,0,Width,Height });
 
 		char ButtonText[] = "Button0";
 		static char Clicked[] = "Nothing Clicked.";
@@ -141,14 +142,18 @@ public:
 		static char buffer[256] = "Test";
 		const Jogo::str8 bufferStr(buffer, Jogo::str8::cstringlength(buffer));
 		const Jogo::str8 newstring = UI::EditBox(bufferStr);
+		str8::copystring(newstring.chars, buffer, newstring.len, 256);
 		static u32 listofnumbers[10] = { 3,1,4,5,9,2,6,8,7,0 };
+		UI::PushContainer({ 0,0,Width,Height }, UI::CONTAINER_FLOW | UI::CONTAINER_RELATIVE);
 		for (u32 i = 0; i < 10; i++)
 		{
-			listofnumbers[i] = UI::EditBox(Jogo::str8::format(FrameArena, "{:02}", listofnumbers[i])).atoi();
+			listofnumbers[i] = UI::EditBox(Jogo::str8::format(FrameArena, "{:02}", listofnumbers[i]), "{:02d}").atoi();
 		}
+		UI::PopContainer();
+
 		DefaultFont.DrawText(0, 200, Clicked, 0, 0, BackBuffer);
 
-		static u32 choice = -1;
+		static u32 choice = -1;	
 		const str8 RadioButtons[] =
 		{
 			"Banana",
@@ -192,10 +197,11 @@ public:
 			}
 			UI::EndMenu();
 		}
+		UI::PopContainer();
 		UI::EndFrame();
-		UI::PrintDebug(FrameArena);
+		UI::PrintDebug(FrameArena, 10, 400, 0);
 
-#define TEST_ROUNDEDRECT
+//#define TEST_ROUNDEDRECT
 #ifdef TEST_ROUNDEDRECT
 		static s32 rad = 40;
 		static s32 dr = -1;

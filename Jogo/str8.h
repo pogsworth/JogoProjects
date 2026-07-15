@@ -152,6 +152,21 @@ namespace Jogo
 			return n >= '0' && n <= '9';
 		}
 
+		static bool ishex(char c)
+		{
+			return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+		}
+
+		static bool isupperhex(char c)
+		{
+			return (c >= 'A' && c <= 'F');
+		}
+
+		static bool islowerhex(char c)
+		{
+			return (c >= 'a' && c <= 'f');
+		}
+
 		static bool isalpha(char a)
 		{
 			return (a >= 'A' && a <= 'Z') || (a >= 'a' && a <= 'z');
@@ -165,6 +180,11 @@ namespace Jogo
 		static bool islower(char a)
 		{
 			return a >= 'a' && a <= 'z';
+		}
+
+		static bool isprintable(char a)
+		{
+			return a >= ' ' && a <= 127;
 		}
 
 		static const u32 DEFAULT_PREC = 6;
@@ -197,6 +217,9 @@ namespace Jogo
 		static const u32 SPEC_EXP_DEFAULT = 0x0;		// float %f format
 		static const u32 SPEC_EXP_SCI_NOTATION = 0x1;	// float %e format
 		static const u32 SPEC_EXP_SHORTEST = 0x3;		// float %g format
+		static const u32 SPEC_NUMERIC = 1 << 26;		// only accept digits with optional leading sign
+		static const u32 SPEC_ALPHA = 1 << 27;			// only a-z + A-Z
+		static const u32 SPEC_DECIMAL = 1 << 28;		// accept digits plus [-] plus [.]
 
 		static u32 toString(u32 number, const str8& spec, char* stringspace, u32 maxlen, bool isSigned = false);
 		static u32 toString(s32 number, const str8& spec, char* stringspace, u32 maxlen)
@@ -245,7 +268,8 @@ namespace Jogo
 
 		struct formatter
 		{
-			u32 format(const str8& fmt, char* dest, auto arg, auto... rest)
+			template < typename T, typename... Ts>
+			u32 format(const str8& fmt, char* dest, T arg, Ts... rest)
 			{
 				// find all escaped braces
 				u32 pos = 0;

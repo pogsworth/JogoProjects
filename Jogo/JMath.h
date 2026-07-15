@@ -105,9 +105,53 @@ namespace Jogo
 	float tangent(float x);
 	float arctangent(float x);
 	float arctangent(float x, float y);
+	float arcsine(float x);
+	float arccossine(float x);
 	float log2(float x);
 	float log(float x);
 	float exp(float x);
+
+	struct Vector2
+	{
+		float x, y;
+
+		float Length() const { return sqrt(x * x + y * y); }
+
+		void operator+=(const Vector2& v)
+		{
+			x += v.x; y += v.y;
+		}
+
+		void operator-=(const Vector2& v)
+		{
+			x -= v.x; y -= v.y;
+		}
+
+		void operator*=(f32 s)
+		{
+			x *= s; y *= s;
+		}
+
+		void operator*=(const Vector2& s)
+		{
+			x *= s.x; y *= s.y;
+		}
+	};
+
+	inline Vector2 operator+(const Vector2& a, const Vector2& b)
+	{
+		return { a.x + b.x, a.y + b.y };
+	}
+
+	inline Vector2 operator*(const f32 s, const Vector2& v)
+	{
+		return { s * v.x, s * v.y };
+	}
+
+	inline Vector2 operator*(const Vector2& v, const f32 s)
+	{
+		return operator*(s, v);
+	}
 
 	struct Vector3
 	{

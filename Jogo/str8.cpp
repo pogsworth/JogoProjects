@@ -81,12 +81,14 @@ namespace Jogo
 		u32 output = 0;
 		const char* p = chars;
 		u32 places = 0;
-		while (p - chars < (ptrdiff_t)len && places < 8)
+		while (p - chars < (ptrdiff_t)len && places < 8 && ishex(*p))
 		{
 			output *= 16;
 			u32 hexdigit = *p - '0';
+			if (islower(*p))
+				hexdigit -= 'a' - 'A';
 			if (hexdigit > 9)
-				hexdigit -= 'A' - '9' - 1;
+				hexdigit -= 'A' - '0' - 10;
 			output += hexdigit;
 			p++;
 			places++;
@@ -528,13 +530,31 @@ namespace Jogo
 				bits |= SPEC_HEX;
 			else if (spec.substr(pos).find('X') != (u32)-1)
 				bits |= SPEC_HEX | SPEC_HEX_UPPER;
+			else if (spec[pos] == 'a')
+			{
+				bits |= SPEC_ALPHA;
+			}
+			else if (spec[pos] == 'w')
+			{
+				bits |= SPEC_ALPHA | SPEC_NUMERIC;
+			}
+			else if (spec[pos] == 'd')
+			{
+				bits |= SPEC_NUMERIC;
+			}
+			else if (spec[pos] == 'f')
+			{
+				bits |= SPEC_DECIMAL;
+			}
 			else if (spec[pos] == 'e')
 			{
 				bits |= SPEC_EXP_SCI_NOTATION << SPEC_EXP_SHIFT;
+				bits |= SPEC_DECIMAL;
 			}
 			else if (spec[pos] == 'g')
 			{
 				bits |= SPEC_EXP_SHORTEST << SPEC_EXP_SHIFT;
+				bits |= SPEC_DECIMAL;
 			}
 		}
 

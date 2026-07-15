@@ -330,6 +330,13 @@ namespace Jogo
 			WriteFile(stdout, message.chars, (DWORD)message.len, &numbytes, NULL);
 		}
 	}
+
+	str8 CWD(Arena& arena)
+	{
+		char buffer[MAX_PATH];
+		::GetCurrentDirectory(MAX_PATH, buffer);
+		return str8::format(arena, "{:s}", buffer);
+	}
 };
 
 namespace Input

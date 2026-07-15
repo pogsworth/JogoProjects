@@ -1,8 +1,73 @@
 #include "Jogo.h"
 #include "str8.h"
 #include "gfx.h"
+#include <winrt/Windows.Devices.Sensors.h>
 
 using namespace Jogo;
+
+// define the vertices in digit space
+Vector2 digit_points[8] =
+{
+	{0.0f, -0.5f},
+	{0.0f, 0.0f},
+	{0.0f, 0.5f},
+	{0.5f, 0.5f},
+	{0.5f, 0.0f},
+	{0.5f, -0.5f}
+};
+// define shapes for digits 0-9
+char digits[][6] =
+{
+	{0x02, 0x23, 0x35, 0x50, 0x00},
+	{0x35, 0x00},
+	{0x23, 0x34, 0x41, 0x10, 0x05, 0x00},
+	{0x23, 0x35, 0x41, 0x50, 0x00},
+	{0x21, 0x14, 0x35, 0x00},
+	{0x32, 0x21, 0x14, 0x45, 0x50, 0x00},
+	{0x32, 0x20, 0x05, 0x54, 0x41, 0x00},
+	{0x23, 0x35, 0x00},
+	{0x02, 0x23, 0x35, 0x50, 0x14, 0x00},
+	{0x05, 0x53, 0x32, 0x21, 0x14, 0x00},
+};
+
+void DrawNumber(s32 n, const Vector2& Pos, const Vector2& Up, Bitmap& b, u32 color)
+{
+	// just take the lower two digits of n
+	u32 an = abs(n) % 100;
+	// use the length of Up to determine scale factor
+	float scale = Up.Length();
+
+	Vector2 CurrentPos = Pos;
+	Vector2 Right = { -Up.y, Up.x };
+	f32 dist = 2.0f;
+	if (n < 0)
+		dist += 1.0f;
+	CurrentPos += dist * Right;
+
+	for (u32 d = 0; d < 2; d++)
+	{
+		u32 dd = an % 10;
+		u32 i = 0;
+		while (digits[dd][i])
+		{
+			char pp = digits[dd][i];
+			Vector2 pt1 = digit_points[(pp >> 4)&7];
+			Vector2 pt2 = digit_points[pp & 7];
+
+			Vector2 v1 = CurrentPos + (Right * pt1.x + Up * pt1.y);
+			Vector2 v2 = CurrentPos + (Right * pt2.x + Up * pt2.y);
+			b.DrawLine(v1.x, v1.y, v2.x, v2.y, color);
+			i++;
+		}
+		an /= 10;
+		CurrentPos -= Right * 1.1f;
+	}
+	// draw a minus sign
+	//if (n < 0)
+	//{
+	//	b.DrawLine(CurrentPos.x, CurrentPos.y, CurrentPos.x + Right.x * 0.5f, CurrentPos.y + Right.y, color);
+	//}
+}
 
 class Horizon : public Jogo::App
 {
@@ -44,13 +109,23 @@ class Horizon : public Jogo::App
 	float PitchOriginScreenSpaceY = 0.f;
 	float triangleTheta = 20.0f * D2R;
 
+	float fusedPitch = 0.0f;
+	float fusedRoll = 0.0f;
+
+
 public:
 	Horizon()
 	{
 		HorizonArena = Arena::Create(DefaultArenaSize);
+
+		// throw this string away immediately after use...
+		Arena scratch = DefaultArena.GetScratchArena(4096);
+		str8 cwd = Jogo::CWD(scratch);
+		Jogo::Print(cwd);
+
 		AtariFont = Font::Load("../Jogo/Atari8.fnt", HorizonArena);
 		F = Bitmap::Create(8, 8, 1, HorizonArena);
-		F.Erase(0xffffff);
+		F.Erase(0);
 		F.PasteBitmapSelection(0, 0, AtariFont.FontBitmap, { 48, 8, 8, 8 }, 0);
 		Texture = Bitmap::Load("checker.bmp", HorizonArena);
 		Solids[0] = CreateCube();
@@ -72,6 +147,57 @@ public:
 
 	const char* GetName() const override { return Name; }
 
+	void UpdateSensors(float dt) {
+		using namespace winrt::Windows::Devices::Sensors;
+		//OrientationSensor sensor = OrientationSensor::GetDefault();
+		//if (sensor)
+		//{
+		//	auto reading = sensor.GetCurrentReading();
+		//	auto q = reading.Quaternion(); // Get the 4D rotation
+		//	// Convert Quaternion to Euler Pitch/Roll
+
+		//	fusedPitch = atan2(2 * (q.W() * q.X() + q.Y() * q.Z()), 1 - 2 * (q.X() * q.X() + q.Y() * q.Y())) * (180.0f / PI);
+		//	fusedRoll = asin(2 * (q.W() * q.Y() - q.Z() * q.X())) * (180.0f / PI);
+		//}
+
+
+		static Gyrometer gyro = Gyrometer::GetDefault();
+		static Accelerometer accel = Accelerometer::GetDefault();
+
+		if (gyro && accel) {
+			auto gReading = gyro.GetCurrentReading();
+			auto aReading = accel.GetCurrentReading();
+
+			float accelX = aReading.AccelerationX();
+			float accelY = aReading.AccelerationY();
+			float accelZ = aReading.AccelerationZ();
+			float gyroX = gReading.AngularVelocityX();
+			float gyroY = gReading.AngularVelocityY();
+			float gyroZ = gReading.AngularVelocityZ();
+
+			float force = Jogo::sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+			if (force < 0.1)
+				return;
+			accelX /= force;
+			accelY /= force;
+			accelZ /= force;
+
+			// 1. Calculate Pitch/Roll from Accelerometer (Static Gravity)
+			// atan2 helps keep these values stable
+			float accRoll = atan2(accelX, accelY) * 180.0f / PI;
+			float accPitch = atan2(accelY, accelZ) * 180.0f / PI;
+
+			// 2. Integrate Gyroscope Data (Angular Velocity)
+			// Gyro measures degrees per second, so multiply by delta time
+
+			gyroZ = gyroZ < 0.05 ? 0.0 : gyroZ;
+			gyroX = gyroX < 0.05 ? 0.0 : gyroX;
+			// 3. The Complementary Filter
+			float alpha = 0.95f;
+			fusedRoll = alpha * (fusedRoll + gyroZ * dt) + (1.0f - alpha) * accRoll;
+			fusedPitch = alpha * (fusedPitch + gyroX * dt) + (1.0f - alpha) * accPitch;
+		}
+	}
 
 	bool Tick(float DT /* do we need anything else passed in here?*/) override
 	{
@@ -81,6 +207,8 @@ public:
 		double s = fps.GetSecondsSinceLast();
 		framespersecond = 1.0f / s;
 
+//		UpdateSensors(DT);
+
 		if (Input::IsKeyPressed(Input::KEY_RIGHT))
 		{
 			roll += 30.0f * DT;
@@ -89,31 +217,22 @@ public:
 		{
 			roll -= 30.0f * DT;
 		}
-		float localupx = sine(roll);
-		float localupy = cosine(roll);
+//		roll = fusedRoll;
+
+		float localupx = sine(roll * D2R);
+		float localupy = cosine(roll * D2R);
 		static float timer = 0;
 		timer += DT;
-		char timerString[32];
-		str8::ftoa(timer, timerString, sizeof(timerString));
-		char* p = timerString;
-		for (s32 i = 0; i < 32; i++, p++)
-		{
-			if (!*p)
-			{
-				*p++ = '\n';
-				*p = 0;
-				break;
-			}
-		}
-//		DebugOut(timerString);
+
 		if (Input::IsKeyPressed(Input::KEY_UP))
 		{
-			pitch += 20.0f * DT;
+			pitch += 20.0f * localupy * DT;
 		}
 		if (Input::IsKeyPressed(Input::KEY_DOWN))
 		{
-			pitch -= 20.0f * DT;
+			pitch -= 20.0f * localupy * DT;
 		}
+//		pitch = fusedPitch;
 		return Done;
 	}
 
@@ -183,46 +302,42 @@ public:
 		float cx = frame.x + frame.w / 2.0f;
 		float cy = frame.y + frame.h / 2.0f;
 		float r = 1.5f*frame.w / 2;
-		float c = cosine(-roll * D2R);
-		float s = sine(-roll * D2R);
 		
 		s32 q;
 		float p;
-		remainder(-pitch, 180.0f, 1.0f / 180.0f, q, p);
+		remainder(pitch + 180.0f, 360.0f, 1.0f / 360.0f, q, p);
+		if (p < 0)
+		{
+			p += 360.0f;
+		}
+		p -= 180.0f;
 
+		float drawPitch = p;
+		float drawRoll = roll;
+
+		if (p > 90.0f)
+		{
+			drawPitch = 180.0f - p;
+			drawRoll += 180.0f;
+		}
+		else if (p < -90.0f)
+		{
+			drawPitch = -180.0 - p;
+			drawRoll += 180.0f;
+		}
+
+		float c = cosine(-drawRoll * D2R);
+		float s = sine(-drawRoll * D2R);
 		float upx = s;
 		float upy = -c;
-		// are we upside-down?
-		//if (q & 1)
-		//{
-		//	upx = -s;
-		//	upy = c;
-		//}
-
-		// find x,y where pitch is 0
-		//if (q & 1)
-		//{
-		//	PitchOriginScreenSpaceX = cx + p * PitchToScreenScale * upx;
-		//	PitchOriginScreenSpaceY = cy - p * PitchToScreenScale * upy;
-		//}
-		//else
-		{
-			PitchOriginScreenSpaceX = cx + p * PitchToScreenScale * upx;
-			PitchOriginScreenSpaceY = cy + p * PitchToScreenScale * upy;
-		}
-
-		// are we upside-down?
-		if (q & 1)
-		{
-			upx = -s;
-			upy = c;
-		}
+		PitchOriginScreenSpaceX = cx + drawPitch * PitchToScreenScale * upx;
+		PitchOriginScreenSpaceY = cy + drawPitch * PitchToScreenScale * upy;
 
 		// find the endpoints of the horizon line in screen space
-		//s32 x1 = (s32)(PitchOriginScreenSpaceX - r * c);
-		//s32 y1 = (s32)(PitchOriginScreenSpaceY - r * s);
-		//s32 x2 = (s32)(PitchOriginScreenSpaceX + r * c);
-		//s32 y2 = (s32)(PitchOriginScreenSpaceY + r * s);
+		s32 x1 = (s32)(PitchOriginScreenSpaceX - r * c);
+		s32 y1 = (s32)(PitchOriginScreenSpaceY - r * s);
+		s32 x2 = (s32)(PitchOriginScreenSpaceX + r * c);
+		s32 y2 = (s32)(PitchOriginScreenSpaceY + r * s);
 
 		// for each horizontal line of the display
 		// determine where the line segment intersects the frame
@@ -230,41 +345,67 @@ public:
 
 		// determine the first line of sky, which would be 
 		u32 color = SkyColor;
-		//for (s32 screeny = frame.y; screeny < frame.y + frame.h; screeny++)
-		//{
-		//	// is this line sky or ground?
-		//	float testx = (float)frame.x;
-		//	float testy = (float)screeny;
-		//	VectorToPitchOriginScreenSpace(testx, testy);
+		for (s32 screeny = frame.y; screeny < frame.y + frame.h; screeny++)
+		{
+			// is this line sky or ground?
+			float testx = (float)frame.x;
+			float testy = (float)screeny;
+			VectorToPitchOriginScreenSpace(testx, testy);
 
-		//	float LeftDot = testx * upx + testy * upy;
-		//	color = LeftDot > 0 ? SkyColor : GroundColor;
-		//	// TODO: coompute where sky turns to ground etc.
-		//	testx = (float)(frame.x + frame.w);
-		//	testy = (float)screeny;
-		//	VectorToPitchOriginScreenSpace(testx, testy);
-		//	float RightDot = testx * upx + testy * upy;
-		//	s32 RightEdge = frame.x + frame.w;
-		//	if ((RightDot >= 0 && LeftDot < 0) || (RightDot < 0 && LeftDot >= 0))
-		//	{
-		//		// compute the intersection of the horizon line with current scanline
-		//		RightEdge = frame.x + (s32)(LeftDot * frame.w / (LeftDot - RightDot));
-		//	}
-		//	BackBuffer.DrawHLine(screeny, frame.x, RightEdge, color);
-		//	color = color == SkyColor ? GroundColor: SkyColor;
-		//	BackBuffer.DrawHLine(screeny, RightEdge, frame.x + frame.w, color);
-		//}
+			float LeftDot = testx * upx + testy * upy;
+			color = LeftDot > 0 ? SkyColor : GroundColor;
+			// TODO: compute where sky turns to ground etc.
+			testx = (float)(frame.x + frame.w);
+			testy = (float)screeny;
+			VectorToPitchOriginScreenSpace(testx, testy);
+			float RightDot = testx * upx + testy * upy;
+			s32 RightEdge = frame.x + frame.w;
+			if ((RightDot >= 0 && LeftDot < 0) || (RightDot < 0 && LeftDot >= 0))
+			{
+				// compute the intersection of the horizon line with current scanline
+				RightEdge = frame.x + (s32)(LeftDot * frame.w / (LeftDot - RightDot));
+			}
+			BackBuffer.DrawHLine(screeny, frame.x, RightEdge, color);
+			color = color == SkyColor ? GroundColor: SkyColor;
+			BackBuffer.DrawHLine(screeny, RightEdge, frame.x + frame.w, color);
+		}
+
 		// draw the horizon line
+		if (BackBuffer.ClipLine(x1, y1, x2, y2, frame))
+		{
+			BackBuffer.DrawLine(x1, y1, x2, y2, 0xffffff);
+		}
 
-		//if (BackBuffer.ClipLine(x1, y1, x2, y2, frame))
-		//{
-		//	BackBuffer.DrawLine(x1, y1, x2, y2, 0);	// 0xffffff);
+		AtariFont.DrawText(cx, cy - frame.h / 2 - 10, str8::format(FrameArena, "{:0.2} {:0.2}", pitch, roll), 0, 0xffffffff, BackBuffer);
 
-		//	//s32 pox = PitchOriginScreenSpaceX;
-		//	//s32 poy = PitchOriginScreenSpaceY;
-		//}
+		// draw degree hashes
+		// TODO: draw these from pitch,roll coord space and transform instead of this
+		float pp;
+		remainder(drawPitch, 10.0f, 0.1f, q, pp);
+		pp -= 40.f;
+		for (float h=0.f; h <= 80.0f; h += 10.0f)
+		{
+			if (abs(pp + h - drawPitch) < 1.0f)
+				continue;
+			float t = (pp + h) * PitchToScreenScale;
+			float ppx = cx + t * upx;
+			float ppy = cy + t * upy;
 
-		//BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
+			// find the endpoints of the horizon line in screen space
+			s32 leftx = (s32)(ppx - 0.25f * r * c);
+			s32 lefty = (s32)(ppy - 0.25f * r * s);
+			s32 rightx = (s32)(ppx + 0.25f * r * c);
+			s32 righty = (s32)(ppy + 0.25f * r * s);
+
+
+			BackBuffer.DrawLine(leftx, lefty, rightx, righty, 0xffffff);
+			
+			Vector2 ScaledUp = { 10 * upx, 10 * upy };
+			// now draw the corresponding Pitch at this hash mark
+			DrawNumber(pp + h - drawPitch, { (f32)rightx, (f32)righty }, ScaledUp, BackBuffer, 0xffffffff);
+		}
+
+		BackBuffer.DrawCircle((s32)cx, (s32)cy, 10, 0xffffff);
 
 		MeshVertex worldTriangle[] =
 		{
@@ -404,22 +545,12 @@ public:
 ////			BackBuffer.FillTriangle(triangle);
 //			BackBuffer.FillTriangle(triangle);
 //		}
-		//x1 = (s32)cx;	// PitchOriginScreenSpaceX;
-		//y1 = (s32)cy;	// PitchOriginScreenSpaceY;
-		//x2 = x1 + (s32)(upx * 30);
-		//y2 = y1 + (s32)(upy * 30);
-		//BackBuffer.DrawLine(x1, y1, x2, y2, 0xffff);
-		//BackBuffer.DrawLine(triangle[0].x, triangle[0].y, triangle[1].x, triangle[1].y, 0);
-		//BackBuffer.DrawLine(triangle[1].x, triangle[1].y, triangle[2].x, triangle[2].y, 0);
-		//BackBuffer.DrawLine(triangle[2].x, triangle[2].y, triangle[0].x, triangle[0].y, 0);
-		char pitchString[32];
-		u32 len = str8::itoa((int)pitch%360, pitchString, 32);
-		str8 pitchstr(pitchString, len);
-		for (u32 i = 0; i < 6; i++)
-		{
-			RenderMesh(Solids[i], SolidTransforms[i], MainCamera, BackBuffer, Texture, FrameArena, !Input::IsKeyPressed(' '));
-			SolidTransforms[i].RotateY(frameDelta);
-		}
+
+		//for (u32 i = 0; i < 6; i++)
+		//{
+		//	RenderMesh(Solids[i], SolidTransforms[i], MainCamera, BackBuffer, Texture, FrameArena, !Input::IsKeyPressed(' '));
+		//	SolidTransforms[i].RotateY(frameDelta);
+		//}
 	}
 
 	void DrawSineWave()
@@ -444,45 +575,15 @@ public:
 	{
 		frametime.Start();
 
-		BackBuffer.Erase(0xffffff);
+		BackBuffer.Erase(0xffffffff);
 
 		Bitmap::Rect horizonBox = { 250,250,500,500 };
 		DrawHorizon(horizonBox, pitch, roll);
-		//DrawSineWave();
-		//char scrollString[32];
-		//str8::itoa(scroll, scrollString);
-		//DefaultFont.DrawText(0,0,scrollString, 0xffffff, BackBuffer);
+
 		AtariFont.DrawText(0, 20, str8::format(FrameArena, "{:}", frameDelta), 0, 0, BackBuffer);
 		AtariFont.DrawText(0, 0, str8::format(FrameArena, "{:}", (float)framespersecond), 0, 0, BackBuffer);
 		//		AtariFont.DrawText(0, 0, "Hello", 0, 0, BackBuffer);
 
-		static int counter = 1234567;
-		counter++;
-		char counterText[32] = {};
-		u32 len = str8::itoa(counter, counterText, sizeof(counterText));
-		str8 countrStr(counterText, len);
-		static s32 offset = 0;
-		static s32 dx = -1;
-		offset += dx;
-		if (offset < -100 || offset >= 100)
-			dx = -dx;
-//		AtariFont.DrawText(offset, 20, countrStr, 0, BackBuffer);
-
-		static float theta = 0.0f;
-		static float radius = 400.0f;
-		static float dtheta = 1.0f;
-		static float dradius = 0.1f;
-		if (radius < 10.f || radius > 150.f)
-		{
-			dradius = -dradius;
-		}
-		float x = radius * cosine(theta * D2R);
-		float y = radius * sine(theta * D2R);
-		float cx = 350.f;
-		float cy = 300.f;
-		//BackBuffer.PasteBitmapSelectionScaled({ (s32)cx, (s32)cy, (s32)x, (s32)y }, F, { 0, 0, 64, 64 }, 0);
-		radius += dradius;
-		theta += dtheta;
 		double frametimeseconds = frametime.GetSecondsSinceLast();
 		AtariFont.DrawText(0, 40, str8::format(FrameArena, "{:}", (float)frametimeseconds), 0, 0, BackBuffer);
 

@@ -1,0 +1,41 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "Horizon",
+      "name": "Horizon",
+      "currentDir": "${workspaceRoot}/Horizon"
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "JuliaSet",
+      "name": "JuliaSet",
+      "currentDir": "${workspaceRoot}/JuliaSet"
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "Tetris",
+      "name": "Tetris",
+      "currentDir": "${workspaceRoot}/Tetris"
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "UIExample",
+      "name": "UIExample",
+      "currentDir": "${workspaceRoot}/UIExample"
+    },
+	{
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MMDC",
+      "name": "MMDC"
+      "currentDir": "${workspaceRoot}/MMDC"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base-preset",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" 
+      }
+    },
+    {
+      "name": "x64-debug",
+      "displayName": "x64 Debug",
+      "description": "Unoptimized debug build with full debug symbols",
+      "inherits": "base-preset",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release",
+      "displayName": "x64 Release (Deployment)",
+      "description": "Fully optimized deployment build (no debug symbols)",
+      "inherits": "base-preset",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-performance",
+      "displayName": "x64 Performance (RelWithDebInfo)",
+      "description": "Fully optimized build with debug symbols for profiling and debugging",
+      "inherits": "base-preset",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "x64-minsizerel",
+      "displayName": "x64 MinSizeRel",
+      "description": "Optimized for smallest executable size",
+      "inherits": "base-preset",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-debug",
+      "configurePreset": "x64-debug"
+    },
+    {
+      "name": "x64-release",
+      "configurePreset": "x64-release"
+    },
+    {
+      "name": "x64-performance",
+      "configurePreset": "x64-performance"
+    },
+    {
+      "name": "x64-minsizerel",
+      "configurePreset": "x64-minsizerel"
+    }
+  ]
+}

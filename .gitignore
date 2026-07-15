@@ -1,10 +1,5 @@
 build/
-*.sln
-*.vcxproj
-*.user
 *.asm
 *.bin
-Debug/
-Release/
 .vs/
 __pycache__

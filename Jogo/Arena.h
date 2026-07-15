@@ -26,11 +26,11 @@ struct Arena
 	}
 	void ReleaseMemory();
 	static Arena Create(size_t ArenaSize, size_t align = 8);
-	static Arena GetScratchArena(u8* memory, size_t size, size_t align = 1)
+	Arena GetScratchArena(size_t size, size_t align = 1)
 	{
 		if (align == 0 || align > 8 || (align & (align-1)))
 			align = 8;
-		Arena stack{ size, memory, memory, align};
+		Arena stack{ size, CurrentLocation, CurrentLocation, align};
 		return stack;
 	}
 };

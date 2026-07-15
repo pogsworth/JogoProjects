@@ -4,15 +4,18 @@
 
 namespace UI
 {
-	const u32 MaxFrameStack = 15;
-	Frame FrameStack[MaxFrameStack];
-	u32 CurrentFrame = 0;
+	const u32 MaxContainerStack = 15;
+	Container ContainerStack[MaxContainerStack];
+	u32 CurrentContainer = 0;
+	u32 NextContainer = 0;
 	Bitmap Target;
 	Font DefaultFont;
 	u32 HotID = 0;
 	u32 ActiveID = 0;
 	u32 FocusID = 0;
 	u32 LastFocusID = 0;
+	u32 NextFocusID = 0;
+	u32 PrevFocusID = 0;
 	u32 ButtonColor = 0x808080;
 	u32 LabelColor = 0x404040;
 	u32 EditColor = 0x303030;
@@ -48,7 +51,7 @@ namespace UI
 
 	// TODO: establish default widths of controls?
 	// or require that rects be passed in to establish sizes
-	// or follow some kind of layout rules establed by BeginFrame
+	// or follow some kind of layout rules establed by PushContainer
 	// TODO: need to be able to specify:
 	// container
 	// flow direction
@@ -84,18 +87,26 @@ namespace UI
 		SelectionBegin = SelectionEnd = -1;
 	}
 
-	void DeleteSelection()
+	void DeleteSelection(u32 bInputLimited = false)
 	{
 		if (SelectionEnd > SelectionBegin)
 		{
 			char* s = EditBuffer + SelectionEnd;
 			char* d = EditBuffer + SelectionBegin;
 			size_t l = EditBufferLen - SelectionEnd;
-			while (l--)
+			if (bInputLimited)
 			{
-				*d++ = *s++;
+				while (l--)
+					*d++ = ' ';
 			}
-			EditBufferLen -= SelectionEnd - SelectionBegin;
+			else
+			{
+				while (l--)
+				{
+					*d++ = *s++;
+				}
+				EditBufferLen -= SelectionEnd - SelectionBegin;
+			}
 		}
 		ClearSelection();
 	}
@@ -107,11 +118,6 @@ namespace UI
 
 	void InsertChar(char character)
 	{
-		if (SelectionBegin != -1)
-		{
-			InsertionPoint = SelectionBegin;
-			DeleteSelection();
-		}
 		if (InsertionPoint <= EditBufferLen && EditBufferLen < sizeof(EditBuffer))
 		{
 			// move all characters down to make room for current character
@@ -188,11 +194,15 @@ namespace UI
 			{
 				InsertionPoint = SelectionBegin;
 			}
-			DeleteSelection();
+			DeleteSelection(InputLimit < sizeof(EditBuffer));
 			if (!bSelection && InsertionPoint > 0)
 			{
 				InsertionPoint--;
 				DeleteChar();
+				if (InputLimit < sizeof(EditBuffer))
+				{
+					EditBufferLen++;
+				}
 			}
 			return true;
 		}
@@ -203,10 +213,14 @@ namespace UI
 			{
 				InsertionPoint = SelectionBegin;
 			}
-			DeleteSelection();
+			DeleteSelection(InputLimit < sizeof(EditBuffer));
 			if (!bSelection && InsertionPoint < EditBufferLen)
 			{
 				DeleteChar();
+				if (InputLimit < sizeof(EditBuffer))
+				{
+					EditBufferLen++;
+				}
 			}
 			return true;
 		}
@@ -335,6 +349,7 @@ namespace UI
 		{
 			ClearSelection();
 			LastFocusID = FocusID;
+//			NextFocusID = FocusID;
 			FocusID = 0;
 			return true;
 		}
@@ -349,7 +364,9 @@ namespace UI
 		if (HotID)
 		{
 			if (HotID != FocusID)
-				FocusID = 0;
+			{
+//				FocusID = HotID;
+			}
 			else
 				bSelecting = true;
 			return true;
@@ -382,13 +399,58 @@ namespace UI
 		if (!FocusID)
 			return false;
 
-		if (character >= 32 && character < 128 && InsertionPoint < sizeof(EditBuffer))
-		{			
-			if (SelectionBegin != -1)
-			{
-				InsertionPoint = SelectionBegin;
-				DeleteSelection();
-			}
+		// TODO: implement input filter here
+		// for instance, an editbox that only takes numbers or hex digits etc.
+		switch (InputFilter)
+		{
+		case UIInputHandler::FILTER_NONE:
+			if (!Jogo::str8::isprintable(character))
+				return true;
+			break;
+
+		case UIInputHandler::FILTER_NUMERIC:
+			if (!Jogo::str8::isdigit(character))
+				return true;
+			break;
+
+		case UIInputHandler::FILTER_ALPHA:
+			if (!Jogo::str8::isalpha(character))
+				return true;
+			break;
+
+		case UIInputHandler::FILTER_ALPHANUMERIC:
+			if (!Jogo::str8::isalpha(character) && !Jogo::str8::isdigit(character))
+				return true;
+			break;
+
+		case UIInputHandler::FILTER_HEX:
+			if (!Jogo::str8::ishex(character))
+				return true;
+			break;
+
+		case UIInputHandler::FILTER_REAL:
+			if (!Jogo::str8::isdigit(character) && (character != '.'))
+				return true;
+			break;
+		}
+
+
+		if (SelectionBegin != -1)
+		{
+			InsertionPoint = SelectionBegin;
+			DeleteSelection(InputLimit < sizeof(EditBuffer));
+		}
+
+		if (InsertionPoint >= InputLimit)
+		{
+			InsertionPoint = Jogo::max(InputLimit - 1, (u32)0);
+		}
+		if (InputLimit < sizeof(EditBuffer))
+		{
+			EditBuffer[InsertionPoint++] = character;
+		}
+		else
+		{
 			InsertChar(character);
 		}
 
@@ -397,7 +459,22 @@ namespace UI
 
 	u32 GetID()
 	{
-		return FrameStack[CurrentFrame].NextID++;
+		u32 ID = ContainerStack[CurrentContainer].NextID++;
+		//if (PrevFocusID == ID)
+		//{
+		//	FocusID = ID;
+		//	PrevFocusID = 0;
+		//}
+		//if (NextFocusID == -1)
+		//{
+		//	FocusID = ID;
+		//	NextFocusID = 0;
+		//}
+		//if (NextFocusID == ID)
+		//{
+		//	NextFocusID = -1;
+		//}
+		return ID;
 	}
 
 	bool Interact(u32 Id, const Bitmap::Rect& r)
@@ -473,7 +550,7 @@ namespace UI
 		// compare to hot and active
 		// calc return value (based on mouse in rect for this button)
 		Bitmap::Rect ButtonSize = GetButtonSize(Text);
-		Bitmap::Rect location = FrameStack[CurrentFrame].PrimitiveBegin();
+		Bitmap::Rect location = ContainerStack[CurrentContainer].PrimitiveBegin();
 		ButtonSize.x = location.x;
 		ButtonSize.y = location.y;
 		CurrentColor = ButtonColor;
@@ -487,7 +564,7 @@ namespace UI
 
 		DrawButton(ButtonSize, Text);
 
-		FrameStack[CurrentFrame].PrimitiveEnd(ButtonSize);
+		ContainerStack[CurrentContainer].PrimitiveEnd(ButtonSize);
 
 		return clicked;
 	}
@@ -508,14 +585,14 @@ namespace UI
 	void Label(const Jogo::str8& Text)
 	{
 		Bitmap::Rect TextSize = GetButtonSize(Text);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 		CurrentColor = LabelColor;
 		HiColor = HiLight;
 
 		DrawLabel(TextSize, Text);
 
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 	}
 
 	void DrawEditBox(Bitmap::Rect& r, const Jogo::str8& Text, bool bFocused = false)
@@ -541,15 +618,15 @@ namespace UI
 		}
 	}
 
-	const Jogo::str8 EditBox(const Jogo::str8& Text)
+	const Jogo::str8 EditBox(const Jogo::str8& Text, const Jogo::str8& format)
 	{
 		u32 EditID = GetID();
 		Jogo::str8 result = Text;
 		Bitmap::Rect TextSize = GetButtonSize(result);
 
 		TextSize = GetButtonSize(result);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 
 		CurrentColor = EditColor;
 		HiColor = HiLight;
@@ -570,6 +647,44 @@ namespace UI
 				InsertionPoint = (u32)DefaultFont.GetCursorPos(Text, mousex - TextSize.x);
 				EditBufferLen = Text.len;
 				DoubleClickTime = 0;
+
+				// parse the format spec:
+				u32 spec = Jogo::str8::parseSpec(format);
+				// set up the UIInputHandler constraints
+				UIHandler.InputLimit = sizeof(EditBuffer);
+				UIHandler.InputFilter = UIInputHandler::FILTER_NONE;
+				if (spec & Jogo::str8::SPEC_WIDTH)
+				{
+					UIHandler.InputLimit = (spec >> Jogo::str8::SPEC_WIDTH_SHIFT) & Jogo::str8::SPEC_WIDTH_MASK;
+					if (UIHandler.InputLimit < sizeof(EditBuffer))
+					{
+						// pad out the remainder with spaces
+						for (u32 i = (u32)Text.len; i < sizeof(EditBuffer); i++)
+						{
+							EditBuffer[i] = ' ';
+						}
+					}
+				}
+				if (spec & Jogo::str8::SPEC_HEX)
+				{
+					UIHandler.InputFilter = UIInputHandler::FILTER_HEX;
+				}
+				if (spec & Jogo::str8::SPEC_NUMERIC | Jogo::str8::SPEC_ALPHA)
+				{
+					UIHandler.InputFilter = UIInputHandler::FILTER_ALPHANUMERIC;
+				}
+				if (spec & Jogo::str8::SPEC_NUMERIC)
+				{
+					UIHandler.InputFilter = UIInputHandler::FILTER_NUMERIC;
+				}
+				if (spec & Jogo::str8::SPEC_ALPHA)
+				{
+					UIHandler.InputFilter = UIInputHandler::FILTER_ALPHA;
+				}
+				if (spec & Jogo::str8::SPEC_DECIMAL)
+				{
+					UIHandler.InputFilter = UIInputHandler::FILTER_REAL;
+				}
 			}
 		}
 		if (FocusID == EditID)
@@ -654,7 +769,6 @@ namespace UI
 			TextSize.w = Size.w;
 			TextSize.h = Size.h;
 			DrawEditBox(TextSize, EditText, SelectionBegin > -1);
-			result = Jogo::str8(EditBuffer, EditBufferLen);
 
 			// draw the current insertion point
 			if (bTextEditCursorVisible)
@@ -669,10 +783,16 @@ namespace UI
 		}
 		else
 		{
+			// did user just tab away or change focus away from this control?
+			if (LastFocusID == EditID)
+			{
+				result = Jogo::str8(EditBuffer, EditBufferLen);
+				LastFocusID = 0;
+			}
 			DrawEditBox(TextSize, result);
 		}
 
-		FrameStack[CurrentFrame].CursorY += TextSize.h + 1;
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 
 		return result;
 	}
@@ -693,8 +813,8 @@ namespace UI
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = GetButtonSize(Text);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 		TextSize.w += TextSize.h;
 
 		CurrentColor = ButtonColor;
@@ -705,7 +825,7 @@ namespace UI
 		}
 		DrawRadioButton(TextSize, Text, RadioChoice == CurrentRadio);
 		CurrentRadio++;
-		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 	}
 
 	u32 RadioButtons(u32 choice, const Jogo::str8 strings[], u32 count)
@@ -720,7 +840,7 @@ namespace UI
 			}
 		}
 		MaxRadio.w += MaxRadio.h + 1;
-		Bitmap::Rect AllRadios = { (s32)FrameStack[CurrentFrame].CursorX, (s32)FrameStack[CurrentFrame].CursorY, (s32)MaxRadio.w, (s32)(count * MaxRadio.h) };
+		Bitmap::Rect AllRadios = { (s32)ContainerStack[CurrentContainer].CursorX, (s32)ContainerStack[CurrentContainer].CursorY, (s32)MaxRadio.w, (s32)(count * MaxRadio.h) };
 		Target.FillRect(AllRadios, ButtonColor);
 
 		RadioChoice = choice;
@@ -730,7 +850,7 @@ namespace UI
 			RadioButton(strings[i]);
 		}
 		Target.DrawRect(AllRadios, Black);
-		FrameStack[CurrentFrame].CursorY++;
+		ContainerStack[CurrentContainer].CursorY++;
 		return RadioChoice;
 	}
 
@@ -760,8 +880,8 @@ namespace UI
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 		TextSize.w += 8 + TextSize.h + 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
@@ -770,59 +890,79 @@ namespace UI
 		{
 			checked = !checked;
 		}
-		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 		DrawCheckBox(TextSize, label, checked);
 
 		return checked;
 	}
 
-	// TODO: fix potential buffer overrun with unpaired BeginFrame/EndFrame
-	void PushFrame(const Bitmap::Rect& ThisFrame, u32 FlowDir)
+	// TODO: fix potential buffer overrun with unpaired PushContainer/PopContainer
+	void PushContainer(const Bitmap::Rect& ThisContainer, u32 Flags)
 	{
-		CurrentFrame++;
-		Jogo::Assert(CurrentFrame < MaxFrameStack);
-		FrameStack[CurrentFrame].FrameRect = ThisFrame;
-		FrameStack[CurrentFrame].CursorX = ThisFrame.x;
-		FrameStack[CurrentFrame].CursorY = ThisFrame.y;
-		FrameStack[CurrentFrame].NextID = CurrentFrame << 12;
-		FrameStack[CurrentFrame].FlowDir = FlowDir;
+		u32 ContainerOffsetX = 0;
+		u32 ContainerOffsetY = 0;
+		if (Flags & CONTAINER_RELATIVE && CurrentContainer)
+		{
+			ContainerOffsetX = ContainerStack[CurrentContainer].CursorX;
+			ContainerOffsetY = ContainerStack[CurrentContainer].CursorY;
+		}
+		CurrentContainer++;
+		NextContainer++;
+		Jogo::Assert(CurrentContainer < MaxContainerStack);
+		ContainerStack[CurrentContainer].ContainerRect = ThisContainer;
+		ContainerStack[CurrentContainer].ContainerRect.x += ContainerOffsetX;
+		ContainerStack[CurrentContainer].ContainerRect.y += ContainerOffsetY;
+		ContainerStack[CurrentContainer].CursorX = ContainerOffsetX + ThisContainer.x;
+		ContainerStack[CurrentContainer].CursorY = ContainerOffsetY + ThisContainer.y;
+		ContainerStack[CurrentContainer].NextID = NextContainer << 12;
+		u32 FlowDir = Flags & CONTAINER_FLOW;
+		ContainerStack[CurrentContainer].FlowDir = FlowDir;
+		ContainerStack[CurrentContainer].Relative = (Flags & CONTAINER_RELATIVE) == CONTAINER_RELATIVE;
 	}
 
-	void PopFrame()
+	void PopContainer()
 	{
-		Jogo::Assert(CurrentFrame > 0);
-		CurrentFrame--;
+		Jogo::Assert(CurrentContainer > 0);
+		CurrentContainer--;
+		if (ContainerStack[CurrentContainer + 1].Relative)
+		{
+			if (ContainerStack[CurrentContainer].FlowDir)
+				ContainerStack[CurrentContainer].CursorX = ContainerStack[CurrentContainer + 1].CursorX;
+			else
+				ContainerStack[CurrentContainer].CursorY = ContainerStack[CurrentContainer + 1].CursorY;
+		}
+		ContainerStack[CurrentContainer].PrimitiveEnd({ 0,0,(s32)DefaultFont.CharacterHeight+8, (s32)DefaultFont.CharacterHeight+8});
 	}
 
-	// need to pass in input state to BeginFrame
-	// TODO: reset and establish layout rules within this frame
-	void BeginFrame(const Bitmap::Rect& r, u32 Flow)
+	// need to pass in input state to BeginContainer
+	// TODO: reset and establish layout rules within this Container
+	void BeginFrame()
 	{
-		PushFrame(r, Flow);
+		CurrentContainer = 0;
+		NextContainer = 0;
 	}
 
 	void EndFrame()
 	{
-		PopFrame();
 	}
 
-	Bitmap::Rect MenuFrame()
+	Bitmap::Rect MenuContainer()
 	{
-		Bitmap::Rect Frame = { (s32)FrameStack[CurrentFrame].CursorX
-							, (s32)FrameStack[CurrentFrame].CursorY
+		Bitmap::Rect Container = { (s32)ContainerStack[CurrentContainer].CursorX
+							, (s32)ContainerStack[CurrentContainer].CursorY
 							, (s32)DefaultFont.CharacterWidth * 32, (s32)DefaultFont.CharacterHeight };
-		return Frame;
+		return Container;
 	}
 
 	void BeginMenu()
 	{
-		BeginFrame(MenuFrame());
+		PushContainer(MenuContainer());
 	}
 
 	void EndMenu()
 	{
 		// draw the menu items here?
-		EndFrame();
+		PopContainer();
 	}
 
 	void DrawMenuButton(Bitmap::Rect& r, const Jogo::str8& Text, bool open)
@@ -844,8 +984,8 @@ namespace UI
 	{
 		u32 ButtonID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(label);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
@@ -856,7 +996,7 @@ namespace UI
 		{
 			open = !open;
 		}
-		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 		DrawMenuButton(TextSize, label, open);
 
 		return open;
@@ -866,14 +1006,14 @@ namespace UI
 	{
 		u32 MenuItemID = GetID();
 		Bitmap::Rect TextSize = DefaultFont.GetTextSize(Item);
-		TextSize.x = FrameStack[CurrentFrame].CursorX;
-		TextSize.y = FrameStack[CurrentFrame].CursorY;
+		TextSize.x = ContainerStack[CurrentContainer].CursorX;
+		TextSize.y = ContainerStack[CurrentContainer].CursorY;
 		TextSize.w += 8;
 		TextSize.h += 8;
 		CurrentColor = ButtonColor;
 		HiColor = HiLight;
 		LoColor = LoLight;
-		FrameStack[CurrentFrame].PrimitiveEnd(TextSize);
+		ContainerStack[CurrentContainer].PrimitiveEnd(TextSize);
 
 		if (Interact(MenuItemID, TextSize))
 		{
@@ -884,10 +1024,10 @@ namespace UI
 		return checked;
 	}
 
-	void PrintDebug(Arena scratch)
+	void PrintDebug(Arena scratch, s32 x, s32 y, u32 color)
 	{
-		DefaultFont.DrawText(5, 250, Jogo::str8::format(scratch, "Hot: {:}", HotID), 0, BackColor, Target);
-		DefaultFont.DrawText(5, 270, Jogo::str8::format(scratch, "Act: {:}", ActiveID), 0, BackColor, Target);
-		DefaultFont.DrawText(5, 290, Jogo::str8::format(scratch, "Foc: {:}", FocusID), 0, BackColor, Target);
+		DefaultFont.DrawText(x, y, Jogo::str8::format(scratch, "Hot: {:}", HotID), color, BackColor, Target);
+		DefaultFont.DrawText(x, y + DefaultFont.CharacterHeight+8, Jogo::str8::format(scratch, "Act: {:}", ActiveID), color, BackColor, Target);
+		DefaultFont.DrawText(x, y + 2*(DefaultFont.CharacterHeight+8) , Jogo::str8::format(scratch, "Foc: {:}", FocusID), color, BackColor, Target);
 	}
 }

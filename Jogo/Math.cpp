@@ -207,6 +207,30 @@ namespace Jogo
 		return a;
 	}
 
+	float arcsine(float x)
+	{
+		if (x >= 1.0f)
+			return PIOVER2;
+		if (x <= -1.0f)
+			return -PIOVER2;
+
+		float denom = sqrt(1 - x * x);
+		return arctangent(x, denom);
+	}
+
+	float arccosine(float x)
+	{
+		if (x >= 1.0f)
+			return 0;
+		if (x <= -1.0f)
+			return PI;
+		if (x == 0.0f)
+			return PIOVER2;
+
+		float num = sqrt(1 - x * x);
+		return arctangent(num, x);
+	}
+
 	// exp2/log2 functions adapted from here:
 	// http://www.machinedlearnings.com/2011/06/fast-approximate-logarithm-exponential.html
 	// https://github.com/etheory/fastapprox/tree/master/fastapprox/src

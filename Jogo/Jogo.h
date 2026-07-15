@@ -53,6 +53,7 @@ namespace Jogo
 	{
 		Print(str8::format(arena, fmt, args...));
 	}
+	str8 CWD(Arena& arena);
 
 	struct Timer
 	{

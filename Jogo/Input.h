@@ -35,6 +35,7 @@ namespace Input
 		virtual bool KeyDown(Keys key) { return false; }
 		virtual bool KeyUp(Keys key) { return false; }
 		virtual bool Char(char c) { return false; }
+		virtual bool CharFilter(char c) { return false; }
 		virtual bool MouseDown(s32 x, s32 y, Keys button) { return false; }
 		virtual bool MouseUp(s32 x, s32 y, Keys button) { return false; }
 		virtual bool MouseDoubleClick(s32 x, s32 y, Keys button) { return false; }

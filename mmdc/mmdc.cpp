@@ -19,7 +19,7 @@ using namespace Jogo;
 #define REGISTERS_H 226
 #define REGISTER_SIZE 14
 
-#define TIA_REG(t,id) {#t,id}
+#define TIA_REG(t) {#t}
 #define TIA_X 590
 #define TIA_Y 4
 #define TIA_W REGISTERS_W
@@ -30,57 +30,55 @@ using namespace Jogo;
 
 struct tia_refs {
 	char name[8];
-	int id;
-	int hwnd;
 };
 
 tia_refs tiaRefs[] =
 {
-	TIA_REG(VSYNC, 10401),
-	TIA_REG(VBLANK, 10402),
-	TIA_REG(WSYNC, 10403),
-	TIA_REG(RSYNC, 10404),
-	TIA_REG(NUSIZ0, 10405),
-	TIA_REG(NUSIZ1, 10406),
-	TIA_REG(COLUP0, 10407),
-	TIA_REG(COLUP1, 10408),
-	TIA_REG(COLUPF, 10409),
-	TIA_REG(COLUBK, 10410),
-	TIA_REG(CTRLPF, 10411),
-	TIA_REG(REFP0, 10412),
-	TIA_REG(REFP1, 10413),
-	TIA_REG(PF0, 10414),
-	TIA_REG(PF1, 10415),
-	TIA_REG(PF2, 10416),
-	TIA_REG(RESP0, 10417),
-	TIA_REG(RESP1, 10418),
-	TIA_REG(RESM0, 10419),
-	TIA_REG(RESM1, 10420),
-	TIA_REG(RESBL, 10421),
-	TIA_REG(AUDC0, 10422),
-	TIA_REG(AUDC1, 10423),
-	TIA_REG(AUDF0, 10424),
-	TIA_REG(AUDF1, 10425),
-	TIA_REG(AUDV0, 10426),
-	TIA_REG(AUDV1, 10427),
-	TIA_REG(GRP0, 10428),
-	TIA_REG(GRP1, 10429),
-	TIA_REG(ENAM0, 10430),
-	TIA_REG(ENAM1, 10431),
-	TIA_REG(ENABL, 10432),
-	TIA_REG(HMP0, 10433),
-	TIA_REG(HMP1, 10434),
-	TIA_REG(HMM0, 10435),
-	TIA_REG(HMM1, 10436),
-	TIA_REG(HMBL, 10437),
-	TIA_REG(VDELP0, 10438),
-	TIA_REG(VDELP1, 10439),
-	TIA_REG(VDELBL, 10440),
-	TIA_REG(RESMP0, 10441),
-	TIA_REG(RESMP1, 10442),
-	TIA_REG(HMOVE, 10443),
-	TIA_REG(HMCLR, 10444),
-	TIA_REG(CXCLR, 10445)
+	TIA_REG(VSYNC),
+	TIA_REG(VBLANK),
+	TIA_REG(WSYNC),
+	TIA_REG(RSYNC),
+	TIA_REG(NUSIZ0),
+	TIA_REG(NUSIZ1),
+	TIA_REG(COLUP0),
+	TIA_REG(COLUP1),
+	TIA_REG(COLUPF),
+	TIA_REG(COLUBK),
+	TIA_REG(CTRLPF),
+	TIA_REG(REFP0),
+	TIA_REG(REFP1),
+	TIA_REG(PF0),
+	TIA_REG(PF1),
+	TIA_REG(PF2),
+	TIA_REG(RESP0),
+	TIA_REG(RESP1),
+	TIA_REG(RESM0),
+	TIA_REG(RESM1),
+	TIA_REG(RESBL),
+	TIA_REG(AUDC0),
+	TIA_REG(AUDC1),
+	TIA_REG(AUDF0),
+	TIA_REG(AUDF1),
+	TIA_REG(AUDV0),
+	TIA_REG(AUDV1),
+	TIA_REG(GRP0),
+	TIA_REG(GRP1),
+	TIA_REG(ENAM0),
+	TIA_REG(ENAM1),
+	TIA_REG(ENABL),
+	TIA_REG(HMP0),
+	TIA_REG(HMP1),
+	TIA_REG(HMM0),
+	TIA_REG(HMM1),
+	TIA_REG(HMBL),
+	TIA_REG(VDELP0),
+	TIA_REG(VDELP1),
+	TIA_REG(VDELBL),
+	TIA_REG(RESMP0),
+	TIA_REG(RESMP1),
+	TIA_REG(HMOVE),
+	TIA_REG(HMCLR),
+	TIA_REG(CXCLR)
 };
 
 #define SOURCE_X 4
@@ -116,6 +114,10 @@ struct MMDC : public Jogo::App
 
 	MMDC()
 	{
+		// throw this string away immediately after use...
+		Arena scratch = DefaultArena.GetScratchArena(4096);
+		str8 cwd = Jogo::CWD(scratch);
+		Jogo::Print(cwd);
 		vcs2600.Init6502();
 		AtariFont = Font::Load("../Jogo/Atari8Tall.fnt", DefaultArena);
 		UI::Init(BackBuffer, AtariFont);
@@ -142,7 +144,7 @@ struct MMDC : public Jogo::App
 	void ShowRegisters()
 	{
 		Arena& sa = FrameArena;
-		UI::BeginFrame({ REGISTERS_X, REGISTERS_Y, REGISTERS_W, REGISTERS_H });
+		UI::PushContainer({ REGISTERS_X, REGISTERS_Y, REGISTERS_W, REGISTERS_H });
 
 		UI::Label(str8::format(sa, "   A: {:02X}", vcs2600.cpu.a));
 		UI::Label(str8::format(sa, "   X: {:02X}", vcs2600.cpu.x));
@@ -154,21 +156,21 @@ struct MMDC : public Jogo::App
 		UI::Label(str8::format(sa, "Clock: {:04X}", vcs2600.cpu.cycles&0xffff));
 		UI::Label(str8::format(sa, "Frame: {}", vcs2600.frameCounter));
 
-		UI::EndFrame();
+		UI::PopContainer();
 
-		UI::BeginFrame({ TIA_X, TIA_Y, TIA_W, TIA_H });
+		UI::PushContainer({ TIA_X, TIA_Y, TIA_W, TIA_H });
 		for (int i = 0; i < TIA_COUNT / 2; i++)
 		{
 			UI::Label(str8::format(sa, "{:02X} {:6}: {:02X}", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
 		}
-		UI::EndFrame();
+		UI::PopContainer();
 
-		UI::BeginFrame({ TIA_X+TIA_W+16, TIA_Y, TIA_W, TIA_H });
+		UI::PushContainer({ TIA_X+TIA_W+16, TIA_Y, TIA_W, TIA_H });
 		for (int i = TIA_COUNT/2; i < TIA_COUNT; i++)
 		{
 			UI::Label(str8::format(sa, "{:02X} {:6}: {:02X}", i, tiaRefs[i].name, vcs2600.tia.GetWriteRegisters()[i]));
 		}
-		UI::EndFrame();
+		UI::PopContainer();
 	}
 
 	void ShowRam()
@@ -176,27 +178,30 @@ struct MMDC : public Jogo::App
 		Arena& sa = FrameArena;
 		size_t savedAlignment = sa.Alignment;
 		sa.Alignment = 1;
-		UI::BeginFrame({ RAM_X, RAM_Y, RAM_W, RAM_H });
+		UI::PushContainer({ RAM_X, RAM_Y, RAM_W, RAM_H });
 		for (int i = 0; i < RAM_ROWS; i++)
 		{
+			UI::PushContainer({ RAM_X, RAM_Y + i*16, RAM_W, RAM_H }, 1);
 			str8 mem = str8::format(sa, "{:03X}: ", i * 16 + 128);
-			for (int j = 0; j < 8; j++)
-			{
-				str8 m = str8::format(sa, "{:02X} ", vcs2600.ram[j + i * 16]);
-				mem.len += m.len;
-			}
-			str8 space = str8::format(sa, " ");
-			mem.len += space.len;
-			for (int j = 0; j < 8; j++)
-			{
-				str8 m = str8::format(sa, "{:02X} ", vcs2600.ram[j + 8 + i * 16]);
-				mem.len += m.len;
-			}
 			UI::Label(mem);
+			for (int j = 0; j < 8; j++)
+			{
+				// TODO: take results of editbox, convert to number and store it back in ram
+				str8 m = str8::format(sa, "{:02X}", vcs2600.ram[j + i * 16]);
+				m = UI::EditBox(m, "{:02X}");
+				vcs2600.ram[j + i * 16] = m.hextoi();
+			}
+			UI::Label(" ");
+			for (int j = 0; j < 8; j++)
+			{
+				str8 m = str8::format(sa, "{:02X}", vcs2600.ram[j + 8 + i * 16]);
+				m = UI::EditBox(m, "{:02X}");
+				vcs2600.ram[j + 8 + i * 16] = m.hextoi();
+			}
+			UI::PopContainer();
 		}
-		UI::EndFrame();
+		UI::PopContainer();
 		sa.Alignment = savedAlignment;
-
 	}
 
 	void ShowSource()
@@ -204,7 +209,7 @@ struct MMDC : public Jogo::App
 		int length = 0;
 		char dis[256];
 		// loop through a few instructions and add them to the text output
-		UI::BeginFrame({ SOURCE_X, SOURCE_Y, SOURCE_W, SOURCE_H });
+		UI::PushContainer({ SOURCE_X, SOURCE_Y, SOURCE_W, SOURCE_H });
 		for (int i = 0; i < SOURCE_ROWS; i++)
 		{
 			str8 s = str8::format(FrameArena, "{:04X} ", vcs2600.cpu.pc + length);
@@ -213,7 +218,7 @@ struct MMDC : public Jogo::App
 			str8 diss = str8::format(FrameArena, "{}{}", s, dis);
 			UI::Label(diss);
 		}
-		UI::EndFrame();
+		UI::PopContainer();
 	}
 
 	bool KeyDown(Input::Keys key)
@@ -272,7 +277,8 @@ struct MMDC : public Jogo::App
 
 	void DoButtons()
 	{
-		UI::BeginFrame({ BUTTON_PANEL_X, BUTTON_PANEL_Y, BUTTON_PANEL_W, BUTTON_PANEL_H }, 1);
+		UI::BeginFrame();
+		UI::PushContainer({ BUTTON_PANEL_X, BUTTON_PANEL_Y, BUTTON_PANEL_W, BUTTON_PANEL_H }, 1);
 		if (paused)
 		{
 			if (UI::Button(" >  "))
@@ -295,7 +301,7 @@ struct MMDC : public Jogo::App
 		{
 			step_frame = true;
 		}
-		UI::EndFrame();
+		UI::PopContainer();
 	}
 
 	void Draw() override
@@ -309,6 +315,7 @@ struct MMDC : public Jogo::App
 		ShowRam();
 		step = step_line = step_frame = false;
 		DoButtons();
+		UI::PrintDebug(FrameArena, 10, 500, 0xffffff);
 		Show(BackBuffer.PixelBGRA, BackBuffer.Width, BackBuffer.Height);
 
 	}
@@ -318,6 +325,7 @@ struct MMDC : public Jogo::App
 const char* MMDC::Name = "MMDC";
 
 int main(int argc, char* argv[])
+
 {
 	MMDC mmdc;
 	Jogo::Run(mmdc, 60);
